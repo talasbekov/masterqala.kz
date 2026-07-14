@@ -1,0 +1,110 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  CLIENT
+  OPERATOR
+}
+
+enum MasterStatus {
+  PENDING_REVIEW
+  NEEDS_INFO
+  ACTIVE
+  REJECTED
+}
+
+enum DocumentType {
+  ID_CARD
+  QUALIFICATION
+}
+
+enum DecisionType {
+  APPROVE
+  REJECT
+  REQUEST_INFO
+}
+
+model User {
+  id             String         @id @default(uuid())
+  phone          String         @unique
+  name           String?
+  defaultAddress String?
+  role           UserRole       @default(CLIENT)
+  createdAt      DateTime       @default(now())
+  masterProfile  MasterProfile?
+  decisions      VerificationDecision[]
+}
+
+model SmsCode {
+  id        String    @id @default(uuid())
+  phone     String
+  code      String
+  expiresAt DateTime
+  attempts  Int       @default(0)
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([phone, createdAt])
+}
+
+model Category {
+  id      String           @id @default(uuid())
+  slug    String           @unique
+  name    String
+  masters MasterCategory[]
+}
+
+model MasterProfile {
+  id              String           @id @default(uuid())
+  userId          String           @unique
+  user            User             @relation(fields: [userId], references: [id])
+  fullName        String
+  iin             String
+  district        String
+  experienceYears Int
+  status          MasterStatus     @default(PENDING_REVIEW)
+  rejectionReason String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  categories      MasterCategory[]
+  documents       MasterDocument[]
+  decisions       VerificationDecision[]
+}
+
+model MasterCategory {
+  masterProfileId String
+  categoryId      String
+  masterProfile   MasterProfile @relation(fields: [masterProfileId], references: [id], onDelete: Cascade)
+  category        Category      @relation(fields: [categoryId], references: [id])
+
+  @@id([masterProfileId, categoryId])
+}
+
+model MasterDocument {
+  id              String        @id @default(uuid())
+  masterProfileId String
+  masterProfile   MasterProfile @relation(fields: [masterProfileId], references: [id], onDelete: Cascade)
+  type            DocumentType
+  filePath        String
+  originalName    String
+  mimeType        String
+  sizeBytes       Int
+  createdAt       DateTime      @default(now())
+}
+
+model VerificationDecision {
+  id              String        @id @default(uuid())
+  masterProfileId String
+  masterProfile   MasterProfile @relation(fields: [masterProfileId], references: [id], onDelete: Cascade)
+  operatorId      String
+  operator        User          @relation(fields: [operatorId], references: [id])
+  decision        DecisionType
+  comment         String?
+  createdAt       DateTime      @default(now())
+}
