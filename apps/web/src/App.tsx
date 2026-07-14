@@ -2,6 +2,7 @@ import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom
 import { AuthProvider, useAuth } from './auth';
 import LoginPage from './pages/LoginPage';
 import HomePage from './pages/HomePage';
+import BecomeMasterPage from './pages/BecomeMasterPage';
 
 function RequireAuth() {
   const { user } = useAuth();
@@ -16,6 +17,7 @@ export default function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route element={<RequireAuth />}>
             <Route path="/" element={<HomePage />} />
+            <Route path="/become-master" element={<BecomeMasterPage />} />
           </Route>
         </Routes>
       </BrowserRouter>
