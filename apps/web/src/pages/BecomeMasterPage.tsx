@@ -147,7 +147,11 @@ export default function BecomeMasterPage() {
               <input
                 type="file"
                 accept="image/jpeg,image/png,application/pdf"
-                onChange={(e) => e.target.files?.[0] && upload(dt.value, e.target.files[0])}
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  e.target.value = '';
+                  if (file) upload(dt.value, file);
+                }}
               />
               <ul className="text-sm text-gray-600">
                 {app!.documents.filter((d) => d.type === dt.value).map((d) => (
