@@ -30,4 +30,23 @@ describe('Users: me', () => {
     expect(updated.body.name).toBe('Ерда');
     expect(updated.body.defaultAddress).toBe('Алматы, ул. Абая 1');
   });
+
+  it('PATCH с name длиннее 100 символов → 400', async () => {
+    const { token } = await loginAs(app, '+77071234567');
+    await request(app.getHttpServer())
+      .patch('/api/v1/users/me')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ name: 'x'.repeat(101) })
+      .expect(400);
+  });
+
+  it('PATCH с посторонним полем role не меняет роль (whitelist)', async () => {
+    const { token } = await loginAs(app, '+77071234567');
+    const res = await request(app.getHttpServer())
+      .patch('/api/v1/users/me')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ name: 'Ерда', role: 'OPERATOR' })
+      .expect(200);
+    expect(res.body.role).toBe('CLIENT');
+  });
 });
