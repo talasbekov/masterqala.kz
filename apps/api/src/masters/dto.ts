@@ -1,4 +1,5 @@
-import { ArrayMinSize, IsArray, IsInt, IsString, Matches, Max, MaxLength, Min, MinLength } from 'class-validator';
+import { ArrayMinSize, IsArray, IsInt, IsString, Matches, Max, MaxLength, Min, MinLength, IsEnum } from 'class-validator';
+import { DocumentType } from '@prisma/client';
 
 export class SubmitApplicationDto {
   @IsString()
@@ -23,4 +24,9 @@ export class SubmitApplicationDto {
   @ArrayMinSize(1)
   @IsString({ each: true })
   categoryIds!: string[];
+}
+
+export class UploadDocumentDto {
+  @IsEnum(DocumentType)
+  type!: DocumentType;
 }

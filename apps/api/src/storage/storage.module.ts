@@ -1,0 +1,9 @@
+import { Module } from '@nestjs/common';
+import { FILE_STORAGE } from './storage.interface';
+import { LocalDiskStorage } from './local-disk.storage';
+
+@Module({
+  providers: [{ provide: FILE_STORAGE, useClass: LocalDiskStorage }],
+  exports: [FILE_STORAGE],
+})
+export class StorageModule {}
