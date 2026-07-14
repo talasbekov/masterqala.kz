@@ -43,11 +43,18 @@ export default function AdminDetailPage() {
   }
 
   async function openDoc(docId: string) {
+    setError('');
     const res = await fetch(`${API}/admin/applications/${id}/documents/${docId}`, {
       headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
     });
+    if (!res.ok) {
+      setError(`Не удалось открыть документ (${res.status})`);
+      return;
+    }
     const blob = await res.blob();
-    window.open(URL.createObjectURL(blob), '_blank');
+    const url = URL.createObjectURL(blob);
+    window.open(url, '_blank');
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
   }
 
   if (!detail) return <p className="p-6">Загрузка…</p>;
