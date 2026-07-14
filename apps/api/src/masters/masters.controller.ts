@@ -33,7 +33,7 @@ export class MastersController {
 
   @Post('masters/application/documents')
   @UseGuards(JwtAuthGuard)
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: MastersService.MAX_FILE_BYTES } }))
   uploadDocument(
     @CurrentUser() user: User,
     @Body() dto: UploadDocumentDto,

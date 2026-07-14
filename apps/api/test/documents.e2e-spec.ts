@@ -60,4 +60,18 @@ describe('Masters: documents', () => {
       .attach('file', Buffer.from([0x89]), { filename: 'x.png', contentType: 'image/png' })
       .expect(404);
   });
+
+  it('файл больше 10 МБ отклоняется', async () => {
+    const { plumbing } = await seedCategories(app);
+    const { token } = await loginAs(app, '+77071234567');
+    await createApplication(token, plumbing.id);
+
+    const big = Buffer.alloc(10 * 1024 * 1024 + 1, 1);
+    const res = await request(app.getHttpServer())
+      .post('/api/v1/masters/application/documents')
+      .set('Authorization', `Bearer ${token}`)
+      .field('type', 'ID_CARD')
+      .attach('file', big, { filename: 'big.png', contentType: 'image/png' });
+    expect([400, 413]).toContain(res.status);
+  });
 });

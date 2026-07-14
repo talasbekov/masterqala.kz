@@ -1,7 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { mkdir, writeFile } from 'fs/promises';
-import { join, resolve } from 'path';
+import { join, resolve, sep } from 'path';
 import { FileStorage } from './storage.interface';
 
 @Injectable()
@@ -16,6 +16,10 @@ export class LocalDiskStorage implements FileStorage {
   }
 
   absolutePath(relPath: string): string {
-    return join(this.dir, relPath);
+    const abs = resolve(this.dir, relPath);
+    if (abs !== this.dir && !abs.startsWith(this.dir + sep)) {
+      throw new BadRequestException('Недопустимый путь файла');
+    }
+    return abs;
   }
 }
