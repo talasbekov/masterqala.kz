@@ -46,4 +46,19 @@ describe('Auth: request-code', () => {
       .send({ phone: '+77071234567' })
       .expect(429);
   });
+
+  it('параллельные запросы не превышают лимит 3 кодов', async () => {
+    const results = await Promise.all(
+      Array.from({ length: 6 }, () =>
+        request(app.getHttpServer())
+          .post('/api/v1/auth/request-code')
+          .send({ phone: '+77071234567' }),
+      ),
+    );
+    const ok = results.filter((r) => r.status === 204).length;
+    const limited = results.filter((r) => r.status === 429).length;
+    expect(ok).toBe(3);
+    expect(limited).toBe(3);
+    expect(await prisma.smsCode.count({ where: { phone: '+77071234567' } })).toBe(3);
+  });
 });

@@ -19,17 +19,20 @@ export class AuthService {
     const phone = normalizePhone(rawPhone);
     if (!phone) throw new BadRequestException('Неверный формат номера');
 
-    const windowStart = new Date(Date.now() - SEND_WINDOW_MS);
-    const recent = await this.prisma.smsCode.count({
-      where: { phone, createdAt: { gte: windowStart } },
-    });
-    if (recent >= MAX_SENDS_PER_WINDOW) {
-      throw new HttpException('Слишком много запросов кода, попробуйте позже', 429);
-    }
-
     const code = randomInt(100000, 1000000).toString();
-    await this.prisma.smsCode.create({
-      data: { phone, code, expiresAt: new Date(Date.now() + CODE_TTL_MS) },
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${phone}))`;
+      const windowStart = new Date(Date.now() - SEND_WINDOW_MS);
+      const recent = await tx.smsCode.count({
+        where: { phone, createdAt: { gte: windowStart } },
+      });
+      if (recent >= MAX_SENDS_PER_WINDOW) {
+        throw new HttpException('Слишком много запросов кода, попробуйте позже', 429);
+      }
+      await tx.smsCode.create({
+        data: { phone, code, expiresAt: new Date(Date.now() + CODE_TTL_MS) },
+      });
     });
     await this.sms.send(phone, `Ваш код подтверждения: ${code}`);
   }
