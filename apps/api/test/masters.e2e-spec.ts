@@ -81,6 +81,28 @@ describe('Masters: application', () => {
     expect(res.body.categories[0].category.slug).toBe('electrics');
   });
 
+  it('переподача после REJECTED сбрасывает rejectionReason и возвращает PENDING_REVIEW', async () => {
+    const { plumbing } = await seedCategories(app);
+    const { token, userId } = await loginAs(app, '+77071234567');
+    await request(app.getHttpServer())
+      .post('/api/v1/masters/application')
+      .set('Authorization', `Bearer ${token}`)
+      .send(validBody(plumbing.id))
+      .expect(201);
+    await prisma.masterProfile.update({
+      where: { userId },
+      data: { status: 'REJECTED', rejectionReason: 'Документы нечитаемы' },
+    });
+
+    const res = await request(app.getHttpServer())
+      .post('/api/v1/masters/application')
+      .set('Authorization', `Bearer ${token}`)
+      .send(validBody(plumbing.id))
+      .expect(201);
+    expect(res.body.status).toBe('PENDING_REVIEW');
+    expect(res.body.rejectionReason).toBeNull();
+  });
+
   it('GET своей заявки: 404 без заявки, 200 с заявкой', async () => {
     const { plumbing } = await seedCategories(app);
     const { token } = await loginAs(app, '+77071234567');
