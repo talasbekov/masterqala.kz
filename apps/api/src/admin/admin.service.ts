@@ -60,31 +60,32 @@ export class AdminService {
   }
 
   async decide(operatorId: string, profileId: string, dto: DecisionDto) {
-    const profile = await this.prisma.masterProfile.findUnique({ where: { id: profileId } });
-    if (!profile) throw new NotFoundException('Заявка не найдена');
-    if (profile.status !== 'PENDING_REVIEW') {
-      throw new ConflictException('Заявка не находится на рассмотрении');
-    }
     if (dto.decision !== 'APPROVE' && !dto.comment) {
       throw new BadRequestException('Укажите причину решения');
     }
-    const [updated] = await this.prisma.$transaction([
-      this.prisma.masterProfile.update({
-        where: { id: profileId },
+    const profile = await this.prisma.masterProfile.findUnique({ where: { id: profileId } });
+    if (!profile) throw new NotFoundException('Заявка не найдена');
+
+    return this.prisma.$transaction(async (tx) => {
+      const { count } = await tx.masterProfile.updateMany({
+        where: { id: profileId, status: 'PENDING_REVIEW' },
         data: {
           status: AdminService.TRANSITIONS[dto.decision],
           rejectionReason: dto.decision === 'REJECT' ? dto.comment : null,
         },
-      }),
-      this.prisma.verificationDecision.create({
+      });
+      if (count === 0) {
+        throw new ConflictException('Заявка не находится на рассмотрении');
+      }
+      await tx.verificationDecision.create({
         data: {
           masterProfileId: profileId,
           operatorId,
           decision: dto.decision,
           comment: dto.comment,
         },
-      }),
-    ]);
-    return updated;
+      });
+      return tx.masterProfile.findUniqueOrThrow({ where: { id: profileId } });
+    });
   }
 }

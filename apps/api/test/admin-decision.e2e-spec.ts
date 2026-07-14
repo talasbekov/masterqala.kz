@@ -73,4 +73,21 @@ describe('Admin: decision', () => {
       .send({ decision: 'APPROVE' })
       .expect(409);
   });
+
+  it('параллельные решения: только одно проходит, журнал не дублируется', async () => {
+    const { profileId, opToken } = await setup();
+    const results = await Promise.all(
+      Array.from({ length: 4 }, () =>
+        request(app.getHttpServer())
+          .post(`/api/v1/admin/applications/${profileId}/decision`)
+          .set('Authorization', `Bearer ${opToken}`)
+          .send({ decision: 'APPROVE' }),
+      ),
+    );
+    const ok = results.filter((r) => r.status === 201).length;
+    const conflict = results.filter((r) => r.status === 409).length;
+    expect(ok).toBe(1);
+    expect(conflict).toBe(3);
+    expect(await prisma.verificationDecision.count({ where: { masterProfileId: profileId } })).toBe(1);
+  });
 });
