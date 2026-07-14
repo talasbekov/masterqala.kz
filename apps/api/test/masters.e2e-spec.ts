@@ -127,4 +127,30 @@ describe('Masters: application', () => {
     const res = await request(app.getHttpServer()).get('/api/v1/categories').expect(200);
     expect(res.body).toHaveLength(2);
   });
+
+  it('после REQUEST_INFO мастер видит комментарий оператора в latestDecisionComment', async () => {
+    const { plumbing } = await seedCategories(app);
+    const { token } = await loginAs(app, '+77071234567');
+    const { token: operatorToken } = await loginAs(app, '+77000000001', 'OPERATOR');
+
+    const createRes = await request(app.getHttpServer())
+      .post('/api/v1/masters/application')
+      .set('Authorization', `Bearer ${token}`)
+      .send(validBody(plumbing.id))
+      .expect(201);
+    const applicationId = createRes.body.id;
+
+    await request(app.getHttpServer())
+      .post(`/api/v1/admin/applications/${applicationId}/decision`)
+      .set('Authorization', `Bearer ${operatorToken}`)
+      .send({ decision: 'REQUEST_INFO', comment: 'Приложите диплом' })
+      .expect(201);
+
+    const res = await request(app.getHttpServer())
+      .get('/api/v1/masters/application')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+    expect(res.body.status).toBe('NEEDS_INFO');
+    expect(res.body.latestDecisionComment).toBe('Приложите диплом');
+  });
 });

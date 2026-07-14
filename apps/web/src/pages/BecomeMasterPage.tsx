@@ -12,6 +12,7 @@ interface Application {
   experienceYears: number;
   status: 'PENDING_REVIEW' | 'NEEDS_INFO' | 'ACTIVE' | 'REJECTED';
   rejectionReason: string | null;
+  latestDecisionComment: string | null;
   categories: { category: Category }[];
   documents: Doc[];
 }
@@ -96,6 +97,9 @@ export default function BecomeMasterPage() {
           <p className="font-semibold">Статус: {STATUS_RU[app.status]}</p>
           {app.status === 'REJECTED' && app.rejectionReason && (
             <p className="text-red-600">Причина: {app.rejectionReason}</p>
+          )}
+          {app.status === 'NEEDS_INFO' && app.latestDecisionComment && (
+            <p className="text-yellow-700">Что нужно дополнить: {app.latestDecisionComment}</p>
           )}
           {canResubmit && (
             <button className="rounded bg-teal-700 px-4 py-2 text-white" onClick={() => setEditing(true)}>

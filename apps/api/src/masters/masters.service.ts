@@ -72,7 +72,11 @@ export class MastersService {
       include: PROFILE_INCLUDE,
     });
     if (!profile) throw new NotFoundException('Заявка не найдена');
-    return profile;
+    const latest = await this.prisma.verificationDecision.findFirst({
+      where: { masterProfileId: profile.id },
+      orderBy: { createdAt: 'desc' },
+    });
+    return { ...profile, latestDecisionComment: latest?.comment ?? null };
   }
 
   async uploadDocument(userId: string, type: DocumentType, file: Express.Multer.File) {
