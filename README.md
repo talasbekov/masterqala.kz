@@ -12,6 +12,7 @@
 ```bash
 docker compose up -d                 # БД (5432) и тестовая БД (5433)
 pnpm install
+cp apps/api/.env.example apps/api/.env
 cd apps/api && pnpm prisma migrate dev && pnpm prisma db seed && cd ../..
 pnpm --filter api start:dev          # API на :3000
 pnpm --filter web dev                # Web на :5173

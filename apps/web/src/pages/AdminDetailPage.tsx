@@ -4,6 +4,18 @@ import { api } from '../api';
 
 const API = import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api/v1';
 
+const STATUS_RU: Record<string, string> = {
+  PENDING_REVIEW: 'На проверке',
+  NEEDS_INFO: 'Нужны данные',
+  ACTIVE: 'Активен',
+  REJECTED: 'Отклонена',
+};
+const DECISION_RU: Record<string, string> = {
+  APPROVE: 'Одобрено',
+  REJECT: 'Отклонено',
+  REQUEST_INFO: 'Запрошены данные',
+};
+
 interface Detail {
   id: string;
   fullName: string;
@@ -69,7 +81,7 @@ export default function AdminDetailPage() {
         <p>Район: {detail.district}</p>
         <p>Опыт: {detail.experienceYears} лет</p>
         <p>Категории: {detail.categories.map((c) => c.category.name).join(', ')}</p>
-        <p>Статус: {detail.status}</p>
+        <p>Статус: {STATUS_RU[detail.status] ?? detail.status}</p>
       </div>
 
       <div className="rounded border p-4">
@@ -109,7 +121,7 @@ export default function AdminDetailPage() {
         <ul className="text-sm">
           {detail.decisions.map((d) => (
             <li key={d.id}>
-              {new Date(d.createdAt).toLocaleString('ru-RU')} — {d.decision} ({d.operator.phone})
+              {new Date(d.createdAt).toLocaleString('ru-RU')} — {DECISION_RU[d.decision] ?? d.decision} ({d.operator.phone})
               {d.comment && `: ${d.comment}`}
             </li>
           ))}
