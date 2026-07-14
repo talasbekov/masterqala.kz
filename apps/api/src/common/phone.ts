@@ -1,7 +1,5 @@
 export function normalizePhone(raw: string): string | null {
-  const digits = raw.replace(/\D/g, '');
-  if (digits.length === 11 && (digits.startsWith('7') || digits.startsWith('8'))) {
-    return '+7' + digits.slice(1);
-  }
-  return null;
+  const cleaned = raw.replace(/[\s\-().]/g, '');
+  if (!/^(?:\+7|7|8)\d{10}$/.test(cleaned)) return null;
+  return '+7' + cleaned.slice(-10);
 }
