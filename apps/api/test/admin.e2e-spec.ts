@@ -69,4 +69,12 @@ describe('Admin: applications', () => {
       .expect(200);
     expect(res.headers['content-type']).toContain('image/png');
   });
+
+  it('невалидный status → 400', async () => {
+    const { token: opToken } = await loginAs(app, '+77000000001', 'OPERATOR');
+    await request(app.getHttpServer())
+      .get('/api/v1/admin/applications?status=BOGUS')
+      .set('Authorization', `Bearer ${opToken}`)
+      .expect(400);
+  });
 });

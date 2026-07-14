@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Query, StreamableFile, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, Query, StreamableFile, UseGuards, ParseEnumPipe } from '@nestjs/common';
 import { MasterStatus } from '@prisma/client';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Roles, RolesGuard } from '../auth/roles.guard';
@@ -11,7 +11,10 @@ export class AdminController {
   constructor(private readonly admin: AdminService) {}
 
   @Get()
-  list(@Query('status') status?: MasterStatus) {
+  list(
+    @Query('status', new ParseEnumPipe(MasterStatus, { optional: true }))
+    status?: MasterStatus,
+  ) {
     return this.admin.listApplications(status);
   }
 
