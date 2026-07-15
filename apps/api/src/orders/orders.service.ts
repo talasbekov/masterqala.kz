@@ -189,4 +189,22 @@ export class OrdersService {
     if (order.masterId)
       this.gateway.emitToUser(order.masterId, 'order:status', payload);
   }
+
+  /** SEARCHING → NO_MASTERS: void холда, гашение PENDING-офферов, WS. */
+  async markNoMasters(orderId: string): Promise<void> {
+    const pending = await this.prisma.$transaction(async (tx) => {
+      await this.gate(orderId, 'SEARCHING', { status: 'NO_MASTERS' }, tx);
+      const offers = await tx.orderOffer.findMany({ where: { orderId, outcome: 'PENDING' } });
+      await tx.orderOffer.updateMany({
+        where: { id: { in: offers.map((o) => o.id) } },
+        data: { outcome: 'EXPIRED' },
+      });
+      return offers;
+    });
+    await this.payments.void(orderId); // после capture (отмена мастером) mock трактует как возврат
+    for (const o of pending) {
+      this.gateway.emitToUser(o.masterUserId, 'offer:closed', { orderId, reason: 'Поиск завершён' });
+    }
+    await this.emitOrderStatus(orderId);
+  }
 }
