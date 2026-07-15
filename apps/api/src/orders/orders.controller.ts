@@ -3,7 +3,7 @@ import { User } from '@prisma/client';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { OrdersService } from './orders.service';
-import { CreateOrderDto, PreviewOrderDto } from './dto';
+import { CreateOrderDto, PreviewOrderDto, ProposePriceDto } from './dto';
 
 @Controller()
 @UseGuards(JwtAuthGuard)
@@ -43,5 +43,30 @@ export class OrdersController {
   @Post('orders/:id/accept')
   accept(@CurrentUser() user: User, @Param('id') id: string) {
     return this.orders.accept(user.id, id);
+  }
+
+  @Post('orders/:id/on-way')
+  onWay(@CurrentUser() user: User, @Param('id') id: string) {
+    return this.orders.onWay(user.id, id);
+  }
+
+  @Post('orders/:id/on-site')
+  onSite(@CurrentUser() user: User, @Param('id') id: string) {
+    return this.orders.onSite(user.id, id);
+  }
+
+  @Post('orders/:id/propose-price')
+  proposePrice(@CurrentUser() user: User, @Param('id') id: string, @Body() dto: ProposePriceDto) {
+    return this.orders.proposePrice(user.id, id, dto);
+  }
+
+  @Post('orders/:id/confirm-price')
+  confirmPrice(@CurrentUser() user: User, @Param('id') id: string) {
+    return this.orders.confirmPrice(user.id, id);
+  }
+
+  @Post('orders/:id/reject-price')
+  rejectPrice(@CurrentUser() user: User, @Param('id') id: string) {
+    return this.orders.rejectPrice(user.id, id);
   }
 }

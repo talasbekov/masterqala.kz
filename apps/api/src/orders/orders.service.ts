@@ -5,6 +5,7 @@ import {
   Inject,
   Injectable,
   NotFoundException,
+  OnModuleInit,
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { Order, Prisma, User } from '@prisma/client';
@@ -21,13 +22,14 @@ import {
   ACTIVE_CLIENT_STATUSES,
   ACTIVE_MASTER_STATUSES,
   ORDER_INCLUDE,
+  PRICE_CONFIRM_TIMEOUT_S,
 } from './order.constants';
-import { CreateOrderDto, PreviewOrderDto } from './dto';
+import { CreateOrderDto, PreviewOrderDto, ProposePriceDto } from './dto';
 
 type Tx = Prisma.TransactionClient;
 
 @Injectable()
-export class OrdersService {
+export class OrdersService implements OnModuleInit {
   constructor(
     private readonly prisma: PrismaService,
     private readonly pricing: PricingService,
@@ -251,4 +253,82 @@ export class OrdersService {
     }
     await this.emitOrderStatus(orderId);
   }
+
+  onModuleInit(): void {
+    this.queue.register(JOBS.PRICE_TIMEOUT, (d: { orderId: string }) => this.handlePriceTimeout(d));
+    this.queue.register(JOBS.AUTO_CLOSE, (d: { orderId: string }) => this.handleAutoClose(d));
+  }
+
+  /** Заявка принадлежит мастеру? Иначе 403. */
+  private async guardMaster(masterUserId: string, orderId: string) {
+    const order = await this.findOrThrow(orderId);
+    if (order.masterId !== masterUserId) throw new ForbiddenException('Нет доступа к заявке');
+    return order;
+  }
+
+  private async guardClient(clientId: string, orderId: string) {
+    const order = await this.findOrThrow(orderId);
+    if (order.clientId !== clientId) throw new ForbiddenException('Нет доступа к заявке');
+    return order;
+  }
+
+  async onWay(masterUserId: string, orderId: string) {
+    await this.guardMaster(masterUserId, orderId);
+    await this.gate(orderId, 'ACCEPTED', { status: 'MASTER_ON_WAY' });
+    await this.emitOrderStatus(orderId);
+    return this.findOrThrow(orderId);
+  }
+
+  async onSite(masterUserId: string, orderId: string) {
+    await this.guardMaster(masterUserId, orderId);
+    await this.gate(orderId, 'MASTER_ON_WAY', { status: 'INSPECTION', onSiteAt: new Date() });
+    await this.emitOrderStatus(orderId);
+    return this.findOrThrow(orderId);
+  }
+
+  async proposePrice(masterUserId: string, orderId: string, dto: ProposePriceDto) {
+    await this.guardMaster(masterUserId, orderId);
+    await this.gate(orderId, 'INSPECTION', {
+      status: 'AWAITING_PRICE_CONFIRM',
+      workPrice: dto.amount,
+      workComment: dto.comment ?? null,
+      priceProposedAt: new Date(),
+    });
+    await this.queue.send(JOBS.PRICE_TIMEOUT, { orderId }, PRICE_CONFIRM_TIMEOUT_S);
+    await this.emitOrderStatus(orderId);
+    return this.findOrThrow(orderId);
+  }
+
+  async confirmPrice(clientId: string, orderId: string) {
+    await this.guardClient(clientId, orderId);
+    await this.gate(orderId, 'AWAITING_PRICE_CONFIRM', { status: 'IN_PROGRESS' });
+    await this.emitOrderStatus(orderId);
+    return this.findOrThrow(orderId);
+  }
+
+  async rejectPrice(clientId: string, orderId: string) {
+    await this.guardClient(clientId, orderId);
+    await this.cancelPaidFromAwaiting(orderId, 'Клиент отклонил цену работ');
+    return this.findOrThrow(orderId);
+  }
+
+  /** Джоба: клиент молчал 15 минут. Не в AWAITING — тихий выход (идемпотентность). */
+  async handlePriceTimeout({ orderId }: { orderId: string }): Promise<void> {
+    const order = await this.prisma.order.findUnique({ where: { id: orderId } });
+    if (!order || order.status !== 'AWAITING_PRICE_CONFIRM') return;
+    await this.cancelPaidFromAwaiting(orderId, 'Таймаут подтверждения цены (15 минут)');
+  }
+
+  /** AWAITING_PRICE_CONFIRM → CANCELLED_BY_CLIENT с удержанием сбора и компенсацией мастеру (§3.9). */
+  private async cancelPaidFromAwaiting(orderId: string, reason: string): Promise<void> {
+    await this.prisma.$transaction(async (tx) => {
+      await this.gate(orderId, 'AWAITING_PRICE_CONFIRM', { status: 'CANCELLED_BY_CLIENT', cancelReason: reason }, tx);
+      const order = await tx.order.findUniqueOrThrow({ where: { id: orderId } });
+      await this.accrueCompensation(tx, order);
+    });
+    await this.emitOrderStatus(orderId);
+  }
+
+  /** Заглушка до Task 10. */
+  async handleAutoClose(_d: { orderId: string }): Promise<void> {}
 }
