@@ -7,9 +7,21 @@ import { UsersModule } from './users/users.module';
 import { MastersModule } from './masters/masters.module';
 import { AdminModule } from './admin/admin.module';
 import { PaymentsModule } from './payments/payments.module';
+import { RoutingModule } from './routing/routing.module';
+import { PricingModule } from './pricing/pricing.module';
 
 @Module({
-  imports: [ConfigModule.forRoot({ isGlobal: true }), PrismaModule, AuthModule, UsersModule, MastersModule, AdminModule, PaymentsModule],
+  imports: [
+    ConfigModule.forRoot({ isGlobal: true }),
+    PrismaModule,
+    AuthModule,
+    UsersModule,
+    MastersModule,
+    AdminModule,
+    PaymentsModule,
+    RoutingModule,
+    PricingModule,
+  ],
   controllers: [HealthController],
   providers: [],
 })
