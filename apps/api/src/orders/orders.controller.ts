@@ -39,4 +39,9 @@ export class OrdersController {
   getMasterActive(@CurrentUser() user: User) {
     return this.orders.getMasterActive(user.id);
   }
+
+  @Post('orders/:id/accept')
+  accept(@CurrentUser() user: User, @Param('id') id: string) {
+    return this.orders.accept(user.id, id);
+  }
 }

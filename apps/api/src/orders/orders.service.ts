@@ -190,6 +190,50 @@ export class OrdersService {
       this.gateway.emitToUser(order.masterId, 'order:status', payload);
   }
 
+  /** Гонка «Принять»: гейт SEARCHING→ACCEPTED атомарен; проигравший получает 409. */
+  async accept(masterUserId: string, orderId: string): Promise<Order> {
+    const losers = await this.prisma.$transaction(async (tx) => {
+      const busy = await tx.order.count({
+        where: { masterId: masterUserId, status: { in: ACTIVE_MASTER_STATUSES } },
+      });
+      if (busy > 0) throw new ConflictException('У вас уже есть активная заявка');
+
+      const order = await tx.order.findUnique({ where: { id: orderId } });
+      if (!order) throw new NotFoundException('Заявка не найдена');
+
+      const offer = await tx.orderOffer.findFirst({
+        where: { orderId, masterUserId, attempt: order.searchAttempt, outcome: 'PENDING' },
+      });
+      if (!offer) throw new ForbiddenException('Предложение недоступно');
+
+      const gate = await tx.order.updateMany({
+        where: { id: orderId, status: 'SEARCHING' },
+        data: { status: 'ACCEPTED', masterId: masterUserId, acceptedAt: new Date() },
+      });
+      if (gate.count === 0) throw new ConflictException('Заявку уже принял другой мастер');
+
+      await tx.orderOffer.update({
+        where: { id: offer.id },
+        data: { outcome: 'ACCEPTED', respondedAt: new Date() },
+      });
+      const rest = await tx.orderOffer.findMany({
+        where: { orderId, attempt: order.searchAttempt, outcome: 'PENDING' },
+      });
+      await tx.orderOffer.updateMany({
+        where: { id: { in: rest.map((o) => o.id) } },
+        data: { outcome: 'LOST', respondedAt: new Date() },
+      });
+      return rest;
+    });
+
+    await this.payments.capture(orderId); // идемпотентен: при повторном поиске capture уже есть
+    for (const o of losers) {
+      this.gateway.emitToUser(o.masterUserId, 'offer:closed', { orderId, reason: 'Заявку принял другой мастер' });
+    }
+    await this.emitOrderStatus(orderId);
+    return this.findOrThrow(orderId);
+  }
+
   /** SEARCHING → NO_MASTERS: void холда, гашение PENDING-офферов, WS. */
   async markNoMasters(orderId: string): Promise<void> {
     const pending = await this.prisma.$transaction(async (tx) => {
