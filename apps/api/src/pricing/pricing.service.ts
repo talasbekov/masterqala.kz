@@ -1,6 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { LatLng, ROUTING_SERVICE, RoutingService } from '../routing/routing.interface';
+import {
+  LatLng,
+  ROUTING_SERVICE,
+  RoutingService,
+} from '../routing/routing.interface';
 import { PricingConfig } from './pricing.config';
 
 export const MAX_SEARCH_RADIUS_M = 10000;
@@ -14,7 +18,11 @@ export interface PriceQuote {
 
 export function computeTimeCoefficient(now: Date): number {
   const hour = Number(
-    new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Almaty', hour: 'numeric', hourCycle: 'h23' }).format(now),
+    new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Asia/Almaty',
+      hour: 'numeric',
+      hourCycle: 'h23',
+    }).format(now),
   );
   if (hour >= 8 && hour < 20) return 1.0;
   if (hour >= 20 && hour < 23) return 1.2;
@@ -26,8 +34,13 @@ export function calcPrices(
   distanceKm: number,
   coefficient: number,
 ): { calloutPrice: number; serviceFee: number } {
-  const calloutPrice = Math.round((cfg.baseFare + distanceKm * cfg.perKm) * coefficient);
-  const serviceFee = Math.max(Math.round(calloutPrice * cfg.feeRate), cfg.feeMin);
+  const calloutPrice = Math.round(
+    (cfg.baseFare + distanceKm * cfg.perKm) * coefficient,
+  );
+  const serviceFee = Math.max(
+    Math.round(calloutPrice * cfg.feeRate),
+    cfg.feeMin,
+  );
   return { calloutPrice, serviceFee };
 }
 
@@ -39,15 +52,26 @@ export class PricingService {
     @Inject(ROUTING_SERVICE) private readonly routing: RoutingService,
   ) {}
 
-  async quote(categoryId: string, to: LatLng, now: Date = new Date()): Promise<PriceQuote | null> {
+  async quote(
+    categoryId: string,
+    to: LatLng,
+    now: Date = new Date(),
+  ): Promise<PriceQuote | null> {
     const nearest = await this.findNearestFreeMaster(categoryId, to);
     if (!nearest) return null;
     const distanceKm = await this.routing.distanceKm(nearest, to);
     const coefficient = computeTimeCoefficient(now);
-    return { ...calcPrices(this.cfg, distanceKm, coefficient), distanceKm, coefficient };
+    return {
+      ...calcPrices(this.cfg, distanceKm, coefficient),
+      distanceKm,
+      coefficient,
+    };
   }
 
-  private async findNearestFreeMaster(categoryId: string, to: LatLng): Promise<LatLng | null> {
+  private async findNearestFreeMaster(
+    categoryId: string,
+    to: LatLng,
+  ): Promise<LatLng | null> {
     const rows = await this.prisma.$queryRaw<{ lat: number; lng: number }[]>`
       SELECT ST_Y(mp.location::geometry) AS lat, ST_X(mp.location::geometry) AS lng
       FROM "MasterPresence" mp
