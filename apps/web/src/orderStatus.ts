@@ -1,0 +1,36 @@
+export const STATUS_LABELS: Record<string, string> = {
+  CREATED: 'Создана',
+  SEARCHING: 'Поиск мастера',
+  ACCEPTED: 'Принята',
+  MASTER_ON_WAY: 'Мастер в пути',
+  INSPECTION: 'Осмотр',
+  AWAITING_PRICE_CONFIRM: 'Согласование цены',
+  IN_PROGRESS: 'В работе',
+  DONE: 'Выполнена',
+  CLOSED: 'Закрыта',
+  NO_MASTERS: 'Мастера не найдены',
+  CANCELLED_BY_CLIENT: 'Отменена клиентом',
+  CANCELLED_BY_MASTER: 'Отменена мастером',
+  DISPUTE: 'Спор',
+};
+
+export const STEPPER_STEPS = [
+  { status: 'ACCEPTED', label: 'Принята' },
+  { status: 'MASTER_ON_WAY', label: 'Мастер в пути' },
+  { status: 'INSPECTION', label: 'Осмотр' },
+  { status: 'AWAITING_PRICE_CONFIRM', label: 'Согласование цены' },
+  { status: 'IN_PROGRESS', label: 'В работе' },
+  { status: 'DONE', label: 'Выполнена' },
+  { status: 'CLOSED', label: 'Закрыта' },
+];
+
+export function isTerminalStatus(s: string): boolean {
+  return ['CLOSED', 'CANCELLED_BY_CLIENT', 'CANCELLED_BY_MASTER'].includes(s);
+}
+
+export const WAVE_TEXTS: Record<number, string> = {
+  0: 'Начинаем поиск…',
+  1: 'Ищем мастера в радиусе 3 км…',
+  2: 'Расширяем поиск до 6 км…',
+  3: 'Расширяем поиск до 10 км…',
+};

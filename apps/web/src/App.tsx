@@ -1,10 +1,16 @@
 import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom';
 import { AuthProvider, useAuth } from './auth';
+import Layout from './Layout';
 import LoginPage from './pages/LoginPage';
 import HomePage from './pages/HomePage';
+import ProfilePage from './pages/ProfilePage';
 import BecomeMasterPage from './pages/BecomeMasterPage';
 import AdminListPage from './pages/AdminListPage';
 import AdminDetailPage from './pages/AdminDetailPage';
+import NewOrderPage from './pages/NewOrderPage';
+import OrderPage from './pages/OrderPage';
+import MyOrdersPage from './pages/MyOrdersPage';
+import WorkPage from './pages/WorkPage';
 
 function RequireAuth() {
   const { user } = useAuth();
@@ -23,7 +29,14 @@ export default function App() {
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route element={<RequireAuth />}>
-            <Route path="/" element={<HomePage />} />
+            <Route element={<Layout />}>
+              <Route path="/" element={<HomePage />} />
+              <Route path="/orders" element={<MyOrdersPage />} />
+              <Route path="/order/new" element={<NewOrderPage />} />
+              <Route path="/order/:id" element={<OrderPage />} />
+              <Route path="/work" element={<WorkPage />} />
+              <Route path="/profile" element={<ProfilePage />} />
+            </Route>
             <Route path="/become-master" element={<BecomeMasterPage />} />
             <Route element={<RequireOperator />}>
               <Route path="/admin" element={<AdminListPage />} />
