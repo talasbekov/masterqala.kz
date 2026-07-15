@@ -9,11 +9,13 @@ import { AdminModule } from './admin/admin.module';
 import { PaymentsModule } from './payments/payments.module';
 import { RoutingModule } from './routing/routing.module';
 import { PricingModule } from './pricing/pricing.module';
+import { QueueModule } from './queue/queue.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     PrismaModule,
+    QueueModule,
     AuthModule,
     UsersModule,
     MastersModule,
