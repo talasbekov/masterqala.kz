@@ -39,6 +39,11 @@ model User {
   createdAt      DateTime       @default(now())
   masterProfile  MasterProfile?
   decisions      VerificationDecision[]
+  clientOrders   Order[]        @relation("ClientOrders")
+  masterOrders   Order[]        @relation("MasterOrders")
+  offers         OrderOffer[]
+  presence       MasterPresence?
+  accruals       Accrual[]
 }
 
 model SmsCode {
@@ -58,6 +63,7 @@ model Category {
   slug    String           @unique
   name    String
   masters MasterCategory[]
+  orders  Order[]
 }
 
 model MasterProfile {
@@ -107,4 +113,125 @@ model VerificationDecision {
   decision        DecisionType
   comment         String?
   createdAt       DateTime      @default(now())
+}
+
+enum OrderStatus {
+  CREATED
+  SEARCHING
+  ACCEPTED
+  MASTER_ON_WAY
+  INSPECTION
+  AWAITING_PRICE_CONFIRM
+  IN_PROGRESS
+  DONE
+  CLOSED
+  NO_MASTERS
+  CANCELLED_BY_CLIENT
+  CANCELLED_BY_MASTER
+  DISPUTE
+}
+
+enum OfferOutcome {
+  PENDING
+  ACCEPTED
+  LOST
+  EXPIRED
+}
+
+enum PaymentType {
+  HOLD
+  CAPTURE
+  VOID
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+}
+
+enum AccrualType {
+  CALLOUT_COMPENSATION
+}
+
+model Order {
+  id              String      @id @default(uuid())
+  clientId        String
+  client          User        @relation("ClientOrders", fields: [clientId], references: [id])
+  categoryId      String
+  category        Category    @relation(fields: [categoryId], references: [id])
+  description     String
+  address         String
+  location        Unsupported("geography(Point, 4326)")?
+  status          OrderStatus @default(CREATED)
+  masterId        String?
+  master          User?       @relation("MasterOrders", fields: [masterId], references: [id])
+  wave            Int         @default(0)
+  searchAttempt   Int         @default(1)
+  calloutPrice    Int
+  serviceFee      Int
+  workPrice       Int?
+  workComment     String?
+  cancelReason    String?
+  acceptedAt      DateTime?
+  onSiteAt        DateTime?
+  priceProposedAt DateTime?
+  completedAt     DateTime?
+  closedAt        DateTime?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  offers          OrderOffer[]
+  payments        PaymentTransaction[]
+  accruals        Accrual[]
+
+  @@index([clientId, status])
+  @@index([masterId, status])
+}
+
+model OrderOffer {
+  id           String       @id @default(uuid())
+  orderId      String
+  order        Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  masterUserId String
+  master       User         @relation(fields: [masterUserId], references: [id])
+  wave         Int
+  attempt      Int
+  sentAt       DateTime     @default(now())
+  respondedAt  DateTime?
+  outcome      OfferOutcome @default(PENDING)
+
+  @@unique([orderId, masterUserId, attempt])
+  @@index([masterUserId, outcome])
+}
+
+model MasterPresence {
+  masterUserId String   @id
+  user         User     @relation(fields: [masterUserId], references: [id])
+  isOnline     Boolean  @default(false)
+  lastSeenAt   DateTime @default(now())
+  location     Unsupported("geography(Point, 4326)")?
+}
+
+model PaymentTransaction {
+  id          String        @id @default(uuid())
+  orderId     String
+  order       Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  type        PaymentType
+  amount      Int
+  status      PaymentStatus
+  providerRef String
+  createdAt   DateTime      @default(now())
+
+  @@index([orderId, type])
+}
+
+model Accrual {
+  id           String      @id @default(uuid())
+  masterUserId String
+  master       User        @relation(fields: [masterUserId], references: [id])
+  orderId      String      @unique
+  order        Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  type         AccrualType
+  amount       Int
+  createdAt    DateTime    @default(now())
 }
