@@ -144,7 +144,7 @@ export class OrdersService implements OnModuleInit {
   async gate(
     orderId: string,
     from: Prisma.Enumerable<Order['status']>,
-    data: Prisma.OrderUpdateManyMutationInput,
+    data: Prisma.OrderUpdateManyMutationInput | Prisma.OrderUncheckedUpdateManyInput,
     tx: Tx = this.prisma,
   ): Promise<void> {
     const res = await tx.order.updateMany({
@@ -359,5 +359,89 @@ export class OrdersService implements OnModuleInit {
       await this.accrueCompensation(tx, order);
     });
     await this.emitOrderStatus(orderId);
+  }
+
+  /** §3.9: ветвление по инициатору отмены. */
+  async cancel(user: User, orderId: string): Promise<Order> {
+    const order = await this.findOrThrow(orderId);
+    if (order.clientId === user.id) {
+      await this.cancelByClient(order);
+    } else if (order.masterId === user.id) {
+      await this.cancelByMaster(order);
+    } else {
+      throw new ForbiddenException('Нет доступа к заявке');
+    }
+    return this.findOrThrow(orderId);
+  }
+
+  private async cancelByClient(order: Order): Promise<void> {
+    const free: Order['status'][] = ['CREATED', 'SEARCHING', 'NO_MASTERS'];
+    const paid: Order['status'][] = ['ACCEPTED', 'MASTER_ON_WAY'];
+
+    if (free.includes(order.status)) {
+      const pending = await this.prisma.$transaction(async (tx) => {
+        await this.gate(order.id, free, { status: 'CANCELLED_BY_CLIENT', cancelReason: 'Отменена клиентом' }, tx);
+        const offers = await tx.orderOffer.findMany({ where: { orderId: order.id, outcome: 'PENDING' } });
+        await tx.orderOffer.updateMany({
+          where: { id: { in: offers.map((o) => o.id) } },
+          data: { outcome: 'EXPIRED' },
+        });
+        return offers;
+      });
+      if (order.status !== 'NO_MASTERS') await this.payments.void(order.id); // в NO_MASTERS уже VOID
+      for (const o of pending) {
+        this.gateway.emitToUser(o.masterUserId, 'offer:closed', { orderId: order.id, reason: 'Клиент отменил заявку' });
+      }
+      await this.emitOrderStatus(order.id);
+      return;
+    }
+
+    if (paid.includes(order.status)) {
+      await this.prisma.$transaction(async (tx) => {
+        await this.gate(order.id, paid, { status: 'CANCELLED_BY_CLIENT', cancelReason: 'Отменена клиентом после принятия' }, tx);
+        const fresh = await tx.order.findUniqueOrThrow({ where: { id: order.id } });
+        await this.accrueCompensation(tx, fresh);
+      });
+      await this.emitOrderStatus(order.id);
+      return;
+    }
+
+    if (order.status === 'AWAITING_PRICE_CONFIRM') {
+      await this.cancelPaidFromAwaiting(order.id, 'Отменена клиентом после принятия');
+      return;
+    }
+
+    throw new ConflictException('На этом этапе отмена недоступна');
+  }
+
+  private async cancelByMaster(order: Order): Promise<void> {
+    // §3.9 + дизайн-дока §4: перезапуск поиска с волны 1, отменивший исключён
+    // (его OrderOffer.outcome === 'ACCEPTED'); санкции мастеру — этап 5.
+    await this.gate(order.id, ['ACCEPTED', 'MASTER_ON_WAY'], {
+      status: 'SEARCHING',
+      masterId: null,
+      acceptedAt: null,
+      wave: 0,
+      searchAttempt: { increment: 1 },
+    });
+    await this.queue.send(JOBS.WAVE, { orderId: order.id, wave: 1 });
+    await this.emitOrderStatus(order.id);
+  }
+
+  /** NO_MASTERS → SEARCHING: новый hold, новая попытка, волна 1. */
+  async retrySearch(clientId: string, orderId: string): Promise<Order> {
+    await this.guardClient(clientId, orderId);
+    // Hold ставится до гейта: если гейт бросит 409 (статус уже не NO_MASTERS),
+    // лишний HOLD останется висеть в mock-журнале — приемлемо для этапа 2
+    // (реальный провайдер этапа 4 получит компенсирующий void).
+    await this.payments.hold(orderId, (await this.findOrThrow(orderId)).serviceFee);
+    await this.gate(orderId, 'NO_MASTERS', {
+      status: 'SEARCHING',
+      wave: 0,
+      searchAttempt: { increment: 1 },
+    });
+    await this.queue.send(JOBS.WAVE, { orderId, wave: 1 });
+    await this.emitOrderStatus(orderId);
+    return this.findOrThrow(orderId);
   }
 }

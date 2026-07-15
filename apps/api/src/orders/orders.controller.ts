@@ -79,4 +79,14 @@ export class OrdersController {
   confirmCompletion(@CurrentUser() user: User, @Param('id') id: string) {
     return this.orders.confirmCompletion(user.id, id);
   }
+
+  @Post('orders/:id/cancel')
+  cancel(@CurrentUser() user: User, @Param('id') id: string) {
+    return this.orders.cancel(user, id);
+  }
+
+  @Post('orders/:id/retry-search')
+  retrySearch(@CurrentUser() user: User, @Param('id') id: string) {
+    return this.orders.retrySearch(user.id, id);
+  }
 }
