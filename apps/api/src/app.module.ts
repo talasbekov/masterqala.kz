@@ -11,6 +11,7 @@ import { RoutingModule } from './routing/routing.module';
 import { PricingModule } from './pricing/pricing.module';
 import { QueueModule } from './queue/queue.module';
 import { RealtimeModule } from './realtime/realtime.module';
+import { OrdersModule } from './orders/orders.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { RealtimeModule } from './realtime/realtime.module';
     RoutingModule,
     PricingModule,
     RealtimeModule,
+    OrdersModule,
   ],
   controllers: [HealthController],
   providers: [],
