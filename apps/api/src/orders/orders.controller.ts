@@ -69,4 +69,14 @@ export class OrdersController {
   rejectPrice(@CurrentUser() user: User, @Param('id') id: string) {
     return this.orders.rejectPrice(user.id, id);
   }
+
+  @Post('orders/:id/complete')
+  complete(@CurrentUser() user: User, @Param('id') id: string) {
+    return this.orders.complete(user.id, id);
+  }
+
+  @Post('orders/:id/confirm-completion')
+  confirmCompletion(@CurrentUser() user: User, @Param('id') id: string) {
+    return this.orders.confirmCompletion(user.id, id);
+  }
 }

@@ -21,6 +21,7 @@ import { RealtimeGateway } from '../realtime/realtime.gateway';
 import {
   ACTIVE_CLIENT_STATUSES,
   ACTIVE_MASTER_STATUSES,
+  AUTO_CLOSE_S,
   ORDER_INCLUDE,
   PRICE_CONFIRM_TIMEOUT_S,
 } from './order.constants';
@@ -329,6 +330,34 @@ export class OrdersService implements OnModuleInit {
     await this.emitOrderStatus(orderId);
   }
 
-  /** Заглушка до Task 10. */
-  async handleAutoClose(_d: { orderId: string }): Promise<void> {}
+  async complete(masterUserId: string, orderId: string) {
+    await this.guardMaster(masterUserId, orderId);
+    await this.gate(orderId, 'IN_PROGRESS', { status: 'DONE', completedAt: new Date() });
+    await this.queue.send(JOBS.AUTO_CLOSE, { orderId }, AUTO_CLOSE_S);
+    await this.emitOrderStatus(orderId);
+    return this.findOrThrow(orderId);
+  }
+
+  async confirmCompletion(clientId: string, orderId: string) {
+    await this.guardClient(clientId, orderId);
+    await this.closeOrder(orderId);
+    return this.findOrThrow(orderId);
+  }
+
+  /** Джоба: клиент молчал 24 ч после «Выполнено». */
+  async handleAutoClose({ orderId }: { orderId: string }): Promise<void> {
+    const order = await this.prisma.order.findUnique({ where: { id: orderId } });
+    if (!order || order.status !== 'DONE') return;
+    await this.closeOrder(orderId);
+  }
+
+  /** DONE → CLOSED + компенсация мастеру (§3.8). */
+  private async closeOrder(orderId: string): Promise<void> {
+    await this.prisma.$transaction(async (tx) => {
+      await this.gate(orderId, 'DONE', { status: 'CLOSED', closedAt: new Date() }, tx);
+      const order = await tx.order.findUniqueOrThrow({ where: { id: orderId } });
+      await this.accrueCompensation(tx, order);
+    });
+    await this.emitOrderStatus(orderId);
+  }
 }
