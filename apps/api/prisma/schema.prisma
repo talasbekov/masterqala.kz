@@ -44,6 +44,12 @@ model User {
   offers         OrderOffer[]
   presence       MasterPresence?
   accruals       Accrual[]
+  clientPlannedOrders    PlannedOrder[]          @relation("ClientPlannedOrders")
+  masterPlannedOrders    PlannedOrder[]          @relation("MasterPlannedOrders")
+  plannedOrderBids       PlannedOrderBid[]
+  leadCreditAccount      LeadCreditAccount?
+  leadCreditTransactions LeadCreditTransaction[]
+  leadCreditPurchases    LeadCreditPurchase[]
 }
 
 model SmsCode {
@@ -59,11 +65,12 @@ model SmsCode {
 }
 
 model Category {
-  id      String           @id @default(uuid())
-  slug    String           @unique
-  name    String
-  masters MasterCategory[]
-  orders  Order[]
+  id            String           @id @default(uuid())
+  slug          String           @unique
+  name          String
+  masters       MasterCategory[]
+  orders        Order[]
+  plannedOrders PlannedOrder[]
 }
 
 model MasterProfile {
@@ -76,6 +83,7 @@ model MasterProfile {
   experienceYears Int
   status          MasterStatus     @default(PENDING_REVIEW)
   rejectionReason String?
+  priorityPenaltyUntil DateTime?
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
   categories      MasterCategory[]
@@ -234,4 +242,101 @@ model Accrual {
   type         AccrualType
   amount       Int
   createdAt    DateTime    @default(now())
+}
+
+enum PlannedOrderStatus {
+  CREATED
+  PUBLISHED
+  MASTER_SELECTED
+  CONFIRMED
+  IN_PROGRESS
+  DONE
+  CLOSED
+  EXPIRED
+  CANCELLED_BY_CLIENT
+  CANCELLED_BY_MASTER
+  DISPUTE
+}
+
+enum LeadCreditTxType {
+  PURCHASE
+  SPEND
+  REFUND
+}
+
+model PlannedOrder {
+  id             String             @id @default(uuid())
+  clientId       String
+  client         User               @relation("ClientPlannedOrders", fields: [clientId], references: [id])
+  categoryId     String
+  category       Category           @relation(fields: [categoryId], references: [id])
+  description    String
+  address        String
+  district       String
+  scheduledAt    DateTime
+  status         PlannedOrderStatus @default(CREATED)
+  masterId       String?
+  master         User?              @relation("MasterPlannedOrders", fields: [masterId], references: [id])
+  selectedBidId  String?            @unique
+  selectedBid    PlannedOrderBid?   @relation("SelectedBid", fields: [selectedBidId], references: [id])
+  workPrice      Int?
+  cancelReason   String?
+  publishedAt    DateTime?
+  selectedAt     DateTime?
+  confirmedAt    DateTime?
+  completedAt    DateTime?
+  closedAt       DateTime?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  bids           PlannedOrderBid[]  @relation("OrderBids")
+
+  @@index([clientId, status])
+  @@index([masterId, status])
+  @@index([categoryId, status])
+}
+
+model PlannedOrderBid {
+  id             String        @id @default(uuid())
+  plannedOrderId String
+  order          PlannedOrder  @relation("OrderBids", fields: [plannedOrderId], references: [id], onDelete: Cascade)
+  masterUserId   String
+  master         User          @relation(fields: [masterUserId], references: [id])
+  price          Int
+  term           String
+  comment        String?
+  createdAt      DateTime      @default(now())
+  selectedFor    PlannedOrder? @relation("SelectedBid")
+
+  @@unique([plannedOrderId, masterUserId])
+  @@index([plannedOrderId])
+}
+
+model LeadCreditAccount {
+  masterUserId String @id
+  master       User   @relation(fields: [masterUserId], references: [id])
+  balance      Int    @default(0)
+}
+
+model LeadCreditTransaction {
+  id           String           @id @default(uuid())
+  masterUserId String
+  master       User             @relation(fields: [masterUserId], references: [id])
+  type         LeadCreditTxType
+  amount       Int
+  bidId        String?
+  purchaseId   String?
+  createdAt    DateTime         @default(now())
+
+  @@index([masterUserId, createdAt])
+}
+
+model LeadCreditPurchase {
+  id           String        @id @default(uuid())
+  masterUserId String
+  master       User          @relation(fields: [masterUserId], references: [id])
+  credits      Int
+  priceTenge   Int
+  status       PaymentStatus
+  providerRef  String
+  createdAt    DateTime      @default(now())
 }
