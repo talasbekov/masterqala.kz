@@ -13,6 +13,7 @@ import MyOrdersPage from './pages/MyOrdersPage';
 import WorkPage from './pages/WorkPage';
 import PlannedNewOrderPage from './pages/PlannedNewOrderPage';
 import PlannedOrderPage from './pages/PlannedOrderPage';
+import LeadCreditsPage from './pages/LeadCreditsPage';
 
 function RequireAuth() {
   const { user } = useAuth();
@@ -39,6 +40,7 @@ export default function App() {
               <Route path="/planned/new" element={<PlannedNewOrderPage />} />
               <Route path="/planned/:id" element={<PlannedOrderPage />} />
               <Route path="/work" element={<WorkPage />} />
+              <Route path="/lead-credits" element={<LeadCreditsPage />} />
               <Route path="/profile" element={<ProfilePage />} />
             </Route>
             <Route path="/become-master" element={<BecomeMasterPage />} />

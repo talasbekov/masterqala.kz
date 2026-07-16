@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { api } from '../api';
 import { getSocket } from '../socket';
 
@@ -37,8 +38,55 @@ export default function WorkPage() {
   const [price, setPrice] = useState('');
   const [comment, setComment] = useState('');
   const [error, setError] = useState('');
+  const [tab, setTab] = useState<'urgent' | 'planned'>('urgent');
+  const [feed, setFeed] = useState<any[]>([]);
+  const [plannedOrder, setPlannedOrder] = useState<any | null>(null);
+  const [bidPrice, setBidPrice] = useState('');
+  const [bidTerm, setBidTerm] = useState('');
+  const [bidComment, setBidComment] = useState('');
+  const [plannedError, setPlannedError] = useState('');
   const geoTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const secondsLeft = useCountdown(offer?.deadline ?? null);
+
+  const loadFeed = useCallback(() => {
+    api('/planned-orders/feed').then(setFeed);
+  }, []);
+
+  useEffect(() => {
+    if (tab !== 'planned') return;
+    loadFeed();
+    const socket = getSocket();
+    const onUpdate = () => loadFeed();
+    socket.on('bid:closed', onUpdate);
+    socket.on('planned:status', onUpdate);
+    return () => {
+      socket.off('bid:closed', onUpdate);
+      socket.off('planned:status', onUpdate);
+    };
+  }, [tab, loadFeed]);
+
+  async function openPlannedOrder(id: string) {
+    setPlannedError('');
+    const o = await api(`/planned-orders/${id}`);
+    setPlannedOrder(o);
+  }
+
+  async function submitBid() {
+    if (!plannedOrder || !Number(bidPrice) || !bidTerm) return;
+    try {
+      await api(`/planned-orders/${plannedOrder.id}/bids`, {
+        method: 'POST',
+        body: JSON.stringify({ price: Number(bidPrice), term: bidTerm, comment: bidComment || undefined }),
+      });
+      setPlannedOrder(null);
+      setBidPrice('');
+      setBidTerm('');
+      setBidComment('');
+      loadFeed();
+    } catch (e: any) {
+      setPlannedError(e.message);
+    }
+  }
 
   const loadActive = useCallback(() => {
     api('/master/active-order').then((r) => setOrder(r.order));
@@ -198,26 +246,90 @@ export default function WorkPage() {
 
   return (
     <div className="mx-auto max-w-sm p-6 space-y-4">
-      <h1 className="text-2xl font-bold">Работа</h1>
-      <div className="flex items-center justify-between rounded-xl border p-4">
-        <div>
-          <div className="font-semibold">{online ? 'Вы онлайн' : 'Вы офлайн'}</div>
-          <div className="text-sm text-gray-500">{connected ? 'Соединение активно' : 'Нет соединения'}</div>
-        </div>
+      <div className="flex rounded-full border p-1">
         <button
-          onClick={online ? goOffline : goOnline}
-          className={`rounded-full px-5 py-2 text-white ${online ? 'bg-gray-400' : 'bg-teal-700'}`}
+          className={`flex-1 rounded-full py-2 text-sm ${tab === 'urgent' ? 'bg-teal-700 text-white' : ''}`}
+          onClick={() => setTab('urgent')}
         >
-          {online ? 'Выйти' : 'Онлайн'}
+          Срочные
+        </button>
+        <button
+          className={`flex-1 rounded-full py-2 text-sm ${tab === 'planned' ? 'bg-teal-700 text-white' : ''}`}
+          onClick={() => setTab('planned')}
+        >
+          Плановые
         </button>
       </div>
-      {geoDenied && (
-        <p className="rounded-xl bg-amber-50 p-3 text-sm">
-          Без доступа к геолокации заявки приходить не будут. Разрешите доступ в настройках браузера и попробуйте снова.
-        </p>
+
+      {tab === 'urgent' && (
+        <>
+          <div className="flex items-center justify-between rounded-xl border p-4">
+            <div>
+              <div className="font-semibold">{online ? 'Вы онлайн' : 'Вы офлайн'}</div>
+              <div className="text-sm text-gray-500">{connected ? 'Соединение активно' : 'Нет соединения'}</div>
+            </div>
+            <button
+              onClick={online ? goOffline : goOnline}
+              className={`rounded-full px-5 py-2 text-white ${online ? 'bg-gray-400' : 'bg-teal-700'}`}
+            >
+              {online ? 'Выйти' : 'Онлайн'}
+            </button>
+          </div>
+          {geoDenied && (
+            <p className="rounded-xl bg-amber-50 p-3 text-sm">
+              Без доступа к геолокации заявки приходить не будут. Разрешите доступ в настройках браузера и попробуйте снова.
+            </p>
+          )}
+          {offerNote && <p className="rounded-xl bg-gray-50 p-3 text-sm text-gray-600">{offerNote}</p>}
+          {online && <p className="text-center text-gray-500">Ждём заявки рядом с вами…</p>}
+        </>
       )}
-      {offerNote && <p className="rounded-xl bg-gray-50 p-3 text-sm text-gray-600">{offerNote}</p>}
-      {online && <p className="text-center text-gray-500">Ждём заявки рядом с вами…</p>}
+
+      {tab === 'planned' && !plannedOrder && (
+        <div className="space-y-3">
+          <Link to="/lead-credits" className="block text-center text-teal-700 underline">Баланс и покупка кредитов</Link>
+          {feed.length === 0 && <p className="text-center text-gray-500">Пока нет заявок в ваших категориях</p>}
+          {feed.map((o) => (
+            <button key={o.id} onClick={() => openPlannedOrder(o.id)} className="block w-full rounded-xl border p-4 text-left">
+              <div className="flex justify-between">
+                <span className="font-semibold">{o.category?.name}</span>
+                <span className="text-sm text-gray-500">{o._count.bids}/5 ставок</span>
+              </div>
+              <div className="text-sm text-gray-600">{o.district}</div>
+              <div className="text-sm text-gray-500">{new Date(o.scheduledAt).toLocaleString('ru-RU')}</div>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {tab === 'planned' && plannedOrder && (
+        <div className="space-y-3">
+          <button className="text-sm text-gray-500" onClick={() => setPlannedOrder(null)}>← Назад к ленте</button>
+          <h2 className="text-lg font-bold">{plannedOrder.category?.name}</h2>
+          <div className="text-sm text-gray-600">{plannedOrder.district}</div>
+          <div className="text-sm text-gray-600">{plannedOrder.description}</div>
+          <input
+            type="number" min="1" placeholder="Ваша цена, ₸"
+            className="w-full rounded border p-3" value={bidPrice} onChange={(e) => setBidPrice(e.target.value)}
+          />
+          <input
+            placeholder="Срок (например: сегодня до 18:00)"
+            className="w-full rounded border p-3" value={bidTerm} onChange={(e) => setBidTerm(e.target.value)}
+          />
+          <input
+            placeholder="Комментарий (необязательно)"
+            className="w-full rounded border p-3" value={bidComment} onChange={(e) => setBidComment(e.target.value)}
+          />
+          {plannedError && <p className="text-sm text-red-600">{plannedError}</p>}
+          <button
+            className="w-full rounded bg-teal-700 p-3 text-white disabled:opacity-40"
+            disabled={!Number(bidPrice) || !bidTerm}
+            onClick={submitBid}
+          >
+            Откликнуться (1 кредит)
+          </button>
+        </div>
+      )}
     </div>
   );
 }
