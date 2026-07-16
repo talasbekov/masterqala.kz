@@ -40,6 +40,9 @@ export default function ProfilePage() {
       <Link to="/become-master" className="block text-center text-teal-700 underline">
         Стать мастером
       </Link>
+      <Link to="/wallet" className="block text-center text-teal-700 underline">
+        Кошелёк
+      </Link>
       {user?.role === 'OPERATOR' && (
         <Link to="/admin" className="block text-center text-teal-700 underline">
           Панель оператора
