@@ -1,9 +1,11 @@
 import { INestApplication } from '@nestjs/common';
 import * as request from 'supertest';
 import { createTestApp, resetDb, seedCategories, loginAs, createActiveMaster, createPlannedOrderViaApi } from './helpers';
+import { PrismaService } from '../src/prisma/prisma.service';
 
 describe('Лента и просмотр плановой заявки (e2e)', () => {
   let app: INestApplication;
+  let prisma: PrismaService;
   let plumbingId: string;
   let electricsId: string;
   let client: { token: string; userId: string };
@@ -12,6 +14,7 @@ describe('Лента и просмотр плановой заявки (e2e)', (
 
   beforeAll(async () => {
     app = await createTestApp();
+    prisma = app.get(PrismaService);
   });
   afterAll(() => app.close());
 
@@ -43,7 +46,7 @@ describe('Лента и просмотр плановой заявки (e2e)', (
     expect(electricianFeed.body).toHaveLength(0);
   });
 
-  it('чужой мастер видит заявку без адреса и контакта клиента; выбранный мастер — с ними', async () => {
+  it('чужой мастер видит заявку без адреса и контакта клиента', async () => {
     const order = await createPlannedOrderViaApi(app, client.token, plumbingId);
     const redacted = await request(app.getHttpServer())
       .get(`/api/v1/planned-orders/${order.id}`)
@@ -51,6 +54,33 @@ describe('Лента и просмотр плановой заявки (e2e)', (
       .expect(200);
     expect(redacted.body.address).toBeNull();
     expect(redacted.body.client).toBeNull();
+  });
+
+  it('выбранный мастер видит адрес и контакт клиента; чужой мастер — по-прежнему нет', async () => {
+    const order = await createPlannedOrderViaApi(app, client.token, plumbingId);
+    const anotherPlumber = await createActiveMaster(app, '+77070000004', plumbingId);
+
+    await prisma.plannedOrder.update({
+      where: { id: order.id },
+      data: { masterId: plumber.userId },
+    });
+
+    const revealed = await request(app.getHttpServer())
+      .get(`/api/v1/planned-orders/${order.id}`)
+      .set('Authorization', `Bearer ${plumber.token}`)
+      .expect(200);
+    expect(revealed.body.address).toBe('ул. Абая, 1');
+    expect(revealed.body.client).toMatchObject({
+      id: client.userId,
+      phone: '+77070000001',
+    });
+
+    const stillRedacted = await request(app.getHttpServer())
+      .get(`/api/v1/planned-orders/${order.id}`)
+      .set('Authorization', `Bearer ${anotherPlumber.token}`)
+      .expect(200);
+    expect(stillRedacted.body.address).toBeNull();
+    expect(stillRedacted.body.client).toBeNull();
   });
 
   it('клиент видит свою заявку полностью', async () => {
