@@ -8,4 +8,5 @@ export interface PaymentProvider {
   void(orderId: string): Promise<PaymentTransaction>;
   charge(referenceId: string, amount: number): Promise<{ status: PaymentStatus; providerRef: string }>;
   payout(referenceId: string, amount: number): Promise<{ status: PaymentStatus; providerRef: string }>;
+  refund(orderId: string, amount: number): Promise<{ status: PaymentStatus; providerRef: string }>;
 }
