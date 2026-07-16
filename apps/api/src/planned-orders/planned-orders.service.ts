@@ -12,8 +12,14 @@ import { PrismaService } from '../prisma/prisma.service';
 import { QueueService } from '../queue/queue.service';
 import { JOBS } from '../queue/queue.constants';
 import { RealtimeGateway } from '../realtime/realtime.gateway';
-import { FEED_SELECT, PLANNED_HORIZON_DAYS, PLANNED_MAX_BIDS, PLANNED_ORDER_INCLUDE } from './planned-order.constants';
-import { CreatePlannedOrderDto, PlaceBidDto } from './dto';
+import {
+  FEED_SELECT,
+  PLANNED_CONFIRM_TIMEOUT_S,
+  PLANNED_HORIZON_DAYS,
+  PLANNED_MAX_BIDS,
+  PLANNED_ORDER_INCLUDE,
+} from './planned-order.constants';
+import { CreatePlannedOrderDto, PlaceBidDto, SelectBidDto } from './dto';
 
 type Tx = Prisma.TransactionClient;
 
@@ -26,7 +32,9 @@ export class PlannedOrdersService implements OnModuleInit {
   ) {}
 
   onModuleInit(): void {
-    // Хендлеры джоб регистрируются по мере добавления в Task 7/8.
+    this.queue.register(JOBS.PLANNED_CONFIRM_TIMEOUT, (d: { plannedOrderId: string; bidId: string }) =>
+      this.handleConfirmTimeout(d),
+    );
   }
 
   async create(clientId: string, dto: CreatePlannedOrderDto) {
@@ -145,6 +153,84 @@ export class PlannedOrdersService implements OnModuleInit {
 
     this.gateway.emitToUser(clientId, 'bid:new', { plannedOrderId, bidsCount });
     return this.prisma.plannedOrderBid.findFirstOrThrow({ where: { plannedOrderId, masterUserId } });
+  }
+
+  async select(clientId: string, plannedOrderId: string, dto: SelectBidDto) {
+    const order = await this.guardClient(clientId, plannedOrderId);
+    const bid = await this.prisma.plannedOrderBid.findUnique({ where: { id: dto.bidId } });
+    if (!bid || bid.plannedOrderId !== plannedOrderId) throw new BadRequestException('Ставка не найдена');
+    void order;
+
+    await this.gate(plannedOrderId, 'PUBLISHED', {
+      status: 'MASTER_SELECTED',
+      masterId: bid.masterUserId,
+      selectedBidId: bid.id,
+      selectedAt: new Date(),
+    });
+    await this.queue.send(JOBS.PLANNED_CONFIRM_TIMEOUT, { plannedOrderId, bidId: bid.id }, PLANNED_CONFIRM_TIMEOUT_S);
+
+    const others = await this.prisma.plannedOrderBid.findMany({
+      where: { plannedOrderId, masterUserId: { not: bid.masterUserId } },
+    });
+    this.gateway.emitToUser(bid.masterUserId, 'bid:selected', { plannedOrderId });
+    for (const o of others) {
+      this.gateway.emitToUser(o.masterUserId, 'bid:closed', { plannedOrderId, reason: 'Выбран другой мастер' });
+    }
+    await this.emitPlannedStatus(plannedOrderId);
+    const fresh = await this.findOrThrow(plannedOrderId);
+    return this.redactMasterContact(fresh);
+  }
+
+  async confirm(masterUserId: string, plannedOrderId: string) {
+    const order = await this.findOrThrow(plannedOrderId);
+    if (order.masterId !== masterUserId) throw new ForbiddenException('Нет доступа к заявке');
+    if (!order.selectedBidId) throw new ConflictException('Ставка не выбрана');
+    const bid = await this.prisma.plannedOrderBid.findUniqueOrThrow({ where: { id: order.selectedBidId } });
+    await this.gate(plannedOrderId, 'MASTER_SELECTED', {
+      status: 'CONFIRMED',
+      confirmedAt: new Date(),
+      workPrice: bid.price,
+    });
+    await this.emitPlannedStatus(plannedOrderId);
+    return this.findOrThrow(plannedOrderId);
+  }
+
+  async decline(masterUserId: string, plannedOrderId: string) {
+    const order = await this.findOrThrow(plannedOrderId);
+    if (order.masterId !== masterUserId) throw new ForbiddenException('Нет доступа к заявке');
+    await this.returnToPublished(plannedOrderId);
+    return this.findOrThrow(plannedOrderId);
+  }
+
+  /** Джоба: мастер молчал 2 часа. bidId сверяется — устаревший вызов (после re-select) игнорируется. */
+  async handleConfirmTimeout({ plannedOrderId, bidId }: { plannedOrderId: string; bidId: string }): Promise<void> {
+    const order = await this.prisma.plannedOrder.findUnique({ where: { id: plannedOrderId } });
+    if (!order || order.status !== 'MASTER_SELECTED' || order.selectedBidId !== bidId) return;
+    await this.returnToPublished(plannedOrderId);
+  }
+
+  private async returnToPublished(plannedOrderId: string): Promise<void> {
+    await this.gate(plannedOrderId, 'MASTER_SELECTED', {
+      status: 'PUBLISHED',
+      masterId: null,
+      selectedBidId: null,
+      selectedAt: null,
+    });
+    await this.emitPlannedStatus(plannedOrderId);
+  }
+
+  async emitPlannedStatus(plannedOrderId: string): Promise<void> {
+    const order = await this.prisma.plannedOrder.findUnique({ where: { id: plannedOrderId }, include: PLANNED_ORDER_INCLUDE });
+    if (!order) return;
+    const base = {
+      plannedOrderId: order.id,
+      status: order.status,
+      workPrice: order.workPrice,
+      cancelReason: order.cancelReason,
+      scheduledAt: order.scheduledAt,
+    };
+    this.gateway.emitToUser(order.clientId, 'planned:status', { ...base, master: this.redactMasterContact(order).master });
+    if (order.masterId) this.gateway.emitToUser(order.masterId, 'planned:status', { ...base, master: order.master });
   }
 
   async getByIdForUser(user: User, id: string) {
