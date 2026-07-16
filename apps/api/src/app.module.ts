@@ -14,6 +14,7 @@ import { RealtimeModule } from './realtime/realtime.module';
 import { LeadCreditsModule } from './lead-credits/lead-credits.module';
 import { OrdersModule } from './orders/orders.module';
 import { PlannedOrdersModule } from './planned-orders/planned-orders.module';
+import { WalletModule } from './wallet/wallet.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { PlannedOrdersModule } from './planned-orders/planned-orders.module';
     LeadCreditsModule,
     OrdersModule,
     PlannedOrdersModule,
+    WalletModule,
   ],
   controllers: [HealthController],
   providers: [],
