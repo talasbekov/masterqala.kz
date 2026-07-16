@@ -50,6 +50,8 @@ model User {
   leadCreditAccount      LeadCreditAccount?
   leadCreditTransactions LeadCreditTransaction[]
   leadCreditPurchases    LeadCreditPurchase[]
+  masterWalletAccount    MasterWalletAccount?
+  withdrawalRequests     WithdrawalRequest[]
 }
 
 model SmsCode {
@@ -339,4 +341,27 @@ model LeadCreditPurchase {
   status       PaymentStatus
   providerRef  String
   createdAt    DateTime      @default(now())
+}
+
+enum WithdrawalStatus {
+  PENDING
+  PAID
+  FAILED
+}
+
+model MasterWalletAccount {
+  masterUserId String @id
+  master       User   @relation(fields: [masterUserId], references: [id])
+  balance      Int    @default(0)
+}
+
+model WithdrawalRequest {
+  id           String           @id @default(uuid())
+  masterUserId String
+  master       User             @relation(fields: [masterUserId], references: [id])
+  amount       Int
+  status       WithdrawalStatus @default(PENDING)
+  providerRef  String?
+  requestedAt  DateTime         @default(now())
+  paidAt       DateTime?
 }
