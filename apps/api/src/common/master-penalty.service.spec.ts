@@ -11,7 +11,7 @@ describe('MasterPenaltyService — скользящее окно 30 дней', (
     countMock = jest.fn().mockResolvedValue(cancellationsInWindow);
     updateManyProfileMock = jest.fn().mockResolvedValue({ count: 1 });
     return {
-      leadCreditAccount: { update: jest.fn().mockResolvedValue({}) },
+      leadCreditAccount: { upsert: jest.fn().mockResolvedValue({}) },
       leadCreditTransaction: { create: jest.fn().mockResolvedValue({}) },
       masterProfile: { updateMany: updateManyProfileMock },
       masterCancellation: { create: jest.fn().mockResolvedValue({}), count: countMock },
