@@ -39,6 +39,9 @@ export default function HomePage() {
           Вызвать мастера
         </Link>
       )}
+      <Link to="/planned/new" className="block rounded-xl border border-teal-700 p-6 text-center text-xl font-semibold text-teal-700">
+        Запланировать
+      </Link>
     </div>
   );
 }

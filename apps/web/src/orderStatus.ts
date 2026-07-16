@@ -34,3 +34,21 @@ export const WAVE_TEXTS: Record<number, string> = {
   2: 'Расширяем поиск до 6 км…',
   3: 'Расширяем поиск до 10 км…',
 };
+
+export const PLANNED_STATUS_LABELS: Record<string, string> = {
+  CREATED: 'Создана',
+  PUBLISHED: 'Опубликована',
+  MASTER_SELECTED: 'Мастер выбран',
+  CONFIRMED: 'Подтверждена',
+  IN_PROGRESS: 'В работе',
+  DONE: 'Выполнена',
+  CLOSED: 'Закрыта',
+  EXPIRED: 'Истекла',
+  CANCELLED_BY_CLIENT: 'Отменена клиентом',
+  CANCELLED_BY_MASTER: 'Отменена мастером',
+  DISPUTE: 'Спор',
+};
+
+export function isPlannedTerminalStatus(s: string): boolean {
+  return ['CLOSED', 'EXPIRED', 'CANCELLED_BY_CLIENT', 'CANCELLED_BY_MASTER'].includes(s);
+}

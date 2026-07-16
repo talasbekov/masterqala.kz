@@ -11,6 +11,7 @@ import NewOrderPage from './pages/NewOrderPage';
 import OrderPage from './pages/OrderPage';
 import MyOrdersPage from './pages/MyOrdersPage';
 import WorkPage from './pages/WorkPage';
+import PlannedNewOrderPage from './pages/PlannedNewOrderPage';
 
 function RequireAuth() {
   const { user } = useAuth();
@@ -34,6 +35,7 @@ export default function App() {
               <Route path="/orders" element={<MyOrdersPage />} />
               <Route path="/order/new" element={<NewOrderPage />} />
               <Route path="/order/:id" element={<OrderPage />} />
+              <Route path="/planned/new" element={<PlannedNewOrderPage />} />
               <Route path="/work" element={<WorkPage />} />
               <Route path="/profile" element={<ProfilePage />} />
             </Route>
