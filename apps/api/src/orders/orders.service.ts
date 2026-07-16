@@ -157,17 +157,25 @@ export class OrdersService implements OnModuleInit {
   /** Начисление компенсации мастеру; идемпотентно за счёт unique(orderId). */
   async accrueCompensation(tx: Tx, order: Order): Promise<void> {
     if (!order.masterId) return;
-    await tx.accrual.createMany({
+    const amount = order.calloutPrice - order.serviceFee;
+    const res = await tx.accrual.createMany({
       data: [
         {
           masterUserId: order.masterId,
           orderId: order.id,
           type: 'CALLOUT_COMPENSATION',
-          amount: order.calloutPrice - order.serviceFee,
+          amount,
         },
       ],
       skipDuplicates: true,
     });
+    if (res.count > 0) {
+      await tx.masterWalletAccount.upsert({
+        where: { masterUserId: order.masterId },
+        create: { masterUserId: order.masterId, balance: amount },
+        update: { balance: { increment: amount } },
+      });
+    }
   }
 
   /** WS `order:status` обеим сторонам заявки. */
