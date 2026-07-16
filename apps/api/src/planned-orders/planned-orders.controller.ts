@@ -3,7 +3,7 @@ import { User } from '@prisma/client';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { PlannedOrdersService } from './planned-orders.service';
-import { CreatePlannedOrderDto } from './dto';
+import { CreatePlannedOrderDto, PlaceBidDto } from './dto';
 
 @Controller('planned-orders')
 @UseGuards(JwtAuthGuard)
@@ -28,5 +28,10 @@ export class PlannedOrdersController {
   @Get(':id')
   getById(@CurrentUser() user: User, @Param('id') id: string) {
     return this.plannedOrders.getByIdForUser(user, id);
+  }
+
+  @Post(':id/bids')
+  placeBid(@CurrentUser() user: User, @Param('id') id: string, @Body() dto: PlaceBidDto) {
+    return this.plannedOrders.placeBid(user.id, id, dto);
   }
 }

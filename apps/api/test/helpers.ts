@@ -113,6 +113,15 @@ export async function createOrderViaApi(
   return res.body;
 }
 
+export async function grantLeadCredits(app: INestApplication, masterUserId: string, amount: number): Promise<void> {
+  const prisma = app.get(PrismaService);
+  await prisma.leadCreditAccount.upsert({
+    where: { masterUserId },
+    create: { masterUserId, balance: amount },
+    update: { balance: { increment: amount } },
+  });
+}
+
 export async function createPlannedOrderViaApi(
   app: INestApplication,
   clientToken: string,
