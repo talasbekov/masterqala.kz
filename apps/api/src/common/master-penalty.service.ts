@@ -16,9 +16,10 @@ export class MasterPenaltyService {
 
   /** Ядро: −2 кредита + понижение приоритета. Не знает про отмены/окно блокировки. */
   async applyPenalty(tx: Tx, masterUserId: string): Promise<void> {
-    await tx.leadCreditAccount.update({
+    await tx.leadCreditAccount.upsert({
       where: { masterUserId },
-      data: { balance: { decrement: PENALTY_CREDITS } },
+      create: { masterUserId, balance: -PENALTY_CREDITS },
+      update: { balance: { decrement: PENALTY_CREDITS } },
     });
     await tx.leadCreditTransaction.create({
       data: { masterUserId, type: 'PENALTY', amount: -PENALTY_CREDITS },

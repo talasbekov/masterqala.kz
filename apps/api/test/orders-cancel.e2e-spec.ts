@@ -74,7 +74,7 @@ describe('Отмены по §3.9 и повторный поиск (e2e)', () =>
     await post(client.token, order.id, 'cancel').expect(409);
   });
 
-  it('мастер отменяет после принятия: заявка снова в поиске, отменивший исключён', async () => {
+  it('мастер отменяет после принятия: заявка снова в поиске, отменивший исключён, штраф применён', async () => {
     const order = await createOrderViaApi(app, client.token, plumbingId);
     await matching.handleWave({ orderId: order.id, wave: 1 });
     await post(m1.token, order.id, 'accept').expect(201);
@@ -82,6 +82,14 @@ describe('Отмены по §3.9 и повторный поиск (e2e)', () =>
 
     let o = await prisma.order.findUnique({ where: { id: order.id } });
     expect(o).toMatchObject({ status: 'SEARCHING', masterId: null, searchAttempt: 2, wave: 0 });
+
+    const account = await prisma.leadCreditAccount.findUniqueOrThrow({ where: { masterUserId: m1.userId } });
+    expect(account.balance).toBe(-2); // штраф применяется даже при нулевом стартовом балансе
+    const penalty = await prisma.leadCreditTransaction.findFirstOrThrow({ where: { masterUserId: m1.userId, type: 'PENALTY' } });
+    expect(penalty.amount).toBe(-2);
+    const profile = await prisma.masterProfile.findUniqueOrThrow({ where: { userId: m1.userId } });
+    expect(profile.priorityPenaltyUntil).toBeTruthy();
+    expect(await prisma.masterCancellation.count({ where: { masterUserId: m1.userId, orderType: 'URGENT' } })).toBe(1);
 
     await matching.handleWave({ orderId: order.id, wave: 1 });
     const offers2 = await prisma.orderOffer.findMany({ where: { orderId: order.id, attempt: 2 } });
@@ -92,6 +100,21 @@ describe('Отмены по §3.9 и повторный поиск (e2e)', () =>
     expect(o!.masterId).toBe(m2.userId);
     // capture был при первом принятии и не дублируется
     expect(await prisma.paymentTransaction.count({ where: { orderId: order.id, type: 'CAPTURE' } })).toBe(1);
+  });
+
+  it('3-я отмена мастером за 30 дней блокирует его на 7 дней', async () => {
+    for (let i = 0; i < 3; i++) {
+      // Каждая заявка переходит после отмены обратно в SEARCHING (активный статус для клиента),
+      // поэтому новый клиент на каждую итерацию — иначе create() упадёт с 409 "уже есть активная заявка".
+      const iterClient = await loginAs(app, `+7709000001${i}`);
+      const order = await createOrderViaApi(app, iterClient.token, plumbingId);
+      await matching.handleWave({ orderId: order.id, wave: 1 });
+      await post(m1.token, order.id, 'accept').expect(201);
+      await post(m1.token, order.id, 'cancel').expect(201);
+    }
+    const profile = await prisma.masterProfile.findUniqueOrThrow({ where: { userId: m1.userId } });
+    expect(profile.blockedUntil).toBeTruthy();
+    expect(profile.blockedUntil!.getTime()).toBeGreaterThan(Date.now() + 6 * 24 * 3600 * 1000);
   });
 
   it('повторный поиск из NO_MASTERS: новый hold и новая попытка', async () => {

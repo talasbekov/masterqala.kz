@@ -18,6 +18,7 @@ import {
 import { QueueService } from '../queue/queue.service';
 import { JOBS } from '../queue/queue.constants';
 import { RealtimeGateway } from '../realtime/realtime.gateway';
+import { MasterPenaltyService } from '../common/master-penalty.service';
 import {
   ACTIVE_CLIENT_STATUSES,
   ACTIVE_MASTER_STATUSES,
@@ -37,6 +38,7 @@ export class OrdersService implements OnModuleInit {
     private readonly queue: QueueService,
     private readonly gateway: RealtimeGateway,
     @Inject(PAYMENT_PROVIDER) private readonly payments: PaymentProvider,
+    private readonly penalties: MasterPenaltyService,
   ) {}
 
   async preview(clientId: string, dto: PreviewOrderDto) {
@@ -426,13 +428,16 @@ export class OrdersService implements OnModuleInit {
 
   private async cancelByMaster(order: Order): Promise<void> {
     // §3.9 + дизайн-дока §4: перезапуск поиска с волны 1, отменивший исключён
-    // (его OrderOffer.outcome === 'ACCEPTED'); санкции мастеру — этап 5.
-    await this.gate(order.id, ['ACCEPTED', 'MASTER_ON_WAY'], {
-      status: 'SEARCHING',
-      masterId: null,
-      acceptedAt: null,
-      wave: 0,
-      searchAttempt: { increment: 1 },
+    // (его OrderOffer.outcome === 'ACCEPTED'); санкция мастеру — §3.9/этап 5.
+    const masterUserId = order.masterId!;
+    await this.prisma.$transaction(async (tx) => {
+      await this.gate(
+        order.id,
+        ['ACCEPTED', 'MASTER_ON_WAY'],
+        { status: 'SEARCHING', masterId: null, acceptedAt: null, wave: 0, searchAttempt: { increment: 1 } },
+        tx,
+      );
+      await this.penalties.penalizeForCancellation(tx, masterUserId, 'URGENT', order.id);
     });
     await this.queue.send(JOBS.WAVE, { orderId: order.id, wave: 1 });
     await this.emitOrderStatus(order.id);
