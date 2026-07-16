@@ -113,4 +113,50 @@ describe('Отмена плановой заявки (e2e)', () => {
       .set('Authorization', `Bearer ${stranger.token}`)
       .expect(403);
   });
+
+  it('после переоткрытия (отмена мастером) клиент может выбрать другого мастера по уже поданной ставке; лимит ставок сохраняется', async () => {
+    const order = await createPlannedOrderViaApi(app, client.token, plumbingId);
+    const master2 = await createActiveMaster(app, '+77090300003', plumbingId);
+    await grantLeadCredits(app, master2.userId, 5);
+
+    const b1Res = await request(app.getHttpServer())
+      .post(`/api/v1/planned-orders/${order.id}/bids`)
+      .set('Authorization', `Bearer ${master.token}`)
+      .send({ price: 7000, term: 'сегодня' })
+      .expect(201);
+    const b2Res = await request(app.getHttpServer())
+      .post(`/api/v1/planned-orders/${order.id}/bids`)
+      .set('Authorization', `Bearer ${master2.token}`)
+      .send({ price: 8000, term: 'завтра' })
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .post(`/api/v1/planned-orders/${order.id}/select`)
+      .set('Authorization', `Bearer ${client.token}`)
+      .send({ bidId: b1Res.body.id })
+      .expect(201);
+    await request(app.getHttpServer())
+      .post(`/api/v1/planned-orders/${order.id}/confirm`)
+      .set('Authorization', `Bearer ${master.token}`)
+      .expect(201);
+    await request(app.getHttpServer())
+      .post(`/api/v1/planned-orders/${order.id}/cancel`)
+      .set('Authorization', `Bearer ${master.token}`)
+      .expect(201);
+
+    const reopened = await prisma.plannedOrder.findUniqueOrThrow({ where: { id: order.id } });
+    expect(reopened.status).toBe('PUBLISHED');
+    expect(await prisma.plannedOrderBid.count({ where: { plannedOrderId: order.id } })).toBe(2);
+
+    const selectRes = await request(app.getHttpServer())
+      .post(`/api/v1/planned-orders/${order.id}/select`)
+      .set('Authorization', `Bearer ${client.token}`)
+      .send({ bidId: b2Res.body.id })
+      .expect(201);
+    expect(selectRes.body.status).toBe('MASTER_SELECTED');
+    expect(selectRes.body.masterId).toBe(master2.userId);
+
+    // Лимит ставок не сбрасывается переоткрытием — 2 существующие ставки сохраняются через цикл отмена→переоткрытие.
+    expect(await prisma.plannedOrderBid.count({ where: { plannedOrderId: order.id } })).toBe(2);
+  });
 });

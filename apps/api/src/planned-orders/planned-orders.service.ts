@@ -70,11 +70,12 @@ export class PlannedOrdersService implements OnModuleInit {
   }
 
   async listMine(clientId: string) {
-    return this.prisma.plannedOrder.findMany({
+    const orders = await this.prisma.plannedOrder.findMany({
       where: { clientId },
       orderBy: { createdAt: 'desc' },
       include: PLANNED_ORDER_INCLUDE,
     });
+    return orders.map((order) => this.redactMasterContact(order));
   }
 
   async findOrThrow(id: string) {
@@ -364,7 +365,14 @@ export class PlannedOrdersService implements OnModuleInit {
     const order = await this.findOrThrow(id);
     if (order.clientId === user.id) return this.redactMasterContact(order);
     const revealed = order.masterId === user.id;
-    return revealed ? order : { ...order, address: null, client: null };
+    if (revealed) return order;
+    return {
+      ...order,
+      address: null,
+      client: null,
+      master: order.master ? { ...order.master, phone: '' } : null,
+      bids: [],
+    };
   }
 
   private static readonly MASTER_CONTACT_REVEALED_STATUSES: PlannedOrder['status'][] = [

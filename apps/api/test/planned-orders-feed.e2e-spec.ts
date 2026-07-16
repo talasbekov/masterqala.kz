@@ -54,6 +54,7 @@ describe('Лента и просмотр плановой заявки (e2e)', (
       .expect(200);
     expect(redacted.body.address).toBeNull();
     expect(redacted.body.client).toBeNull();
+    expect(redacted.body.bids).toEqual([]);
   });
 
   it('выбранный мастер видит адрес и контакт клиента; чужой мастер — по-прежнему нет', async () => {
@@ -81,6 +82,8 @@ describe('Лента и просмотр плановой заявки (e2e)', (
       .expect(200);
     expect(stillRedacted.body.address).toBeNull();
     expect(stillRedacted.body.client).toBeNull();
+    expect(stillRedacted.body.master).toMatchObject({ id: plumber.userId, phone: '' });
+    expect(stillRedacted.body.bids).toEqual([]);
   });
 
   it('клиент видит свою заявку полностью', async () => {
