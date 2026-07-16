@@ -52,6 +52,9 @@ model User {
   leadCreditPurchases    LeadCreditPurchase[]
   masterWalletAccount    MasterWalletAccount?
   withdrawalRequests     WithdrawalRequest[]
+  cancellations          MasterCancellation[]
+  disputesOpened         Dispute[]               @relation("DisputesOpened")
+  disputesResolved       Dispute[]               @relation("DisputesResolved")
 }
 
 model SmsCode {
@@ -86,6 +89,7 @@ model MasterProfile {
   status          MasterStatus     @default(PENDING_REVIEW)
   rejectionReason String?
   priorityPenaltyUntil DateTime?
+  blockedUntil    DateTime?
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
   categories      MasterCategory[]
@@ -193,6 +197,7 @@ model Order {
   offers          OrderOffer[]
   payments        PaymentTransaction[]
   accruals        Accrual[]
+  disputes        Dispute[]
 
   @@index([clientId, status])
   @@index([masterId, status])
@@ -264,6 +269,7 @@ enum LeadCreditTxType {
   PURCHASE
   SPEND
   REFUND
+  PENALTY
 }
 
 model PlannedOrder {
@@ -291,6 +297,7 @@ model PlannedOrder {
   createdAt      DateTime           @default(now())
   updatedAt      DateTime           @updatedAt
   bids           PlannedOrderBid[]  @relation("OrderBids")
+  disputes       Dispute[]
 
   @@index([clientId, status])
   @@index([masterId, status])
@@ -364,4 +371,56 @@ model WithdrawalRequest {
   providerRef  String?
   requestedAt  DateTime         @default(now())
   paidAt       DateTime?
+}
+
+enum DisputeStatus {
+  OPEN
+  RESOLVED
+}
+
+enum DisputeTargetRole {
+  CLIENT
+  MASTER
+}
+
+model Dispute {
+  id               String            @id @default(uuid())
+  orderId          String?
+  order            Order?            @relation(fields: [orderId], references: [id])
+  plannedOrderId   String?
+  plannedOrder     PlannedOrder?     @relation(fields: [plannedOrderId], references: [id])
+  openedByUserId   String
+  openedByUser     User              @relation("DisputesOpened", fields: [openedByUserId], references: [id])
+  openedByRole     DisputeTargetRole
+  reason           String
+  evidenceDocIds   String[]          @default([])
+  counterStatement String?
+  status           DisputeStatus     @default(OPEN)
+  refundServiceFee Boolean?
+  penalizeMaster   Boolean?
+  resolutionNote   String?
+  resolvedByUserId String?
+  resolvedByUser   User?             @relation("DisputesResolved", fields: [resolvedByUserId], references: [id])
+  resolvedAt       DateTime?
+  createdAt        DateTime          @default(now())
+
+  @@index([orderId])
+  @@index([plannedOrderId])
+  @@index([status])
+}
+
+enum CancelledOrderType {
+  URGENT
+  PLANNED
+}
+
+model MasterCancellation {
+  id           String             @id @default(uuid())
+  masterUserId String
+  master       User               @relation(fields: [masterUserId], references: [id])
+  orderType    CancelledOrderType
+  orderId      String
+  createdAt    DateTime           @default(now())
+
+  @@index([masterUserId, createdAt])
 }
