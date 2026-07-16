@@ -14,6 +14,7 @@ import { JOBS } from '../queue/queue.constants';
 import { RealtimeGateway } from '../realtime/realtime.gateway';
 import {
   FEED_SELECT,
+  PLANNED_AUTO_CLOSE_S,
   PLANNED_CONFIRM_TIMEOUT_S,
   PLANNED_HORIZON_DAYS,
   PLANNED_MAX_BIDS,
@@ -35,6 +36,8 @@ export class PlannedOrdersService implements OnModuleInit {
     this.queue.register(JOBS.PLANNED_CONFIRM_TIMEOUT, (d: { plannedOrderId: string; bidId: string }) =>
       this.handleConfirmTimeout(d),
     );
+    this.queue.register(JOBS.PLANNED_AUTO_CLOSE, (d: { plannedOrderId: string }) => this.handleAutoClose(d));
+    this.queue.register(JOBS.PLANNED_EXPIRY, (d: { plannedOrderId: string }) => this.handlePlannedExpiry(d));
   }
 
   async create(clientId: string, dto: CreatePlannedOrderDto) {
@@ -98,6 +101,13 @@ export class PlannedOrdersService implements OnModuleInit {
   async guardClient(clientId: string, id: string) {
     const order = await this.findOrThrow(id);
     if (order.clientId !== clientId) throw new ForbiddenException('Нет доступа к заявке');
+    return order;
+  }
+
+  /** Назначенный мастер заявки? Иначе 403. */
+  private async guardMaster(masterUserId: string, id: string) {
+    const order = await this.findOrThrow(id);
+    if (order.masterId !== masterUserId) throw new ForbiddenException('Нет доступа к заявке');
     return order;
   }
 
@@ -216,6 +226,50 @@ export class PlannedOrdersService implements OnModuleInit {
       selectedBidId: null,
       selectedAt: null,
     });
+    await this.emitPlannedStatus(plannedOrderId);
+  }
+
+  async onSite(masterUserId: string, plannedOrderId: string) {
+    await this.guardMaster(masterUserId, plannedOrderId);
+    await this.gate(plannedOrderId, 'CONFIRMED', { status: 'IN_PROGRESS' });
+    await this.emitPlannedStatus(plannedOrderId);
+    return this.findOrThrow(plannedOrderId);
+  }
+
+  async complete(masterUserId: string, plannedOrderId: string) {
+    await this.guardMaster(masterUserId, plannedOrderId);
+    await this.gate(plannedOrderId, 'IN_PROGRESS', { status: 'DONE', completedAt: new Date() });
+    await this.queue.send(JOBS.PLANNED_AUTO_CLOSE, { plannedOrderId }, PLANNED_AUTO_CLOSE_S);
+    await this.emitPlannedStatus(plannedOrderId);
+    return this.findOrThrow(plannedOrderId);
+  }
+
+  async confirmCompletion(clientId: string, plannedOrderId: string) {
+    await this.guardClient(clientId, plannedOrderId);
+    await this.closeOrder(plannedOrderId);
+    return this.findOrThrow(plannedOrderId);
+  }
+
+  /** Джоба: клиент молчал 24ч после «Выполнено». */
+  async handleAutoClose({ plannedOrderId }: { plannedOrderId: string }): Promise<void> {
+    const order = await this.prisma.plannedOrder.findUnique({ where: { id: plannedOrderId } });
+    if (!order || order.status !== 'DONE') return;
+    await this.closeOrder(plannedOrderId);
+  }
+
+  private async closeOrder(plannedOrderId: string): Promise<void> {
+    await this.gate(plannedOrderId, 'DONE', { status: 'CLOSED', closedAt: new Date() });
+    await this.emitPlannedStatus(plannedOrderId);
+  }
+
+  /** Джоба: наступил scheduledAt, а заявка ещё PUBLISHED без единой ставки. */
+  async handlePlannedExpiry({ plannedOrderId }: { plannedOrderId: string }): Promise<void> {
+    const order = await this.prisma.plannedOrder.findUnique({
+      where: { id: plannedOrderId },
+      include: { _count: { select: { bids: true } } },
+    });
+    if (!order || order.status !== 'PUBLISHED' || order._count.bids > 0) return;
+    await this.gate(plannedOrderId, 'PUBLISHED', { status: 'EXPIRED' });
     await this.emitPlannedStatus(plannedOrderId);
   }
 

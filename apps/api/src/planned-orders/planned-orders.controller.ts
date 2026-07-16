@@ -49,4 +49,19 @@ export class PlannedOrdersController {
   decline(@CurrentUser() user: User, @Param('id') id: string) {
     return this.plannedOrders.decline(user.id, id);
   }
+
+  @Post(':id/on-site')
+  onSite(@CurrentUser() user: User, @Param('id') id: string) {
+    return this.plannedOrders.onSite(user.id, id);
+  }
+
+  @Post(':id/complete')
+  complete(@CurrentUser() user: User, @Param('id') id: string) {
+    return this.plannedOrders.complete(user.id, id);
+  }
+
+  @Post(':id/confirm-completion')
+  confirmCompletion(@CurrentUser() user: User, @Param('id') id: string) {
+    return this.plannedOrders.confirmCompletion(user.id, id);
+  }
 }
