@@ -43,4 +43,10 @@ export class MockPaymentProvider implements PaymentProvider {
     void amount;
     return { status: 'SUCCEEDED', providerRef: `mock-${randomUUID()}` };
   }
+
+  async payout(referenceId: string, amount: number): Promise<{ status: PaymentStatus; providerRef: string }> {
+    void referenceId;
+    void amount;
+    return { status: 'SUCCEEDED', providerRef: `mock-${randomUUID()}` };
+  }
 }

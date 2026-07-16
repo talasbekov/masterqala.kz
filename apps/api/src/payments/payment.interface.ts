@@ -7,4 +7,5 @@ export interface PaymentProvider {
   capture(orderId: string): Promise<PaymentTransaction>;
   void(orderId: string): Promise<PaymentTransaction>;
   charge(referenceId: string, amount: number): Promise<{ status: PaymentStatus; providerRef: string }>;
+  payout(referenceId: string, amount: number): Promise<{ status: PaymentStatus; providerRef: string }>;
 }

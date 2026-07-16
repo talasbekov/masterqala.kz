@@ -58,4 +58,11 @@ describe('MockPaymentProvider (e2e)', () => {
     expect(result.providerRef).toMatch(/^mock-/);
     expect(await prisma.paymentTransaction.count()).toBe(0);
   });
+
+  it('payout всегда успешен и не создаёт PaymentTransaction (не привязан к заявке)', async () => {
+    const result = await payments.payout('withdrawal-1', 6000);
+    expect(result.status).toBe('SUCCEEDED');
+    expect(result.providerRef).toMatch(/^mock-/);
+    expect(await prisma.paymentTransaction.count()).toBe(0);
+  });
 });
