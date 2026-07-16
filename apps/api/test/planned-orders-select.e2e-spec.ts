@@ -94,7 +94,7 @@ describe('Выбор и подтверждение мастера (e2e)', () => 
       .set('Authorization', `Bearer ${m1.token}`)
       .expect(201);
 
-    let fresh = await prisma.plannedOrder.findUniqueOrThrow({ where: { id: order.id } });
+    const fresh = await prisma.plannedOrder.findUniqueOrThrow({ where: { id: order.id } });
     expect(fresh).toMatchObject({ status: 'PUBLISHED', masterId: null, selectedBidId: null });
     expect(await prisma.plannedOrderBid.count({ where: { plannedOrderId: order.id } })).toBe(1);
 
@@ -106,14 +106,63 @@ describe('Выбор и подтверждение мастера (e2e)', () => 
       .expect(201);
 
     // джоба-таймаут на уже неактуальный bidId (устаревший) — no-op
-    fresh = await prisma.plannedOrder.findUniqueOrThrow({ where: { id: order.id } });
     await plannedOrders.handleConfirmTimeout({ plannedOrderId: order.id, bidId: 'stale-bid-id' });
     const stillSelected = await prisma.plannedOrder.findUniqueOrThrow({ where: { id: order.id } });
     expect(stillSelected.status).toBe('MASTER_SELECTED');
 
     // реальный таймаут по актуальному bidId возвращает в PUBLISHED
-    await plannedOrders.handleConfirmTimeout({ plannedOrderId: order.id, bidId: fresh.selectedBidId! });
+    await plannedOrders.handleConfirmTimeout({ plannedOrderId: order.id, bidId: stillSelected.selectedBidId! });
     const afterTimeout = await prisma.plannedOrder.findUniqueOrThrow({ where: { id: order.id } });
     expect(afterTimeout.status).toBe('PUBLISHED');
+  });
+
+  it('устаревшая джоба-таймаут от первого выбора не трогает второй, реально текущий выбор', async () => {
+    const order = await createPlannedOrderViaApi(app, client.token, plumbingId);
+    const b1 = await bid(m1.token, order.id, 8000);
+    const b2 = await bid(m2.token, order.id, 9000);
+
+    // клиент выбирает бид m1 (b1) — это "джоба A" с payload bidId = b1.id
+    await request(app.getHttpServer())
+      .post(`/api/v1/planned-orders/${order.id}/select`)
+      .set('Authorization', `Bearer ${client.token}`)
+      .send({ bidId: b1.id })
+      .expect(201);
+    const afterFirstSelect = await prisma.plannedOrder.findUniqueOrThrow({ where: { id: order.id } });
+    expect(afterFirstSelect.selectedBidId).toBe(b1.id);
+
+    // возврат в PUBLISHED после первого выбора — джоба A по b1.id реально сработала бы здесь
+    await plannedOrders.handleConfirmTimeout({ plannedOrderId: order.id, bidId: b1.id });
+    const afterRevert = await prisma.plannedOrder.findUniqueOrThrow({ where: { id: order.id } });
+    expect(afterRevert).toMatchObject({ status: 'PUBLISHED', masterId: null, selectedBidId: null });
+
+    // клиент выбирает ДРУГОЙ бид — m2 (b2). Это "джоба B" с payload bidId = b2.id
+    await request(app.getHttpServer())
+      .post(`/api/v1/planned-orders/${order.id}/select`)
+      .set('Authorization', `Bearer ${client.token}`)
+      .send({ bidId: b2.id })
+      .expect(201);
+    const afterSecondSelect = await prisma.plannedOrder.findUniqueOrThrow({ where: { id: order.id } });
+    expect(afterSecondSelect).toMatchObject({
+      status: 'MASTER_SELECTED',
+      masterId: m2.userId,
+      selectedBidId: b2.id,
+    });
+
+    // устаревшая джоба A (payload b1.id) срабатывает ПОСЛЕ того, как выбор уже сменился на b2 — no-op
+    await plannedOrders.handleConfirmTimeout({ plannedOrderId: order.id, bidId: b1.id });
+    const afterStaleJob = await prisma.plannedOrder.findUniqueOrThrow({ where: { id: order.id } });
+    expect(afterStaleJob).toMatchObject({
+      status: 'MASTER_SELECTED',
+      masterId: m2.userId,
+      selectedBidId: b2.id,
+    });
+
+    // актуальная джоба B (payload b2.id) реально возвращает заявку в PUBLISHED
+    await plannedOrders.handleConfirmTimeout({ plannedOrderId: order.id, bidId: b2.id });
+    const afterCurrentJob = await prisma.plannedOrder.findUniqueOrThrow({ where: { id: order.id } });
+    expect(afterCurrentJob).toMatchObject({ status: 'PUBLISHED', masterId: null, selectedBidId: null });
+
+    // оба бида остаются в базе — реверт ничего не удаляет
+    expect(await prisma.plannedOrderBid.count({ where: { plannedOrderId: order.id } })).toBe(2);
   });
 });
