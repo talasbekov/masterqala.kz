@@ -64,4 +64,9 @@ export class PlannedOrdersController {
   confirmCompletion(@CurrentUser() user: User, @Param('id') id: string) {
     return this.plannedOrders.confirmCompletion(user.id, id);
   }
+
+  @Post(':id/cancel')
+  cancel(@CurrentUser() user: User, @Param('id') id: string) {
+    return this.plannedOrders.cancel(user, id);
+  }
 }

@@ -287,6 +287,79 @@ export class PlannedOrdersService implements OnModuleInit {
     if (order.masterId) this.gateway.emitToUser(order.masterId, 'planned:status', { ...base, master: order.master });
   }
 
+  async cancel(user: User, plannedOrderId: string): Promise<PlannedOrder> {
+    const order = await this.findOrThrow(plannedOrderId);
+    if (order.clientId === user.id) {
+      await this.cancelByClient(order);
+    } else if (order.masterId === user.id) {
+      await this.cancelByMaster(order);
+    } else {
+      throw new ForbiddenException('Нет доступа к заявке');
+    }
+    return this.findOrThrow(plannedOrderId);
+  }
+
+  private async cancelByClient(order: PlannedOrder): Promise<void> {
+    const before: PlannedOrder['status'][] = ['CREATED', 'PUBLISHED'];
+    const after: PlannedOrder['status'][] = ['MASTER_SELECTED', 'CONFIRMED', 'IN_PROGRESS'];
+
+    if (before.includes(order.status)) {
+      await this.gate(order.id, before, { status: 'CANCELLED_BY_CLIENT', cancelReason: 'Отменена клиентом' });
+      await this.emitPlannedStatus(order.id);
+      return;
+    }
+
+    if (after.includes(order.status)) {
+      await this.prisma.$transaction(async (tx) => {
+        await this.gate(
+          order.id,
+          after,
+          { status: 'CANCELLED_BY_CLIENT', cancelReason: 'Отменена клиентом после выбора мастера' },
+          tx,
+        );
+        if (order.masterId) {
+          await tx.leadCreditAccount.update({
+            where: { masterUserId: order.masterId },
+            data: { balance: { increment: 1 } },
+          });
+          await tx.leadCreditTransaction.create({
+            data: { masterUserId: order.masterId, type: 'REFUND', amount: 1, bidId: order.selectedBidId },
+          });
+        }
+      });
+      await this.emitPlannedStatus(order.id);
+      return;
+    }
+
+    throw new ConflictException('На этом этапе отмена недоступна');
+  }
+
+  private async cancelByMaster(order: PlannedOrder): Promise<void> {
+    if (!['CONFIRMED', 'IN_PROGRESS'].includes(order.status)) {
+      throw new ConflictException('На этом этапе отмена недоступна');
+    }
+    await this.prisma.$transaction(async (tx) => {
+      await this.gate(
+        order.id,
+        ['CONFIRMED', 'IN_PROGRESS'],
+        { status: 'PUBLISHED', masterId: null, selectedBidId: null, selectedAt: null, confirmedAt: null },
+        tx,
+      );
+      await tx.leadCreditAccount.update({
+        where: { masterUserId: order.masterId! },
+        data: { balance: { decrement: 2 } },
+      });
+      await tx.leadCreditTransaction.create({
+        data: { masterUserId: order.masterId!, type: 'SPEND', amount: 2, bidId: order.selectedBidId },
+      });
+      await tx.masterProfile.updateMany({
+        where: { userId: order.masterId! },
+        data: { priorityPenaltyUntil: new Date(Date.now() + 24 * 3600 * 1000) },
+      });
+    });
+    await this.emitPlannedStatus(order.id);
+  }
+
   async getByIdForUser(user: User, id: string) {
     const order = await this.findOrThrow(id);
     if (order.clientId === user.id) return this.redactMasterContact(order);
