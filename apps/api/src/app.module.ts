@@ -13,6 +13,7 @@ import { QueueModule } from './queue/queue.module';
 import { RealtimeModule } from './realtime/realtime.module';
 import { LeadCreditsModule } from './lead-credits/lead-credits.module';
 import { OrdersModule } from './orders/orders.module';
+import { PlannedOrdersModule } from './planned-orders/planned-orders.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { OrdersModule } from './orders/orders.module';
     RealtimeModule,
     LeadCreditsModule,
     OrdersModule,
+    PlannedOrdersModule,
   ],
   controllers: [HealthController],
   providers: [],

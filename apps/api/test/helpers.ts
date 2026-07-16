@@ -112,3 +112,24 @@ export async function createOrderViaApi(
     .expect(201);
   return res.body;
 }
+
+export async function createPlannedOrderViaApi(
+  app: INestApplication,
+  clientToken: string,
+  categoryId: string,
+  overrides: Partial<{ description: string; address: string; district: string; scheduledAt: string }> = {},
+) {
+  const scheduledAt = overrides.scheduledAt ?? new Date(Date.now() + 24 * 3600 * 1000).toISOString();
+  const res = await request(app.getHttpServer())
+    .post('/api/v1/planned-orders')
+    .set('Authorization', `Bearer ${clientToken}`)
+    .send({
+      categoryId,
+      description: overrides.description ?? 'Установить новый смеситель',
+      address: overrides.address ?? 'ул. Абая, 1',
+      district: overrides.district ?? 'Алмалинский',
+      scheduledAt,
+    })
+    .expect(201);
+  return res.body;
+}
