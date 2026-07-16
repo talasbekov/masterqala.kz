@@ -6,12 +6,12 @@ import {
   NotFoundException,
   OnModuleInit,
 } from '@nestjs/common';
-import { PlannedOrder, Prisma } from '@prisma/client';
+import { PlannedOrder, Prisma, User } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { QueueService } from '../queue/queue.service';
 import { JOBS } from '../queue/queue.constants';
 import { RealtimeGateway } from '../realtime/realtime.gateway';
-import { PLANNED_HORIZON_DAYS, PLANNED_ORDER_INCLUDE } from './planned-order.constants';
+import { FEED_SELECT, PLANNED_HORIZON_DAYS, PLANNED_ORDER_INCLUDE } from './planned-order.constants';
 import { CreatePlannedOrderDto } from './dto';
 
 type Tx = Prisma.TransactionClient;
@@ -89,6 +89,44 @@ export class PlannedOrdersService implements OnModuleInit {
   async guardClient(clientId: string, id: string) {
     const order = await this.findOrThrow(id);
     if (order.clientId !== clientId) throw new ForbiddenException('Нет доступа к заявке');
+    return order;
+  }
+
+  async feed(masterUserId: string) {
+    const categories = await this.prisma.masterCategory.findMany({
+      where: { masterProfile: { userId: masterUserId } },
+      select: { categoryId: true },
+    });
+    const categoryIds = categories.map((c) => c.categoryId);
+    if (categoryIds.length === 0) return [];
+    return this.prisma.plannedOrder.findMany({
+      where: { status: 'PUBLISHED', categoryId: { in: categoryIds } },
+      orderBy: { scheduledAt: 'asc' },
+      select: FEED_SELECT,
+    });
+  }
+
+  async getByIdForUser(user: User, id: string) {
+    const order = await this.findOrThrow(id);
+    if (order.clientId === user.id) return this.redactMasterContact(order);
+    const revealed = order.masterId === user.id;
+    return revealed ? order : { ...order, address: null, client: null };
+  }
+
+  private static readonly MASTER_CONTACT_REVEALED_STATUSES: PlannedOrder['status'][] = [
+    'CONFIRMED',
+    'IN_PROGRESS',
+    'DONE',
+    'CLOSED',
+  ];
+
+  /** Клиенту телефон мастера виден только с CONFIRMED — §3.4 шаг 7. */
+  private redactMasterContact<T extends { status: PlannedOrder['status']; master: { id: string; name: string | null; phone: string } | null }>(
+    order: T,
+  ): T {
+    if (order.master && !PlannedOrdersService.MASTER_CONTACT_REVEALED_STATUSES.includes(order.status)) {
+      return { ...order, master: { ...order.master, phone: '' } };
+    }
     return order;
   }
 }

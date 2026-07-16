@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { User } from '@prisma/client';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
@@ -18,5 +18,15 @@ export class PlannedOrdersController {
   @Get('mine')
   listMine(@CurrentUser() user: User) {
     return this.plannedOrders.listMine(user.id);
+  }
+
+  @Get('feed')
+  feed(@CurrentUser() user: User) {
+    return this.plannedOrders.feed(user.id);
+  }
+
+  @Get(':id')
+  getById(@CurrentUser() user: User, @Param('id') id: string) {
+    return this.plannedOrders.getByIdForUser(user, id);
   }
 }
