@@ -4,12 +4,6 @@ CREATE TYPE "PlannedOrderStatus" AS ENUM ('CREATED', 'PUBLISHED', 'MASTER_SELECT
 -- CreateEnum
 CREATE TYPE "LeadCreditTxType" AS ENUM ('PURCHASE', 'SPEND', 'REFUND');
 
--- DropIndex
-DROP INDEX "MasterPresence_location_idx";
-
--- DropIndex
-DROP INDEX "Order_location_idx";
-
 -- AlterTable
 ALTER TABLE "MasterProfile" ADD COLUMN     "priorityPenaltyUntil" TIMESTAMP(3);
 
