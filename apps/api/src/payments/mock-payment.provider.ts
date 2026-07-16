@@ -1,6 +1,6 @@
 import { Injectable, ConflictException } from '@nestjs/common';
 import { randomUUID } from 'crypto';
-import { PaymentTransaction, PaymentType } from '@prisma/client';
+import { PaymentStatus, PaymentTransaction, PaymentType } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { PaymentProvider } from './payment.interface';
 
@@ -36,5 +36,11 @@ export class MockPaymentProvider implements PaymentProvider {
     return this.prisma.paymentTransaction.create({
       data: { orderId, type, amount: hold.amount, status: 'SUCCEEDED', providerRef: `mock-${randomUUID()}` },
     });
+  }
+
+  async charge(referenceId: string, amount: number): Promise<{ status: PaymentStatus; providerRef: string }> {
+    void referenceId;
+    void amount;
+    return { status: 'SUCCEEDED', providerRef: `mock-${randomUUID()}` };
   }
 }
