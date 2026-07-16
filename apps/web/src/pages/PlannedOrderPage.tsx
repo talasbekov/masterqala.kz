@@ -77,7 +77,7 @@ export default function PlannedOrderPage() {
         </div>
       )}
 
-      {['MASTER_SELECTED', 'CONFIRMED', 'IN_PROGRESS'].includes(order.status) && order.master && (
+      {['MASTER_SELECTED', 'CONFIRMED', 'IN_PROGRESS', 'DONE', 'CLOSED'].includes(order.status) && order.master && (
         <div className="rounded-xl border p-4">
           <div className="font-semibold">{order.master.name ?? 'Мастер'}</div>
           {order.master.phone ? (
