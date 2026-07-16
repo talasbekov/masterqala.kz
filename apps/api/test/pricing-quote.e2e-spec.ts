@@ -1,4 +1,5 @@
 import { INestApplication } from '@nestjs/common';
+import * as request from 'supertest';
 import {
   createTestApp,
   resetDb,
@@ -13,6 +14,8 @@ import {
   calcPrices,
   computeTimeCoefficient,
 } from '../src/pricing/pricing.service';
+
+const NO_CLIENT = '00000000-0000-0000-0000-000000000000';
 
 describe('PricingService.quote (e2e)', () => {
   let app: INestApplication;
@@ -34,7 +37,7 @@ describe('PricingService.quote (e2e)', () => {
   it('считает цену от ближайшего онлайн-мастера (прямая × 1.3)', async () => {
     await createActiveMaster(app, '+77020000001', plumbingId, pointAtKm(2));
     await createActiveMaster(app, '+77020000002', plumbingId, pointAtKm(5));
-    const q = await pricing.quote(plumbingId, ALMATY);
+    const q = await pricing.quote(plumbingId, ALMATY, NO_CLIENT);
     expect(q).not.toBeNull();
     expect(q!.distanceKm).toBeGreaterThan(2.4); // ~2 км × 1.3
     expect(q!.distanceKm).toBeLessThan(2.8);
@@ -54,7 +57,7 @@ describe('PricingService.quote (e2e)', () => {
       plumbingId,
       pointAtKm(12),
     );
-    expect(await pricing.quote(plumbingId, ALMATY)).toBeNull();
+    expect(await pricing.quote(plumbingId, ALMATY, NO_CLIENT)).toBeNull();
     const near = await createActiveMaster(
       app,
       '+77020000004',
@@ -62,7 +65,17 @@ describe('PricingService.quote (e2e)', () => {
       pointAtKm(1),
     );
     await setMasterOffline(app, near.userId);
-    expect(await pricing.quote(plumbingId, ALMATY)).toBeNull();
+    expect(await pricing.quote(plumbingId, ALMATY, NO_CLIENT)).toBeNull();
     void far;
+  });
+
+  it('мастер не находит себя как ближайшего свободного мастера в превью для себя', async () => {
+    const selfMaster = await createActiveMaster(app, '+77130000001', plumbingId);
+    const empty = await request(app.getHttpServer())
+      .post('/api/v1/orders/preview')
+      .set('Authorization', `Bearer ${selfMaster.token}`)
+      .send({ categoryId: plumbingId, ...ALMATY })
+      .expect(201);
+    expect(empty.body).toEqual({ available: false });
   });
 });

@@ -11,8 +11,8 @@ export class OrdersController {
   constructor(private readonly orders: OrdersService) {}
 
   @Post('orders/preview')
-  preview(@Body() dto: PreviewOrderDto) {
-    return this.orders.preview(dto);
+  preview(@CurrentUser() user: User, @Body() dto: PreviewOrderDto) {
+    return this.orders.preview(user.id, dto);
   }
 
   @Post('orders')

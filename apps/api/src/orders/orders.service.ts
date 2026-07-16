@@ -39,11 +39,12 @@ export class OrdersService implements OnModuleInit {
     @Inject(PAYMENT_PROVIDER) private readonly payments: PaymentProvider,
   ) {}
 
-  async preview(dto: PreviewOrderDto) {
-    const quote = await this.pricing.quote(dto.categoryId, {
-      lat: dto.lat,
-      lng: dto.lng,
-    });
+  async preview(clientId: string, dto: PreviewOrderDto) {
+    const quote = await this.pricing.quote(
+      dto.categoryId,
+      { lat: dto.lat, lng: dto.lng },
+      clientId,
+    );
     return quote ? { available: true, ...quote } : { available: false };
   }
 
@@ -59,10 +60,11 @@ export class OrdersService implements OnModuleInit {
     if (active > 0)
       throw new ConflictException('У вас уже есть активная заявка');
 
-    const quote = await this.pricing.quote(dto.categoryId, {
-      lat: dto.lat,
-      lng: dto.lng,
-    });
+    const quote = await this.pricing.quote(
+      dto.categoryId,
+      { lat: dto.lat, lng: dto.lng },
+      clientId,
+    );
     if (!quote) throw new UnprocessableEntityException('Мастеров рядом нет');
 
     const order = await this.prisma.$transaction(async (tx) => {
