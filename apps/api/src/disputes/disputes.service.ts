@@ -9,7 +9,9 @@ import {
 import { Prisma, User } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { FileStorage, FILE_STORAGE } from '../storage/storage.interface';
-import { OpenDisputeDto } from './dto';
+import { PAYMENT_PROVIDER, PaymentProvider } from '../payments/payment.interface';
+import { MasterPenaltyService } from '../common/master-penalty.service';
+import { OpenDisputeDto, ResolveDisputeDto } from './dto';
 
 const DISPUTE_WINDOW_AFTER_CLOSE_MS = 48 * 3600 * 1000;
 const ALLOWED_MIME: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png' };
@@ -20,6 +22,8 @@ export class DisputesService {
   constructor(
     private readonly prisma: PrismaService,
     @Inject(FILE_STORAGE) private readonly storage: FileStorage,
+    @Inject(PAYMENT_PROVIDER) private readonly payments: PaymentProvider,
+    private readonly penalties: MasterPenaltyService,
   ) {}
 
   async openForOrder(user: User, orderId: string, dto: OpenDisputeDto) {
@@ -116,5 +120,60 @@ export class DisputesService {
     if (dispute.status !== 'OPEN') throw new ConflictException('Спор уже закрыт');
     if (userId === dispute.openedByUserId) throw new ForbiddenException('Пояснение добавляет только вторая сторона');
     return this.prisma.dispute.update({ where: { id: disputeId }, data: { counterStatement } });
+  }
+
+  async listAll(status?: 'OPEN' | 'RESOLVED') {
+    return this.prisma.dispute.findMany({
+      where: status ? { status } : undefined,
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async getById(id: string) {
+    return this.findOrThrow(id);
+  }
+
+  async resolve(operatorId: string, disputeId: string, dto: ResolveDisputeDto) {
+    const dispute = await this.findOrThrow(disputeId);
+    if (dispute.status !== 'OPEN') throw new ConflictException('Спор уже разрешён');
+
+    const orderId = dispute.orderId;
+    const plannedOrderId = dispute.plannedOrderId;
+
+    await this.prisma.$transaction(async (tx) => {
+      const gated = await tx.dispute.updateMany({
+        where: { id: disputeId, status: 'OPEN' },
+        data: {
+          status: 'RESOLVED',
+          refundServiceFee: dto.refundServiceFee,
+          penalizeMaster: dto.penalizeMaster,
+          resolutionNote: dto.resolutionNote,
+          resolvedByUserId: operatorId,
+          resolvedAt: new Date(),
+        },
+      });
+      if (gated.count === 0) throw new ConflictException('Спор уже разрешён');
+
+      if (orderId) {
+        const order = await tx.order.findUniqueOrThrow({ where: { id: orderId } });
+        if (dto.penalizeMaster && order.masterId) await this.penalties.applyPenalty(tx, order.masterId);
+        if (order.status === 'DONE') {
+          await tx.order.updateMany({ where: { id: orderId, status: 'DONE' }, data: { status: 'CLOSED', closedAt: new Date() } });
+        }
+      } else if (plannedOrderId) {
+        const order = await tx.plannedOrder.findUniqueOrThrow({ where: { id: plannedOrderId } });
+        if (dto.penalizeMaster && order.masterId) await this.penalties.applyPenalty(tx, order.masterId);
+        if (order.status === 'DONE') {
+          await tx.plannedOrder.updateMany({ where: { id: plannedOrderId, status: 'DONE' }, data: { status: 'CLOSED', closedAt: new Date() } });
+        }
+      }
+    });
+
+    if (dto.refundServiceFee && orderId) {
+      const order = await this.prisma.order.findUniqueOrThrow({ where: { id: orderId } });
+      await this.payments.refund(orderId, order.serviceFee);
+    }
+
+    return this.findOrThrow(disputeId);
   }
 }
