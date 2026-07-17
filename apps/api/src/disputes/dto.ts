@@ -6,3 +6,10 @@ export class OpenDisputeDto {
   @MaxLength(2000)
   reason!: string;
 }
+
+export class CounterStatementDto {
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(2000)
+  counterStatement!: string;
+}
