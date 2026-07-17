@@ -52,3 +52,43 @@ export const PLANNED_STATUS_LABELS: Record<string, string> = {
 export function isPlannedTerminalStatus(s: string): boolean {
   return ['CLOSED', 'EXPIRED', 'CANCELLED_BY_CLIENT', 'CANCELLED_BY_MASTER'].includes(s);
 }
+
+export type StatusVariant = 'info' | 'active' | 'success' | 'danger';
+
+const URGENT_VARIANTS: Record<string, StatusVariant> = {
+  CREATED: 'info',
+  SEARCHING: 'info',
+  ACCEPTED: 'active',
+  MASTER_ON_WAY: 'active',
+  INSPECTION: 'active',
+  AWAITING_PRICE_CONFIRM: 'active',
+  IN_PROGRESS: 'active',
+  DONE: 'success',
+  CLOSED: 'success',
+  NO_MASTERS: 'danger',
+  CANCELLED_BY_CLIENT: 'danger',
+  CANCELLED_BY_MASTER: 'danger',
+  DISPUTE: 'danger',
+};
+
+export function urgentStatusVariant(status: string): StatusVariant {
+  return URGENT_VARIANTS[status] ?? 'info';
+}
+
+const PLANNED_VARIANTS: Record<string, StatusVariant> = {
+  CREATED: 'info',
+  PUBLISHED: 'info',
+  MASTER_SELECTED: 'active',
+  CONFIRMED: 'active',
+  IN_PROGRESS: 'active',
+  DONE: 'success',
+  CLOSED: 'success',
+  EXPIRED: 'danger',
+  CANCELLED_BY_CLIENT: 'danger',
+  CANCELLED_BY_MASTER: 'danger',
+  DISPUTE: 'danger',
+};
+
+export function plannedStatusVariant(status: string): StatusVariant {
+  return PLANNED_VARIANTS[status] ?? 'info';
+}
