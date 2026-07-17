@@ -2,7 +2,59 @@ import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api, apiUpload } from '../api';
 import { getSocket } from '../socket';
-import { PLANNED_STATUS_LABELS, isPlannedTerminalStatus } from '../orderStatus';
+import { PLANNED_STATUS_LABELS, isPlannedTerminalStatus, plannedStatusVariant } from '../orderStatus';
+import Card from '../components/ui/Card';
+import Button from '../components/ui/Button';
+import Avatar from '../components/ui/Avatar';
+import StatusPill from '../components/ui/StatusPill';
+
+function DisputeCard({
+  dispute,
+  counterStatement,
+  onCounterStatementChange,
+  onSubmitCounterStatement,
+  onUploadEvidence,
+}: {
+  dispute: any;
+  counterStatement: string;
+  onCounterStatementChange: (v: string) => void;
+  onSubmitCounterStatement: () => void;
+  onUploadEvidence: (file: File) => void;
+}) {
+  return (
+    <div className="space-y-2 rounded-lg border-2 border-accent/30 bg-accent/5 p-4 text-left">
+      <div className="font-bold text-accent">Спор {dispute.status === 'OPEN' ? 'открыт' : 'закрыт'}</div>
+      <p className="text-sm text-foreground">{dispute.reason}</p>
+      {dispute.counterStatement && <p className="text-sm text-muted">Пояснение: {dispute.counterStatement}</p>}
+      {dispute.status === 'RESOLVED' && (
+        <p className="text-sm text-muted">
+          Решение: {dispute.refundServiceFee ? 'сбор возвращён' : 'сбор не возвращён'}, {dispute.penalizeMaster ? 'мастер оштрафован' : 'без санкций'}
+        </p>
+      )}
+      {dispute.status === 'OPEN' && (
+        <div className="space-y-2">
+          <input
+            type="file"
+            accept="image/jpeg,image/png"
+            onChange={(e) => e.target.files?.[0] && onUploadEvidence(e.target.files[0])}
+          />
+          <textarea
+            className="w-full rounded-md border border-border bg-surface p-2 text-sm"
+            placeholder="Пояснение (для второй стороны)"
+            value={counterStatement}
+            onChange={(e) => onCounterStatementChange(e.target.value)}
+          />
+          <button
+            className="rounded-md border border-border px-3 py-1 text-sm font-semibold text-foreground"
+            onClick={onSubmitCounterStatement}
+          >
+            Отправить пояснение
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function PlannedOrderPage() {
   const { id } = useParams();
@@ -86,106 +138,84 @@ export default function PlannedOrderPage() {
     }
   }
 
-  if (error && !order) return <div className="p-6 text-red-600">{error}</div>;
-  if (!order) return <div className="p-6 text-gray-500">Загрузка…</div>;
+  if (error && !order) return <div className="p-6 text-destructive">{error}</div>;
+  if (!order) return <div className="p-6 text-muted">Загрузка…</div>;
 
   return (
-    <div className="mx-auto max-w-sm p-6 pb-32 space-y-4">
-      <h1 className="text-xl font-bold">{order.category?.name}</h1>
-      <div className="text-teal-700">{PLANNED_STATUS_LABELS[order.status]}</div>
-      <div className="text-sm text-gray-500">{new Date(order.scheduledAt).toLocaleString('ru-RU')}</div>
-      {error && <p className="text-sm text-red-600">{error}</p>}
+    <div className="mx-auto max-w-sm space-y-4 p-6 pb-32">
+      <h1 className="text-xl font-extrabold text-foreground">{order.category?.name}</h1>
+      <StatusPill variant={plannedStatusVariant(order.status)}>{PLANNED_STATUS_LABELS[order.status]}</StatusPill>
+      <div className="text-sm text-muted">{new Date(order.scheduledAt).toLocaleString('ru-RU')}</div>
+      {error && <p className="text-sm text-destructive">{error}</p>}
 
       {order.status === 'PUBLISHED' && (
         <div className="space-y-2">
-          <h2 className="font-semibold">Ставки ({order.bids.length}/5)</h2>
-          {order.bids.length === 0 && <p className="text-gray-500">Пока никто не откликнулся</p>}
+          <h2 className="font-bold text-foreground">Ставки ({order.bids.length}/5)</h2>
+          {order.bids.length === 0 && <p className="text-muted">Пока никто не откликнулся</p>}
           {order.bids.map((b: any) => (
-            <div key={b.id} className="rounded-xl border p-4 space-y-1">
-              <div className="flex justify-between">
-                <span className="font-semibold">{b.price} ₸</span>
-                <span className="text-sm text-gray-500">{b.term}</span>
+            <Card key={b.id} className="space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-foreground">{b.price} ₸</span>
+                <span className="text-sm text-muted">{b.term}</span>
               </div>
-              {b.comment && <div className="text-sm text-gray-600">{b.comment}</div>}
-              <button className="w-full rounded bg-teal-700 p-2 text-white" onClick={() => selectBid(b.id)}>
-                Выбрать
-              </button>
-            </div>
+              {b.comment && <div className="text-sm text-muted">{b.comment}</div>}
+              <Button onClick={() => selectBid(b.id)}>Выбрать</Button>
+            </Card>
           ))}
         </div>
       )}
 
       {['MASTER_SELECTED', 'CONFIRMED', 'IN_PROGRESS', 'DONE', 'CLOSED'].includes(order.status) && order.master && (
-        <div className="rounded-xl border p-4">
-          <div className="font-semibold">{order.master.name ?? 'Мастер'}</div>
-          {order.master.phone ? (
-            <a href={`tel:${order.master.phone}`} className="text-teal-700 underline">{order.master.phone}</a>
-          ) : (
-            <div className="text-sm text-gray-500">Ждём подтверждения…</div>
-          )}
-        </div>
+        <Card className="flex items-center gap-3">
+          <Avatar name={order.master.name} />
+          <div>
+            <div className="font-bold text-foreground">{order.master.name ?? 'Мастер'}</div>
+            {order.master.phone ? (
+              <a href={`tel:${order.master.phone}`} className="text-sm font-semibold text-primary underline">
+                {order.master.phone}
+              </a>
+            ) : (
+              <div className="text-sm text-muted">Ждём подтверждения…</div>
+            )}
+          </div>
+        </Card>
       )}
 
       {isPlannedTerminalStatus(order.status) && (
-        <button className="text-teal-700 underline" onClick={() => navigate('/')}>На главную</button>
+        <button className="font-semibold text-primary underline" onClick={() => navigate('/')}>
+          На главную
+        </button>
       )}
 
       {order.dispute && (
-        <div className="rounded-xl border border-orange-300 bg-orange-50 p-4 space-y-2 text-left">
-          <div className="font-semibold text-orange-800">Спор {order.dispute.status === 'OPEN' ? 'открыт' : 'закрыт'}</div>
-          <p className="text-sm text-gray-700">{order.dispute.reason}</p>
-          {order.dispute.counterStatement && (
-            <p className="text-sm text-gray-600">Пояснение: {order.dispute.counterStatement}</p>
-          )}
-          {order.dispute.status === 'RESOLVED' && (
-            <p className="text-sm text-gray-600">
-              Решение: {order.dispute.refundServiceFee ? 'сбор возвращён' : 'сбор не возвращён'}, {order.dispute.penalizeMaster ? 'мастер оштрафован' : 'без санкций'}
-            </p>
-          )}
-          {order.dispute.status === 'OPEN' && (
-            <div className="space-y-2">
-              <input
-                type="file" accept="image/jpeg,image/png"
-                onChange={(e) => e.target.files?.[0] && uploadEvidence(e.target.files[0])}
-              />
-              <textarea
-                className="w-full rounded border p-2 text-sm"
-                placeholder="Пояснение (для второй стороны)"
-                value={counterStatement}
-                onChange={(e) => setCounterStatement(e.target.value)}
-              />
-              <button className="rounded border px-3 py-1 text-sm" onClick={submitCounterStatement}>Отправить пояснение</button>
-            </div>
-          )}
-        </div>
+        <DisputeCard
+          dispute={order.dispute}
+          counterStatement={counterStatement}
+          onCounterStatementChange={setCounterStatement}
+          onSubmitCounterStatement={submitCounterStatement}
+          onUploadEvidence={uploadEvidence}
+        />
       )}
       {canDispute && (
         <div className="space-y-2">
           <textarea
-            className="w-full rounded border p-2 text-sm"
+            className="w-full rounded-md border border-border bg-surface p-2 text-sm"
             placeholder="Причина спора"
             value={disputeReason}
             onChange={(e) => setDisputeReason(e.target.value)}
           />
-          <button className="w-full rounded border border-orange-300 p-2 text-sm text-orange-700" onClick={openDispute}>
+          <Button variant="secondary" onClick={openDispute}>
             Открыть спор
-          </button>
+          </Button>
         </div>
       )}
 
-      <div className="fixed inset-x-0 bottom-16 mx-auto max-w-sm space-y-2 bg-white p-4">
-        {order.status === 'DONE' && (
-          <button className="w-full rounded bg-teal-700 p-3 text-white" onClick={() => action('confirm-completion')}>
-            Подтвердить выполнение
-          </button>
-        )}
+      <div className="fixed inset-x-0 bottom-16 mx-auto max-w-sm space-y-2 bg-background p-4">
+        {order.status === 'DONE' && <Button onClick={() => action('confirm-completion')}>Подтвердить выполнение</Button>}
         {['CREATED', 'PUBLISHED', 'MASTER_SELECTED', 'CONFIRMED', 'IN_PROGRESS'].includes(order.status) && (
-          <button
-            className="w-full rounded border border-red-300 p-3 text-red-600"
-            onClick={() => action('cancel', 'Отменить заявку?')}
-          >
+          <Button variant="danger-outline" onClick={() => action('cancel', 'Отменить заявку?')}>
             Отменить
-          </button>
+          </Button>
         )}
       </div>
     </div>
