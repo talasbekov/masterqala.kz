@@ -75,7 +75,7 @@ describe('Отмена плановой заявки (e2e)', () => {
     expect(refund.amount).toBe(1);
   });
 
-  it('мастер отменяет после подтверждения: −2 кредита, штраф приоритета, заявка снова PUBLISHED', async () => {
+  it('мастер отменяет после подтверждения: −2 кредита (PENALTY), штраф приоритета, заявка снова PUBLISHED', async () => {
     const order = await createPlannedOrderViaApi(app, client.token, plumbingId);
     await bidAndSelect(order.id);
     await request(app.getHttpServer())
@@ -92,8 +92,31 @@ describe('Отмена плановой заявки (e2e)', () => {
     expect(fresh).toMatchObject({ status: 'PUBLISHED', masterId: null, selectedBidId: null });
     const account = await prisma.leadCreditAccount.findUniqueOrThrow({ where: { masterUserId: master.userId } });
     expect(account.balance).toBe(2); // 5 - 1(ставка) - 2(штраф)
+    const penalty = await prisma.leadCreditTransaction.findFirstOrThrow({ where: { masterUserId: master.userId, type: 'PENALTY' } });
+    expect(penalty.amount).toBe(-2);
     const profile = await prisma.masterProfile.findUniqueOrThrow({ where: { userId: master.userId } });
     expect(profile.priorityPenaltyUntil).toBeTruthy();
+    expect(await prisma.masterCancellation.count({ where: { masterUserId: master.userId, orderType: 'PLANNED' } })).toBe(1);
+  });
+
+  it('3-я отмена мастером плановых заявок за 30 дней блокирует его на 7 дней', async () => {
+    // Каждая итерация тратит 1 кредит на ставку и теряет 2 на штрафе (upsert может увести баланс в минус,
+    // но gate ставки требует balance>=1) — 5 стартовых кредитов из beforeEach недостаточно для 3 циклов.
+    await grantLeadCredits(app, master.userId, 10);
+    for (let i = 0; i < 3; i++) {
+      const order = await createPlannedOrderViaApi(app, client.token, plumbingId);
+      await bidAndSelect(order.id, 7000 + i);
+      await request(app.getHttpServer())
+        .post(`/api/v1/planned-orders/${order.id}/confirm`)
+        .set('Authorization', `Bearer ${master.token}`)
+        .expect(201);
+      await request(app.getHttpServer())
+        .post(`/api/v1/planned-orders/${order.id}/cancel`)
+        .set('Authorization', `Bearer ${master.token}`)
+        .expect(201);
+    }
+    const profile = await prisma.masterProfile.findUniqueOrThrow({ where: { userId: master.userId } });
+    expect(profile.blockedUntil).toBeTruthy();
   });
 
   it('мастер не может отменить до подтверждения (409)', async () => {

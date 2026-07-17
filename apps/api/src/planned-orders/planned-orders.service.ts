@@ -9,6 +9,7 @@ import {
 } from '@nestjs/common';
 import { PlannedOrder, Prisma, User } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { MasterPenaltyService } from '../common/master-penalty.service';
 import { QueueService } from '../queue/queue.service';
 import { JOBS } from '../queue/queue.constants';
 import { RealtimeGateway } from '../realtime/realtime.gateway';
@@ -30,6 +31,7 @@ export class PlannedOrdersService implements OnModuleInit {
     private readonly prisma: PrismaService,
     private readonly queue: QueueService,
     private readonly gateway: RealtimeGateway,
+    private readonly penalties: MasterPenaltyService,
   ) {}
 
   onModuleInit(): void {
@@ -346,17 +348,7 @@ export class PlannedOrdersService implements OnModuleInit {
         { status: 'PUBLISHED', masterId: null, selectedBidId: null, selectedAt: null, confirmedAt: null },
         tx,
       );
-      await tx.leadCreditAccount.update({
-        where: { masterUserId: order.masterId! },
-        data: { balance: { decrement: 2 } },
-      });
-      await tx.leadCreditTransaction.create({
-        data: { masterUserId: order.masterId!, type: 'SPEND', amount: 2, bidId: order.selectedBidId },
-      });
-      await tx.masterProfile.updateMany({
-        where: { userId: order.masterId! },
-        data: { priorityPenaltyUntil: new Date(Date.now() + 24 * 3600 * 1000) },
-      });
+      await this.penalties.penalizeForCancellation(tx, order.masterId!, 'PLANNED', order.id);
     });
     await this.emitPlannedStatus(order.id);
   }
