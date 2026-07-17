@@ -1,0 +1,7 @@
+{
+  "projectId": "e764316c-0ca9-499e-8a35-b9393de66d34",
+  "pkg": "@masterqala/ui",
+  "shape": "package",
+  "extraFonts": ["fonts/manrope.css"],
+  "readmeHeader": ".design-sync/conventions.md"
+}
