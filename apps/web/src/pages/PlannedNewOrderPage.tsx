@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api';
+import Button from '../components/ui/Button';
 
 function minDateTimeLocal(): string {
   const d = new Date(Date.now() + 3600_000);
@@ -53,15 +54,17 @@ export default function PlannedNewOrderPage() {
   }
 
   return (
-    <div className="mx-auto max-w-sm p-6 space-y-4">
-      <h1 className="text-2xl font-bold">Запланировать заявку</h1>
+    <div className="mx-auto max-w-sm space-y-4 p-6">
+      <h1 className="text-xl font-extrabold text-foreground">Запланировать заявку</h1>
 
       <div className="flex flex-wrap gap-2">
         {categories.map((c) => (
           <button
             key={c.id}
             onClick={() => setCategoryId(c.id)}
-            className={`rounded-full border px-4 py-2 text-sm ${categoryId === c.id ? 'border-teal-700 bg-teal-700 text-white' : ''}`}
+            className={`rounded-full border-2 px-4 py-2 text-sm font-semibold ${
+              categoryId === c.id ? 'border-primary bg-primary text-white' : 'border-border bg-surface text-foreground'
+            }`}
           >
             {c.name}
           </button>
@@ -69,7 +72,7 @@ export default function PlannedNewOrderPage() {
       </div>
 
       <textarea
-        className="w-full rounded border p-3"
+        className="w-full rounded-md border border-border bg-surface p-3 text-[15px] outline-none focus:border-primary"
         rows={3}
         placeholder="Опишите проблему"
         value={description}
@@ -77,22 +80,22 @@ export default function PlannedNewOrderPage() {
       />
 
       <input
-        className="w-full rounded border p-3"
+        className="w-full rounded-md border border-border bg-surface p-3 text-[15px] outline-none focus:border-primary"
         placeholder="Адрес (улица, дом, квартира)"
         value={address}
         onChange={(e) => setAddress(e.target.value)}
       />
       <input
-        className="w-full rounded border p-3"
+        className="w-full rounded-md border border-border bg-surface p-3 text-[15px] outline-none focus:border-primary"
         placeholder="Район"
         value={district}
         onChange={(e) => setDistrict(e.target.value)}
       />
       <div className="space-y-1">
-        <label className="text-sm text-gray-600">Дата и время</label>
+        <label className="text-sm font-semibold text-muted">Дата и время</label>
         <input
           type="datetime-local"
-          className="w-full rounded border p-3"
+          className="w-full rounded-md border border-border bg-surface p-3 text-[15px] outline-none focus:border-primary"
           value={scheduledAt}
           min={minDateTimeLocal()}
           max={maxDateTimeLocal()}
@@ -100,18 +103,14 @@ export default function PlannedNewOrderPage() {
         />
       </div>
 
-      <p className="text-sm text-gray-600">
+      <p className="text-sm text-muted">
         Мастера увидят категорию, район и описание и предложат свою цену. Вы выбираете лучшую ставку.
       </p>
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-destructive">{error}</p>}
 
-      <button
-        disabled={!canSubmit}
-        onClick={submit}
-        className="w-full rounded bg-teal-700 p-3 text-white disabled:opacity-40"
-      >
+      <Button disabled={!canSubmit} onClick={submit}>
         {submitting ? 'Публикуем…' : 'Опубликовать заявку'}
-      </button>
+      </Button>
     </div>
   );
 }
