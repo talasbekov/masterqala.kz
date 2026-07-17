@@ -5,3 +5,6 @@ uploads/
 *.log
 
 .worktrees/
+.superpowers/
+.claude/launch.json
+__pycache__/
