@@ -1,50 +1,47 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api';
-import { useAuth } from '../auth';
+import { getSocket } from '../socket';
+import { STATUS_LABELS } from '../orderStatus';
 
 export default function HomePage() {
-  const { user, logout } = useAuth();
-  const [name, setName] = useState('');
-  const [address, setAddress] = useState('');
-  const [saved, setSaved] = useState(false);
+  const [order, setOrder] = useState<any | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const load = () =>
+    api('/orders/active')
+      .then((r) => setOrder(r.order))
+      .finally(() => setLoading(false));
 
   useEffect(() => {
-    api('/users/me').then((me) => {
-      setName(me.name ?? '');
-      setAddress(me.defaultAddress ?? '');
-    });
+    load();
+    const socket = getSocket();
+    const onStatus = () => load();
+    socket.on('order:status', onStatus);
+    return () => {
+      socket.off('order:status', onStatus);
+    };
   }, []);
 
-  async function save() {
-    await api('/users/me', {
-      method: 'PATCH',
-      body: JSON.stringify({ name, defaultAddress: address }),
-    });
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
-  }
+  if (loading) return <div className="p-6 text-gray-500">Загрузка…</div>;
 
   return (
-    <div className="mx-auto max-w-sm p-6 space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Профиль</h1>
-        <button className="text-sm text-gray-500" onClick={logout}>Выйти</button>
-      </div>
-      <p className="text-gray-600">{user?.phone}</p>
-      <input className="w-full rounded border p-3" placeholder="Имя" value={name} onChange={(e) => setName(e.target.value)} />
-      <input className="w-full rounded border p-3" placeholder="Адрес по умолчанию" value={address} onChange={(e) => setAddress(e.target.value)} />
-      <button className="w-full rounded bg-teal-700 p-3 text-white" onClick={save}>
-        {saved ? 'Сохранено ✓' : 'Сохранить'}
-      </button>
-      <Link to="/become-master" className="block text-center text-teal-700 underline">
-        Стать мастером
-      </Link>
-      {user?.role === 'OPERATOR' && (
-        <Link to="/admin" className="block text-center text-teal-700 underline">
-          Панель оператора
+    <div className="mx-auto max-w-sm p-6 space-y-6">
+      <h1 className="text-2xl font-bold">MasterQala</h1>
+      {order ? (
+        <Link to={`/order/${order.id}`} className="block rounded-xl border p-4 shadow-sm">
+          <div className="font-semibold">{order.category?.name}</div>
+          <div className="text-teal-700">{STATUS_LABELS[order.status]}</div>
+          <div className="text-sm text-gray-500">{order.address}</div>
+        </Link>
+      ) : (
+        <Link to="/order/new" className="block rounded-xl bg-teal-700 p-6 text-center text-xl font-semibold text-white">
+          Вызвать мастера
         </Link>
       )}
+      <Link to="/planned/new" className="block rounded-xl border border-teal-700 p-6 text-center text-xl font-semibold text-teal-700">
+        Запланировать
+      </Link>
     </div>
   );
 }

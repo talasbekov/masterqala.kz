@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, type ReactNode } from 'react';
+import { resetSocket } from './socket';
 
 export interface AuthUser {
   id: string;
@@ -28,6 +29,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
   const logout = () => {
     localStorage.clear();
+    resetSocket();
     setUser(null);
   };
 

@@ -39,6 +39,22 @@ model User {
   createdAt      DateTime       @default(now())
   masterProfile  MasterProfile?
   decisions      VerificationDecision[]
+  clientOrders   Order[]        @relation("ClientOrders")
+  masterOrders   Order[]        @relation("MasterOrders")
+  offers         OrderOffer[]
+  presence       MasterPresence?
+  accruals       Accrual[]
+  clientPlannedOrders    PlannedOrder[]          @relation("ClientPlannedOrders")
+  masterPlannedOrders    PlannedOrder[]          @relation("MasterPlannedOrders")
+  plannedOrderBids       PlannedOrderBid[]
+  leadCreditAccount      LeadCreditAccount?
+  leadCreditTransactions LeadCreditTransaction[]
+  leadCreditPurchases    LeadCreditPurchase[]
+  masterWalletAccount    MasterWalletAccount?
+  withdrawalRequests     WithdrawalRequest[]
+  cancellations          MasterCancellation[]
+  disputesOpened         Dispute[]               @relation("DisputesOpened")
+  disputesResolved       Dispute[]               @relation("DisputesResolved")
 }
 
 model SmsCode {
@@ -54,10 +70,12 @@ model SmsCode {
 }
 
 model Category {
-  id      String           @id @default(uuid())
-  slug    String           @unique
-  name    String
-  masters MasterCategory[]
+  id            String           @id @default(uuid())
+  slug          String           @unique
+  name          String
+  masters       MasterCategory[]
+  orders        Order[]
+  plannedOrders PlannedOrder[]
 }
 
 model MasterProfile {
@@ -70,6 +88,8 @@ model MasterProfile {
   experienceYears Int
   status          MasterStatus     @default(PENDING_REVIEW)
   rejectionReason String?
+  priorityPenaltyUntil DateTime?
+  blockedUntil    DateTime?
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
   categories      MasterCategory[]
@@ -107,4 +127,300 @@ model VerificationDecision {
   decision        DecisionType
   comment         String?
   createdAt       DateTime      @default(now())
+}
+
+enum OrderStatus {
+  CREATED
+  SEARCHING
+  ACCEPTED
+  MASTER_ON_WAY
+  INSPECTION
+  AWAITING_PRICE_CONFIRM
+  IN_PROGRESS
+  DONE
+  CLOSED
+  NO_MASTERS
+  CANCELLED_BY_CLIENT
+  CANCELLED_BY_MASTER
+  DISPUTE
+}
+
+enum OfferOutcome {
+  PENDING
+  ACCEPTED
+  LOST
+  EXPIRED
+}
+
+enum PaymentType {
+  HOLD
+  CAPTURE
+  VOID
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+}
+
+enum AccrualType {
+  CALLOUT_COMPENSATION
+}
+
+model Order {
+  id              String      @id @default(uuid())
+  clientId        String
+  client          User        @relation("ClientOrders", fields: [clientId], references: [id])
+  categoryId      String
+  category        Category    @relation(fields: [categoryId], references: [id])
+  description     String
+  address         String
+  location        Unsupported("geography(Point, 4326)")?
+  status          OrderStatus @default(CREATED)
+  masterId        String?
+  master          User?       @relation("MasterOrders", fields: [masterId], references: [id])
+  wave            Int         @default(0)
+  searchAttempt   Int         @default(1)
+  calloutPrice    Int
+  serviceFee      Int
+  workPrice       Int?
+  workComment     String?
+  cancelReason    String?
+  acceptedAt      DateTime?
+  onSiteAt        DateTime?
+  priceProposedAt DateTime?
+  completedAt     DateTime?
+  closedAt        DateTime?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  offers          OrderOffer[]
+  payments        PaymentTransaction[]
+  accruals        Accrual[]
+  disputes        Dispute[]
+
+  @@index([clientId, status])
+  @@index([masterId, status])
+}
+
+model OrderOffer {
+  id           String       @id @default(uuid())
+  orderId      String
+  order        Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  masterUserId String
+  master       User         @relation(fields: [masterUserId], references: [id])
+  wave         Int
+  attempt      Int
+  sentAt       DateTime     @default(now())
+  respondedAt  DateTime?
+  outcome      OfferOutcome @default(PENDING)
+
+  @@unique([orderId, masterUserId, attempt])
+  @@index([masterUserId, outcome])
+}
+
+model MasterPresence {
+  masterUserId String   @id
+  user         User     @relation(fields: [masterUserId], references: [id])
+  isOnline     Boolean  @default(false)
+  lastSeenAt   DateTime @default(now())
+  location     Unsupported("geography(Point, 4326)")?
+}
+
+model PaymentTransaction {
+  id          String        @id @default(uuid())
+  orderId     String
+  order       Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  type        PaymentType
+  amount      Int
+  status      PaymentStatus
+  providerRef String
+  createdAt   DateTime      @default(now())
+
+  @@index([orderId, type])
+}
+
+model Accrual {
+  id           String      @id @default(uuid())
+  masterUserId String
+  master       User        @relation(fields: [masterUserId], references: [id])
+  orderId      String      @unique
+  order        Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  type         AccrualType
+  amount       Int
+  createdAt    DateTime    @default(now())
+}
+
+enum PlannedOrderStatus {
+  CREATED
+  PUBLISHED
+  MASTER_SELECTED
+  CONFIRMED
+  IN_PROGRESS
+  DONE
+  CLOSED
+  EXPIRED
+  CANCELLED_BY_CLIENT
+  CANCELLED_BY_MASTER
+  DISPUTE
+}
+
+enum LeadCreditTxType {
+  PURCHASE
+  SPEND
+  REFUND
+  PENALTY
+}
+
+model PlannedOrder {
+  id             String             @id @default(uuid())
+  clientId       String
+  client         User               @relation("ClientPlannedOrders", fields: [clientId], references: [id])
+  categoryId     String
+  category       Category           @relation(fields: [categoryId], references: [id])
+  description    String
+  address        String
+  district       String
+  scheduledAt    DateTime
+  status         PlannedOrderStatus @default(CREATED)
+  masterId       String?
+  master         User?              @relation("MasterPlannedOrders", fields: [masterId], references: [id])
+  selectedBidId  String?            @unique
+  selectedBid    PlannedOrderBid?   @relation("SelectedBid", fields: [selectedBidId], references: [id])
+  workPrice      Int?
+  cancelReason   String?
+  publishedAt    DateTime?
+  selectedAt     DateTime?
+  confirmedAt    DateTime?
+  completedAt    DateTime?
+  closedAt       DateTime?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  bids           PlannedOrderBid[]  @relation("OrderBids")
+  disputes       Dispute[]
+
+  @@index([clientId, status])
+  @@index([masterId, status])
+  @@index([categoryId, status])
+}
+
+model PlannedOrderBid {
+  id             String        @id @default(uuid())
+  plannedOrderId String
+  order          PlannedOrder  @relation("OrderBids", fields: [plannedOrderId], references: [id], onDelete: Cascade)
+  masterUserId   String
+  master         User          @relation(fields: [masterUserId], references: [id])
+  price          Int
+  term           String
+  comment        String?
+  createdAt      DateTime      @default(now())
+  selectedFor    PlannedOrder? @relation("SelectedBid")
+
+  @@unique([plannedOrderId, masterUserId])
+  @@index([plannedOrderId])
+}
+
+model LeadCreditAccount {
+  masterUserId String @id
+  master       User   @relation(fields: [masterUserId], references: [id])
+  balance      Int    @default(0)
+}
+
+model LeadCreditTransaction {
+  id           String           @id @default(uuid())
+  masterUserId String
+  master       User             @relation(fields: [masterUserId], references: [id])
+  type         LeadCreditTxType
+  amount       Int
+  bidId        String?
+  purchaseId   String?
+  createdAt    DateTime         @default(now())
+
+  @@index([masterUserId, createdAt])
+}
+
+model LeadCreditPurchase {
+  id           String        @id @default(uuid())
+  masterUserId String
+  master       User          @relation(fields: [masterUserId], references: [id])
+  credits      Int
+  priceTenge   Int
+  status       PaymentStatus
+  providerRef  String
+  createdAt    DateTime      @default(now())
+}
+
+enum WithdrawalStatus {
+  PENDING
+  PAID
+  FAILED
+}
+
+model MasterWalletAccount {
+  masterUserId String @id
+  master       User   @relation(fields: [masterUserId], references: [id])
+  balance      Int    @default(0)
+}
+
+model WithdrawalRequest {
+  id           String           @id @default(uuid())
+  masterUserId String
+  master       User             @relation(fields: [masterUserId], references: [id])
+  amount       Int
+  status       WithdrawalStatus @default(PENDING)
+  providerRef  String?
+  requestedAt  DateTime         @default(now())
+  paidAt       DateTime?
+}
+
+enum DisputeStatus {
+  OPEN
+  RESOLVED
+}
+
+enum DisputeTargetRole {
+  CLIENT
+  MASTER
+}
+
+model Dispute {
+  id               String            @id @default(uuid())
+  orderId          String?
+  order            Order?            @relation(fields: [orderId], references: [id])
+  plannedOrderId   String?
+  plannedOrder     PlannedOrder?     @relation(fields: [plannedOrderId], references: [id])
+  openedByUserId   String
+  openedByUser     User              @relation("DisputesOpened", fields: [openedByUserId], references: [id])
+  openedByRole     DisputeTargetRole
+  reason           String
+  evidenceDocIds   String[]          @default([])
+  counterStatement String?
+  status           DisputeStatus     @default(OPEN)
+  refundServiceFee Boolean?
+  penalizeMaster   Boolean?
+  resolutionNote   String?
+  resolvedByUserId String?
+  resolvedByUser   User?             @relation("DisputesResolved", fields: [resolvedByUserId], references: [id])
+  resolvedAt       DateTime?
+  createdAt        DateTime          @default(now())
+
+  @@index([orderId])
+  @@index([plannedOrderId])
+  @@index([status])
+}
+
+enum CancelledOrderType {
+  URGENT
+  PLANNED
+}
+
+model MasterCancellation {
+  id           String             @id @default(uuid())
+  masterUserId String
+  master       User               @relation(fields: [masterUserId], references: [id])
+  orderType    CancelledOrderType
+  orderId      String
+  createdAt    DateTime           @default(now())
+
+  @@index([masterUserId, createdAt])
 }

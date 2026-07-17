@@ -1,0 +1,1 @@
+export const MIN_WITHDRAWAL_TENGE = 5000;
