@@ -83,4 +83,30 @@ describe('Ставки на плановую заявку (e2e)', () => {
       .send({ price: 8000, term: 'завтра' })
       .expect(422);
   });
+
+  it('заблокированный мастер не может сделать ставку (422)', async () => {
+    await prisma.masterProfile.updateMany({
+      where: { userId: masters[0].userId },
+      data: { blockedUntil: new Date(Date.now() + 24 * 3600 * 1000) },
+    });
+    const order = await createPlannedOrderViaApi(app, client.token, plumbingId);
+    await request(app.getHttpServer())
+      .post(`/api/v1/planned-orders/${order.id}/bids`)
+      .set('Authorization', `Bearer ${masters[0].token}`)
+      .send({ price: 7000, term: 'сегодня' })
+      .expect(422);
+  });
+
+  it('мастер с истёкшей блокировкой снова может делать ставки', async () => {
+    await prisma.masterProfile.updateMany({
+      where: { userId: masters[0].userId },
+      data: { blockedUntil: new Date(Date.now() - 1000) },
+    });
+    const order = await createPlannedOrderViaApi(app, client.token, plumbingId);
+    await request(app.getHttpServer())
+      .post(`/api/v1/planned-orders/${order.id}/bids`)
+      .set('Authorization', `Bearer ${masters[0].token}`)
+      .send({ price: 7000, term: 'сегодня' })
+      .expect(201);
+  });
 });

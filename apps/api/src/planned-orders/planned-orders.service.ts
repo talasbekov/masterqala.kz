@@ -138,6 +138,11 @@ export class PlannedOrdersService implements OnModuleInit {
         if (order.status !== 'PUBLISHED') throw new ConflictException('Заявка уже не принимает ставки');
         clientId = order.clientId;
 
+        const profile = await tx.masterProfile.findUnique({ where: { userId: masterUserId } });
+        if (profile?.blockedUntil && profile.blockedUntil > new Date()) {
+          throw new UnprocessableEntityException('Доступ к новым заявкам временно ограничен');
+        }
+
         const existingBids = await tx.plannedOrderBid.count({ where: { plannedOrderId } });
         if (existingBids >= PLANNED_MAX_BIDS) {
           throw new UnprocessableEntityException('Достигнут лимит откликов на заявку');
