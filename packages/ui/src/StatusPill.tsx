@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
-import type { StatusVariant } from '../../orderStatus';
+
+export type StatusVariant = 'info' | 'active' | 'success' | 'danger';
 
 const VARIANT_CLASSES: Record<StatusVariant, string> = {
   info: 'bg-primary/10 text-primary',

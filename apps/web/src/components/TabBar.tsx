@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { api } from '../api';
-import { HomeIcon, ListIcon, UserIcon, WrenchIcon } from './ui/icons';
+import { HomeIcon, ListIcon, UserIcon, WrenchIcon } from '@masterqala/ui';
 
 export function useMasterActive(): boolean {
   const [active, setActive] = useState(false);

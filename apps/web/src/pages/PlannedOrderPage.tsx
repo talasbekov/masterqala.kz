@@ -3,10 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { api, apiUpload } from '../api';
 import { getSocket } from '../socket';
 import { PLANNED_STATUS_LABELS, isPlannedTerminalStatus, plannedStatusVariant } from '../orderStatus';
-import Card from '../components/ui/Card';
-import Button from '../components/ui/Button';
-import Avatar from '../components/ui/Avatar';
-import StatusPill from '../components/ui/StatusPill';
+import { Card, Button, Avatar, StatusPill } from '@masterqala/ui';
 
 function DisputeCard({
   dispute,

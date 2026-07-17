@@ -4,12 +4,7 @@ import { api } from '../api';
 import { getSocket } from '../socket';
 import { useAuth } from '../auth';
 import { STATUS_LABELS, urgentStatusVariant } from '../orderStatus';
-import Card from '../components/ui/Card';
-import Avatar from '../components/ui/Avatar';
-import StatusPill from '../components/ui/StatusPill';
-import CategoryTile from '../components/ui/CategoryTile';
-import { categoryIcon } from '../components/ui/categoryIcons';
-import { ChevronRightIcon } from '../components/ui/icons';
+import { Card, Avatar, StatusPill, CategoryTile, categoryIcon, ChevronRightIcon } from '@masterqala/ui';
 
 export default function HomePage() {
   const { user } = useAuth();

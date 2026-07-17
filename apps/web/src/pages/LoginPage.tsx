@@ -2,8 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api';
 import { useAuth } from '../auth';
-import Button from '../components/ui/Button';
-import Card from '../components/ui/Card';
+import { Button, Card } from '@masterqala/ui';
 
 export default function LoginPage() {
   const [phone, setPhone] = useState('');

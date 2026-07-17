@@ -1,0 +1,20 @@
+@theme {
+  --color-primary: #1E40AF;
+  --color-primary-light: #3B82F6;
+  --color-accent: #EA580C;
+  --color-background: #FFFCF5;
+  --color-surface: #FFFFFF;
+  --color-foreground: #1B1B1F;
+  --color-muted: #8A8A8F;
+  --color-border: #F0EAE0;
+  --color-success: #059669;
+  --color-destructive: #DC2626;
+
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 18px;
+
+  --shadow-card: 0 2px 8px rgba(20, 20, 30, 0.06);
+
+  --font-sans: 'Manrope', ui-sans-serif, system-ui, sans-serif;
+}

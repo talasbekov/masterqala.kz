@@ -1,3 +1,5 @@
+import type { StatusVariant } from '@masterqala/ui';
+
 export const STATUS_LABELS: Record<string, string> = {
   CREATED: 'Создана',
   SEARCHING: 'Поиск мастера',
@@ -52,8 +54,6 @@ export const PLANNED_STATUS_LABELS: Record<string, string> = {
 export function isPlannedTerminalStatus(s: string): boolean {
   return ['CLOSED', 'EXPIRED', 'CANCELLED_BY_CLIENT', 'CANCELLED_BY_MASTER'].includes(s);
 }
-
-export type StatusVariant = 'info' | 'active' | 'success' | 'danger';
 
 const URGENT_VARIANTS: Record<string, StatusVariant> = {
   CREATED: 'info',

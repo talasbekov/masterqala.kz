@@ -2,9 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api';
 import { STATUS_LABELS, PLANNED_STATUS_LABELS, urgentStatusVariant, plannedStatusVariant } from '../orderStatus';
-import StatusPill from '../components/ui/StatusPill';
-import EmptyState from '../components/ui/EmptyState';
-import { ListIcon } from '../components/ui/icons';
+import { StatusPill, EmptyState, ListIcon } from '@masterqala/ui';
 
 export default function MyOrdersPage() {
   const [items, setItems] = useState<any[]>([]);

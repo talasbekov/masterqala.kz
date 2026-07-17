@@ -1,6 +1,6 @@
 @import "tailwindcss";
-@import "@masterqala/ui/tokens.css";
-@source "../../../packages/ui/src";
+@import "./tokens.css";
+@source "./";
 
 body {
   background: var(--color-background);

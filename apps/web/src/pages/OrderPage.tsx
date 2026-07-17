@@ -3,10 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { api, apiUpload } from '../api';
 import { getSocket } from '../socket';
 import { STATUS_LABELS, STEPPER_STEPS, WAVE_TEXTS, isTerminalStatus, urgentStatusVariant } from '../orderStatus';
-import Card from '../components/ui/Card';
-import Button from '../components/ui/Button';
-import Avatar from '../components/ui/Avatar';
-import StatusPill from '../components/ui/StatusPill';
+import { Card, Button, Avatar, StatusPill } from '@masterqala/ui';
 
 function useNow(intervalMs = 1000): number {
   const [now, setNow] = useState(Date.now());

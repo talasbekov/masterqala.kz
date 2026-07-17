@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api';
-import Button from '../components/ui/Button';
+import { Button } from '@masterqala/ui';
 
 interface Geo {
   lat: number;
