@@ -77,10 +77,12 @@ export default function AdminDisputeDetailPage() {
       )}
       {detail.status === 'OPEN' && (
         <div className="rounded border p-4 space-y-3">
-          <label className="flex items-center gap-2">
-            <input type="checkbox" checked={refundServiceFee} onChange={(e) => setRefundServiceFee(e.target.checked)} />
-            Вернуть сервисный сбор клиенту
-          </label>
+          {detail.orderId && (
+            <label className="flex items-center gap-2">
+              <input type="checkbox" checked={refundServiceFee} onChange={(e) => setRefundServiceFee(e.target.checked)} />
+              Вернуть сервисный сбор клиенту
+            </label>
+          )}
           <label className="flex items-center gap-2">
             <input type="checkbox" checked={penalizeMaster} onChange={(e) => setPenalizeMaster(e.target.checked)} />
             Оштрафовать мастера

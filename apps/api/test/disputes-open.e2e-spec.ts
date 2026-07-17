@@ -104,4 +104,47 @@ describe('Открытие спора по срочной заявке (e2e)', (
     const fresh = await prisma.order.findUniqueOrThrow({ where: { id: orderId } });
     expect(fresh.status).toBe('CLOSED');
   });
+
+  it('заявка CLOSED в пределах 48ч окна — спор открывается', async () => {
+    const orderId = await toDone();
+    await orders.handleAutoClose({ orderId });
+    await prisma.order.update({ where: { id: orderId }, data: { closedAt: new Date(Date.now() - 10 * 3600 * 1000) } });
+
+    const res = await request(app.getHttpServer())
+      .post(`/api/v1/orders/${orderId}/disputes`)
+      .set('Authorization', `Bearer ${client.token}`)
+      .send({ reason: 'Обнаружил дефект позже' })
+      .expect(201);
+    expect(res.body).toMatchObject({ orderId, status: 'OPEN' });
+  });
+
+  it('заявка CLOSED более 48ч назад — окно открытия спора истекло (409)', async () => {
+    const orderId = await toDone();
+    await orders.handleAutoClose({ orderId });
+    await prisma.order.update({ where: { id: orderId }, data: { closedAt: new Date(Date.now() - 49 * 3600 * 1000) } });
+
+    await request(app.getHttpServer())
+      .post(`/api/v1/orders/${orderId}/disputes`)
+      .set('Authorization', `Bearer ${client.token}`)
+      .send({ reason: 'Слишком поздно' })
+      .expect(409);
+  });
+
+  it('спор недоступен на этапе до on-site/complete (SEARCHING/ACCEPTED) — 409', async () => {
+    const order = await createOrderViaApi(app, client.token, plumbingId);
+    await matching.handleWave({ orderId: order.id, wave: 1 });
+
+    await request(app.getHttpServer())
+      .post(`/api/v1/orders/${order.id}/disputes`)
+      .set('Authorization', `Bearer ${client.token}`)
+      .send({ reason: 'Слишком рано' })
+      .expect(409);
+
+    await post(master.token, order.id, 'accept').expect(201);
+    await request(app.getHttpServer())
+      .post(`/api/v1/orders/${order.id}/disputes`)
+      .set('Authorization', `Bearer ${client.token}`)
+      .send({ reason: 'Всё ещё рано' })
+      .expect(409);
+  });
 });
