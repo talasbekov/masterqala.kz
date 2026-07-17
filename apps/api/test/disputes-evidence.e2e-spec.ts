@@ -95,4 +95,40 @@ describe('Доказательства и пояснение по спору (e2
       .attach('file', Buffer.from([0xff, 0xd8, 0xff]), { filename: 'proof.jpg', contentType: 'image/jpeg' })
       .expect(403);
   });
+
+  describe('скачивание доказательства', () => {
+    let docPath: string;
+
+    beforeEach(async () => {
+      const res = await request(app.getHttpServer())
+        .post(`/api/v1/disputes/${disputeId}/evidence`)
+        .set('Authorization', `Bearer ${client.token}`)
+        .attach('file', Buffer.from([0xff, 0xd8, 0xff]), { filename: 'proof.jpg', contentType: 'image/jpeg' })
+        .expect(201);
+      docPath = res.body.evidenceDocIds[0];
+    });
+
+    it('посторонний не может скачать доказательство чужого спора (403)', async () => {
+      const stranger = await loginAs(app, '+77130000098');
+      await request(app.getHttpServer())
+        .get(`/api/v1/disputes/${disputeId}/evidence/${docPath}`)
+        .set('Authorization', `Bearer ${stranger.token}`)
+        .expect(403);
+    });
+
+    it('открывший спор может скачать своё доказательство (200)', async () => {
+      await request(app.getHttpServer())
+        .get(`/api/v1/disputes/${disputeId}/evidence/${docPath}`)
+        .set('Authorization', `Bearer ${client.token}`)
+        .expect(200);
+    });
+
+    it('оператор может скачать доказательство (200)', async () => {
+      const operator = await loginAs(app, '+77130000097', 'OPERATOR');
+      await request(app.getHttpServer())
+        .get(`/api/v1/disputes/${disputeId}/evidence/${docPath}`)
+        .set('Authorization', `Bearer ${operator.token}`)
+        .expect(200);
+    });
+  });
 });

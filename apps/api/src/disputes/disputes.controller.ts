@@ -36,8 +36,8 @@ export class DisputesController {
   }
 
   @Get('disputes/:id/evidence/:docPath')
-  async evidence(@Param('id') id: string, @Param('docPath') docPath: string) {
-    const stream = await this.disputes.getEvidenceStream(id, docPath);
+  async evidence(@CurrentUser() user: User, @Param('id') id: string, @Param('docPath') docPath: string) {
+    const stream = await this.disputes.getEvidenceStream(user, id, docPath);
     return new StreamableFile(stream, { type: 'image/jpeg', disposition: 'inline' });
   }
 }

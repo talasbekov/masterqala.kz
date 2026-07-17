@@ -178,8 +178,11 @@ export class DisputesService {
     return this.findOrThrow(disputeId);
   }
 
-  async getEvidenceStream(disputeId: string, docPath: string) {
+  async getEvidenceStream(user: User, disputeId: string, docPath: string) {
     const dispute = await this.findOrThrow(disputeId);
+    if (user.role !== 'OPERATOR') {
+      await this.guardParticipant(user.id, dispute);
+    }
     if (!dispute.evidenceDocIds.includes(docPath)) throw new NotFoundException('Документ не найден');
     return createReadStream(this.storage.absolutePath(docPath));
   }
