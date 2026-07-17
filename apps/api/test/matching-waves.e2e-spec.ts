@@ -148,4 +148,20 @@ describe('Матчинг волнами (e2e)', () => {
     expect(await prisma.orderOffer.count({ where: { orderId: order.id } })).toBe(0);
     expect(await prisma.paymentTransaction.findFirst({ where: { orderId: order.id, type: 'VOID' } })).toBeNull();
   });
+
+  it('заблокированный мастер (blockedUntil в будущем) не попадает в волну матчинга', async () => {
+    const m1 = await createActiveMaster(app, '+77050000013', plumbingId, pointAtKm(2));
+    const m2 = await createActiveMaster(app, '+77050000014', plumbingId, pointAtKm(2));
+    await prisma.masterProfile.updateMany({
+      where: { userId: m1.userId },
+      data: { blockedUntil: new Date(Date.now() + 24 * 3600 * 1000) },
+    });
+    const order = await createOrderViaApi(app, client.token, plumbingId);
+
+    await matching.handleWave({ orderId: order.id, wave: 1 });
+
+    const offers = await prisma.orderOffer.findMany({ where: { orderId: order.id, wave: 1 } });
+    expect(offers.map((o) => o.masterUserId)).not.toContain(m1.userId);
+    expect(offers.map((o) => o.masterUserId)).toContain(m2.userId);
+  });
 });

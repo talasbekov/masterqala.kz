@@ -127,6 +127,7 @@ export class MatchingService implements OnModuleInit {
       JOIN "MasterCategory" mc ON mc."masterProfileId" = pr.id AND mc."categoryId" = ${categoryId}
       JOIN "Order" o ON o.id = ${orderId}
       WHERE mp."isOnline" = true
+        AND (pr."blockedUntil" IS NULL OR pr."blockedUntil" < now())
         AND mp.location IS NOT NULL
         AND o.location IS NOT NULL
         AND u.id <> ${clientId}

@@ -9,6 +9,7 @@ import {
   ALMATY,
   pointAtKm,
 } from './helpers';
+import { PrismaService } from '../src/prisma/prisma.service';
 import {
   PricingService,
   calcPrices,
@@ -20,11 +21,13 @@ const NO_CLIENT = '00000000-0000-0000-0000-000000000000';
 describe('PricingService.quote (e2e)', () => {
   let app: INestApplication;
   let pricing: PricingService;
+  let prisma: PrismaService;
   let plumbingId: string;
 
   beforeAll(async () => {
     app = await createTestApp();
     pricing = app.get(PricingService);
+    prisma = app.get(PrismaService);
   });
   afterAll(() => app.close());
 
@@ -77,5 +80,15 @@ describe('PricingService.quote (e2e)', () => {
       .send({ categoryId: plumbingId, ...ALMATY })
       .expect(201);
     expect(empty.body).toEqual({ available: false });
+  });
+
+  it('заблокированный мастер не учитывается в превью цены', async () => {
+    const master = await createActiveMaster(app, '+77130000002', plumbingId, pointAtKm(2));
+    await prisma.masterProfile.updateMany({
+      where: { userId: master.userId },
+      data: { blockedUntil: new Date(Date.now() + 24 * 3600 * 1000) },
+    });
+    const quote = await pricing.quote(plumbingId, ALMATY, NO_CLIENT);
+    expect(quote).toBeNull(); // единственный мастер в фикстуре заблокирован
   });
 });

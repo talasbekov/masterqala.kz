@@ -86,6 +86,7 @@ export class PricingService {
       JOIN "MasterCategory" mc ON mc."masterProfileId" = pr.id AND mc."categoryId" = ${categoryId}
       WHERE mp."isOnline" = true AND mp.location IS NOT NULL
         AND mp."masterUserId" <> ${clientId}
+        AND (pr."blockedUntil" IS NULL OR pr."blockedUntil" < now())
         AND ST_DWithin(mp.location, ST_SetSRID(ST_MakePoint(${to.lng}, ${to.lat}), 4326)::geography, ${MAX_SEARCH_RADIUS_M})
         AND NOT EXISTS (
           SELECT 1 FROM "Order" ao
