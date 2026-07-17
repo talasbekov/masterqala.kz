@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api';
+import Button from '../components/ui/Button';
 
 interface Geo {
   lat: number;
@@ -59,15 +60,17 @@ export default function NewOrderPage() {
   const canSubmit = categoryId && geo && description && address && preview?.available && !submitting;
 
   return (
-    <div className="mx-auto max-w-sm p-6 space-y-4">
-      <h1 className="text-2xl font-bold">Вызвать мастера</h1>
+    <div className="mx-auto max-w-sm space-y-4 p-6">
+      <h1 className="text-xl font-extrabold text-foreground">Вызвать мастера</h1>
 
       <div className="flex flex-wrap gap-2">
         {categories.map((c) => (
           <button
             key={c.id}
             onClick={() => setCategoryId(c.id)}
-            className={`rounded-full border px-4 py-2 text-sm ${categoryId === c.id ? 'border-teal-700 bg-teal-700 text-white' : ''}`}
+            className={`rounded-full border-2 px-4 py-2 text-sm font-semibold ${
+              categoryId === c.id ? 'border-primary bg-primary text-white' : 'border-border bg-surface text-foreground'
+            }`}
           >
             {c.name}
           </button>
@@ -75,7 +78,7 @@ export default function NewOrderPage() {
       </div>
 
       <textarea
-        className="w-full rounded border p-3"
+        className="w-full rounded-md border border-border bg-surface p-3 text-[15px] outline-none focus:border-primary"
         rows={3}
         placeholder="Опишите проблему"
         value={description}
@@ -84,14 +87,16 @@ export default function NewOrderPage() {
 
       <div className="space-y-2">
         <div className="flex items-center justify-between text-sm">
-          <span className={geo ? 'text-teal-700' : 'text-gray-500'}>
+          <span className={geo ? 'font-semibold text-primary' : 'text-muted'}>
             {geo ? 'Геолокация определена' : 'Определяем геолокацию…'}
           </span>
-          <button className="text-teal-700 underline" onClick={detectGeo}>Обновить</button>
+          <button className="font-semibold text-primary underline" onClick={detectGeo}>
+            Обновить
+          </button>
         </div>
-        {geoError && <p className="text-sm text-red-600">{geoError}</p>}
+        {geoError && <p className="text-sm text-destructive">{geoError}</p>}
         <input
-          className="w-full rounded border p-3"
+          className="w-full rounded-md border border-border bg-surface p-3 text-[15px] outline-none focus:border-primary"
           placeholder="Адрес (улица, дом, квартира)"
           value={address}
           onChange={(e) => setAddress(e.target.value)}
@@ -99,25 +104,19 @@ export default function NewOrderPage() {
       </div>
 
       {preview && preview.available && (
-        <div className="rounded-xl bg-teal-50 p-4">
-          <div className="text-lg font-semibold">Выезд: {preview.calloutPrice} ₸</div>
-          <p className="text-sm text-gray-600">
-            Работа оплачивается мастеру напрямую после согласования цены.
-          </p>
+        <div className="rounded-lg bg-primary/5 p-4">
+          <div className="text-lg font-extrabold text-primary">Выезд: {preview.calloutPrice} ₸</div>
+          <p className="text-sm text-muted">Работа оплачивается мастеру напрямую после согласования цены.</p>
         </div>
       )}
       {preview && !preview.available && (
-        <div className="rounded-xl bg-amber-50 p-4 text-sm">Мастеров рядом нет — попробуйте позже.</div>
+        <div className="rounded-lg bg-accent/10 p-4 text-sm text-accent">Мастеров рядом нет — попробуйте позже.</div>
       )}
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-destructive">{error}</p>}
 
-      <button
-        disabled={!canSubmit}
-        onClick={submit}
-        className="w-full rounded bg-teal-700 p-3 text-white disabled:opacity-40"
-      >
+      <Button disabled={!canSubmit} onClick={submit}>
         {submitting ? 'Создаём…' : 'Вызвать мастера'}
-      </button>
+      </Button>
     </div>
   );
 }
