@@ -10,6 +10,7 @@ import {
 import { PlannedOrder, Prisma, User } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { MasterPenaltyService } from '../common/master-penalty.service';
+import { DisputesService } from '../disputes/disputes.service';
 import { QueueService } from '../queue/queue.service';
 import { JOBS } from '../queue/queue.constants';
 import { RealtimeGateway } from '../realtime/realtime.gateway';
@@ -32,6 +33,7 @@ export class PlannedOrdersService implements OnModuleInit {
     private readonly queue: QueueService,
     private readonly gateway: RealtimeGateway,
     private readonly penalties: MasterPenaltyService,
+    private readonly disputes: DisputesService,
   ) {}
 
   onModuleInit(): void {
@@ -258,10 +260,11 @@ export class PlannedOrdersService implements OnModuleInit {
     return this.findOrThrow(plannedOrderId);
   }
 
-  /** Джоба: клиент молчал 24ч после «Выполнено». */
+  /** Джоба: клиент молчал 24ч после «Выполнено». Заморожена, пока открыт спор. */
   async handleAutoClose({ plannedOrderId }: { plannedOrderId: string }): Promise<void> {
     const order = await this.prisma.plannedOrder.findUnique({ where: { id: plannedOrderId } });
     if (!order || order.status !== 'DONE') return;
+    if (await this.disputes.hasOpenDispute({ plannedOrderId })) return;
     await this.closeOrder(plannedOrderId);
   }
 

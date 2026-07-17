@@ -16,6 +16,7 @@ import { LeadCreditsModule } from './lead-credits/lead-credits.module';
 import { OrdersModule } from './orders/orders.module';
 import { PlannedOrdersModule } from './planned-orders/planned-orders.module';
 import { WalletModule } from './wallet/wallet.module';
+import { DisputesModule } from './disputes/disputes.module';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { WalletModule } from './wallet/wallet.module';
     OrdersModule,
     PlannedOrdersModule,
     WalletModule,
+    DisputesModule,
   ],
   controllers: [HealthController],
   providers: [],

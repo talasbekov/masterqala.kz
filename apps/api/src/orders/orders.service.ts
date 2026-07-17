@@ -19,6 +19,7 @@ import { QueueService } from '../queue/queue.service';
 import { JOBS } from '../queue/queue.constants';
 import { RealtimeGateway } from '../realtime/realtime.gateway';
 import { MasterPenaltyService } from '../common/master-penalty.service';
+import { DisputesService } from '../disputes/disputes.service';
 import {
   ACTIVE_CLIENT_STATUSES,
   ACTIVE_MASTER_STATUSES,
@@ -39,6 +40,7 @@ export class OrdersService implements OnModuleInit {
     private readonly gateway: RealtimeGateway,
     @Inject(PAYMENT_PROVIDER) private readonly payments: PaymentProvider,
     private readonly penalties: MasterPenaltyService,
+    private readonly disputes: DisputesService,
   ) {}
 
   async preview(clientId: string, dto: PreviewOrderDto) {
@@ -356,10 +358,11 @@ export class OrdersService implements OnModuleInit {
     return this.findOrThrow(orderId);
   }
 
-  /** Джоба: клиент молчал 24 ч после «Выполнено». */
+  /** Джоба: клиент молчал 24 ч после «Выполнено». Заморожена, пока открыт спор. */
   async handleAutoClose({ orderId }: { orderId: string }): Promise<void> {
     const order = await this.prisma.order.findUnique({ where: { id: orderId } });
     if (!order || order.status !== 'DONE') return;
+    if (await this.disputes.hasOpenDispute({ orderId })) return;
     await this.closeOrder(orderId);
   }
 
