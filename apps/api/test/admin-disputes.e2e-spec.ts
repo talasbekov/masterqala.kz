@@ -114,6 +114,23 @@ describe('Разбор спора оператором (e2e)', () => {
     expect(await prisma.leadCreditTransaction.count({ where: { masterUserId: master.userId, type: 'PENALTY' } })).toBe(0);
   });
 
+  it('оператор разрешает спор без санкций: мастеру всё равно начисляется компенсация за выполненный вызов', async () => {
+    const orderBefore = await prisma.order.findUniqueOrThrow({ where: { id: orderId } });
+    await request(app.getHttpServer())
+      .post(`/api/v1/admin/disputes/${disputeId}/resolve`)
+      .set('Authorization', `Bearer ${operator.token}`)
+      .send({ refundServiceFee: false, penalizeMaster: false, resolutionNote: 'Не подтверждено' })
+      .expect(201);
+
+    const accrual = await prisma.accrual.findFirstOrThrow({ where: { orderId, type: 'CALLOUT_COMPENSATION' } });
+    const expectedAmount = orderBefore.calloutPrice - orderBefore.serviceFee;
+    expect(accrual.amount).toBe(expectedAmount);
+    expect(accrual.masterUserId).toBe(master.userId);
+
+    const wallet = await prisma.masterWalletAccount.findUniqueOrThrow({ where: { masterUserId: master.userId } });
+    expect(wallet.balance).toBe(expectedAmount);
+  });
+
   it('повторное разрешение уже разрешённого спора — 409', async () => {
     await request(app.getHttpServer())
       .post(`/api/v1/admin/disputes/${disputeId}/resolve`)

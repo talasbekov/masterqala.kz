@@ -12,6 +12,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { FileStorage, FILE_STORAGE } from '../storage/storage.interface';
 import { PAYMENT_PROVIDER, PaymentProvider } from '../payments/payment.interface';
 import { MasterPenaltyService } from '../common/master-penalty.service';
+import { CompensationService } from '../common/compensation.service';
 import { OpenDisputeDto, ResolveDisputeDto } from './dto';
 
 const DISPUTE_WINDOW_AFTER_CLOSE_MS = 48 * 3600 * 1000;
@@ -25,6 +26,7 @@ export class DisputesService {
     @Inject(FILE_STORAGE) private readonly storage: FileStorage,
     @Inject(PAYMENT_PROVIDER) private readonly payments: PaymentProvider,
     private readonly penalties: MasterPenaltyService,
+    private readonly compensation: CompensationService,
   ) {}
 
   async openForOrder(user: User, orderId: string, dto: OpenDisputeDto) {
@@ -140,13 +142,16 @@ export class DisputesService {
 
     const orderId = dispute.orderId;
     const plannedOrderId = dispute.plannedOrderId;
+    // Возврат сервисного сбора физически возможен только для срочных заявок (PlannedOrder не имеет serviceFee) —
+    // для планового спора флаг всегда игнорируется и сохраняется как false, независимо от запроса оператора.
+    const refundServiceFee = orderId ? dto.refundServiceFee : false;
 
     await this.prisma.$transaction(async (tx) => {
       const gated = await tx.dispute.updateMany({
         where: { id: disputeId, status: 'OPEN' },
         data: {
           status: 'RESOLVED',
-          refundServiceFee: dto.refundServiceFee,
+          refundServiceFee,
           penalizeMaster: dto.penalizeMaster,
           resolutionNote: dto.resolutionNote,
           resolvedByUserId: operatorId,
@@ -160,6 +165,9 @@ export class DisputesService {
         if (dto.penalizeMaster && order.masterId) await this.penalties.applyPenalty(tx, order.masterId);
         if (order.status === 'DONE') {
           await tx.order.updateMany({ where: { id: orderId, status: 'DONE' }, data: { status: 'CLOSED', closedAt: new Date() } });
+          // Компенсация начисляется всегда при фактическом закрытии срочной заявки через спор,
+          // независимо от санкции (penalizeMaster) — это отдельное, независимое от штрафа начисление.
+          await this.compensation.accrueCallout(tx, order);
         }
       } else if (plannedOrderId) {
         const order = await tx.plannedOrder.findUniqueOrThrow({ where: { id: plannedOrderId } });
@@ -170,7 +178,7 @@ export class DisputesService {
       }
     });
 
-    if (dto.refundServiceFee && orderId) {
+    if (refundServiceFee && orderId) {
       const order = await this.prisma.order.findUniqueOrThrow({ where: { id: orderId } });
       await this.payments.refund(orderId, order.serviceFee);
     }

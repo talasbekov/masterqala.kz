@@ -19,6 +19,7 @@ import { QueueService } from '../queue/queue.service';
 import { JOBS } from '../queue/queue.constants';
 import { RealtimeGateway } from '../realtime/realtime.gateway';
 import { MasterPenaltyService } from '../common/master-penalty.service';
+import { CompensationService } from '../common/compensation.service';
 import { DisputesService } from '../disputes/disputes.service';
 import {
   ACTIVE_CLIENT_STATUSES,
@@ -40,6 +41,7 @@ export class OrdersService implements OnModuleInit {
     private readonly gateway: RealtimeGateway,
     @Inject(PAYMENT_PROVIDER) private readonly payments: PaymentProvider,
     private readonly penalties: MasterPenaltyService,
+    private readonly compensation: CompensationService,
     private readonly disputes: DisputesService,
   ) {}
 
@@ -164,26 +166,7 @@ export class OrdersService implements OnModuleInit {
 
   /** Начисление компенсации мастеру; идемпотентно за счёт unique(orderId). */
   async accrueCompensation(tx: Tx, order: Order): Promise<void> {
-    if (!order.masterId) return;
-    const amount = order.calloutPrice - order.serviceFee;
-    const res = await tx.accrual.createMany({
-      data: [
-        {
-          masterUserId: order.masterId,
-          orderId: order.id,
-          type: 'CALLOUT_COMPENSATION',
-          amount,
-        },
-      ],
-      skipDuplicates: true,
-    });
-    if (res.count > 0) {
-      await tx.masterWalletAccount.upsert({
-        where: { masterUserId: order.masterId },
-        create: { masterUserId: order.masterId, balance: amount },
-        update: { balance: { increment: amount } },
-      });
-    }
+    return this.compensation.accrueCallout(tx, order);
   }
 
   /** WS `order:status` обеим сторонам заявки. */
