@@ -8,6 +8,8 @@ import BecomeMasterPage from './pages/BecomeMasterPage';
 import AdminListPage from './pages/AdminListPage';
 import AdminDetailPage from './pages/AdminDetailPage';
 import AdminWithdrawalsPage from './pages/AdminWithdrawalsPage';
+import AdminDisputesPage from './pages/AdminDisputesPage';
+import AdminDisputeDetailPage from './pages/AdminDisputeDetailPage';
 import NewOrderPage from './pages/NewOrderPage';
 import OrderPage from './pages/OrderPage';
 import MyOrdersPage from './pages/MyOrdersPage';
@@ -51,6 +53,8 @@ export default function App() {
               <Route path="/admin" element={<AdminListPage />} />
               <Route path="/admin/:id" element={<AdminDetailPage />} />
               <Route path="/admin/withdrawals" element={<AdminWithdrawalsPage />} />
+              <Route path="/admin/disputes" element={<AdminDisputesPage />} />
+              <Route path="/admin/disputes/:id" element={<AdminDisputeDetailPage />} />
             </Route>
           </Route>
         </Routes>

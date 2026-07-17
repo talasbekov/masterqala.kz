@@ -8,11 +8,13 @@ export default function ProfilePage() {
   const [name, setName] = useState('');
   const [address, setAddress] = useState('');
   const [saved, setSaved] = useState(false);
+  const [blockedUntil, setBlockedUntil] = useState<string | null>(null);
 
   useEffect(() => {
     api('/users/me').then((me) => {
       setName(me.name ?? '');
       setAddress(me.defaultAddress ?? '');
+      setBlockedUntil(me.masterProfile?.blockedUntil ?? null);
     });
   }, []);
 
@@ -37,6 +39,11 @@ export default function ProfilePage() {
       <button className="w-full rounded bg-teal-700 p-3 text-white" onClick={save}>
         {saved ? 'Сохранено ✓' : 'Сохранить'}
       </button>
+      {blockedUntil && new Date(blockedUntil) > new Date() && (
+        <div className="rounded-xl bg-red-50 p-3 text-sm text-red-700">
+          Доступ к новым заявкам временно ограничен до {new Date(blockedUntil).toLocaleDateString('ru-RU')}
+        </div>
+      )}
       <Link to="/become-master" className="block text-center text-teal-700 underline">
         Стать мастером
       </Link>

@@ -7,6 +7,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma, User } from '@prisma/client';
+import { createReadStream } from 'fs';
 import { PrismaService } from '../prisma/prisma.service';
 import { FileStorage, FILE_STORAGE } from '../storage/storage.interface';
 import { PAYMENT_PROVIDER, PaymentProvider } from '../payments/payment.interface';
@@ -175,5 +176,11 @@ export class DisputesService {
     }
 
     return this.findOrThrow(disputeId);
+  }
+
+  async getEvidenceStream(disputeId: string, docPath: string) {
+    const dispute = await this.findOrThrow(disputeId);
+    if (!dispute.evidenceDocIds.includes(docPath)) throw new NotFoundException('Документ не найден');
+    return createReadStream(this.storage.absolutePath(docPath));
   }
 }

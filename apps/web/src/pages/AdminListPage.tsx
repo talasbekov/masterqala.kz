@@ -33,6 +33,7 @@ export default function AdminListPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Заявки мастеров</h1>
         <Link to="/admin/withdrawals" className="text-sm text-teal-700 underline">Заявки на вывод</Link>
+        <Link to="/admin/disputes" className="text-sm text-teal-700 underline">Споры</Link>
       </div>
       <select className="rounded border p-2" value={status} onChange={(e) => setStatus(e.target.value)}>
         {STATUSES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
