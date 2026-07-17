@@ -85,7 +85,8 @@ export class PlannedOrdersService implements OnModuleInit {
   async findOrThrow(id: string) {
     const order = await this.prisma.plannedOrder.findUnique({ where: { id }, include: PLANNED_ORDER_INCLUDE });
     if (!order) throw new NotFoundException('Заявка не найдена');
-    return order;
+    const dispute = await this.prisma.dispute.findFirst({ where: { plannedOrderId: id }, orderBy: { createdAt: 'desc' } });
+    return { ...order, dispute };
   }
 
   /** Атомарный гейт перехода. count===0 → 409. */

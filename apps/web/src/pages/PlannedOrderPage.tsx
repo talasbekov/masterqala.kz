@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { api } from '../api';
+import { api, apiUpload } from '../api';
 import { getSocket } from '../socket';
 import { PLANNED_STATUS_LABELS, isPlannedTerminalStatus } from '../orderStatus';
 
@@ -48,6 +48,44 @@ export default function PlannedOrderPage() {
     }
   }
 
+  const [disputeReason, setDisputeReason] = useState('');
+  const [counterStatement, setCounterStatement] = useState('');
+  const canDispute = order && ['DONE', 'IN_PROGRESS', 'CLOSED'].includes(order.status) && !order.dispute;
+
+  async function openDispute() {
+    if (!disputeReason.trim()) return;
+    try {
+      await api(`/planned-orders/${id}/disputes`, { method: 'POST', body: JSON.stringify({ reason: disputeReason }) });
+      setDisputeReason('');
+      load();
+    } catch (e: any) {
+      setError(e.message);
+    }
+  }
+
+  async function submitCounterStatement() {
+    if (!order?.dispute || !counterStatement.trim()) return;
+    try {
+      await api(`/disputes/${order.dispute.id}`, { method: 'PATCH', body: JSON.stringify({ counterStatement }) });
+      setCounterStatement('');
+      load();
+    } catch (e: any) {
+      setError(e.message);
+    }
+  }
+
+  async function uploadEvidence(file: File) {
+    if (!order?.dispute) return;
+    const fd = new FormData();
+    fd.append('file', file);
+    try {
+      await apiUpload(`/disputes/${order.dispute.id}/evidence`, fd);
+      load();
+    } catch (e: any) {
+      setError(e.message);
+    }
+  }
+
   if (error && !order) return <div className="p-6 text-red-600">{error}</div>;
   if (!order) return <div className="p-6 text-gray-500">Загрузка…</div>;
 
@@ -90,6 +128,49 @@ export default function PlannedOrderPage() {
 
       {isPlannedTerminalStatus(order.status) && (
         <button className="text-teal-700 underline" onClick={() => navigate('/')}>На главную</button>
+      )}
+
+      {order.dispute && (
+        <div className="rounded-xl border border-orange-300 bg-orange-50 p-4 space-y-2 text-left">
+          <div className="font-semibold text-orange-800">Спор {order.dispute.status === 'OPEN' ? 'открыт' : 'закрыт'}</div>
+          <p className="text-sm text-gray-700">{order.dispute.reason}</p>
+          {order.dispute.counterStatement && (
+            <p className="text-sm text-gray-600">Пояснение: {order.dispute.counterStatement}</p>
+          )}
+          {order.dispute.status === 'RESOLVED' && (
+            <p className="text-sm text-gray-600">
+              Решение: {order.dispute.refundServiceFee ? 'сбор возвращён' : 'сбор не возвращён'}, {order.dispute.penalizeMaster ? 'мастер оштрафован' : 'без санкций'}
+            </p>
+          )}
+          {order.dispute.status === 'OPEN' && (
+            <div className="space-y-2">
+              <input
+                type="file" accept="image/jpeg,image/png"
+                onChange={(e) => e.target.files?.[0] && uploadEvidence(e.target.files[0])}
+              />
+              <textarea
+                className="w-full rounded border p-2 text-sm"
+                placeholder="Пояснение (для второй стороны)"
+                value={counterStatement}
+                onChange={(e) => setCounterStatement(e.target.value)}
+              />
+              <button className="rounded border px-3 py-1 text-sm" onClick={submitCounterStatement}>Отправить пояснение</button>
+            </div>
+          )}
+        </div>
+      )}
+      {canDispute && (
+        <div className="space-y-2">
+          <textarea
+            className="w-full rounded border p-2 text-sm"
+            placeholder="Причина спора"
+            value={disputeReason}
+            onChange={(e) => setDisputeReason(e.target.value)}
+          />
+          <button className="w-full rounded border border-orange-300 p-2 text-sm text-orange-700" onClick={openDispute}>
+            Открыть спор
+          </button>
+        </div>
       )}
 
       <div className="fixed inset-x-0 bottom-16 mx-auto max-w-sm space-y-2 bg-white p-4">

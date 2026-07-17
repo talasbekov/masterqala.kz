@@ -134,7 +134,8 @@ export class OrdersService implements OnModuleInit {
     ) {
       throw new ForbiddenException('Нет доступа к заявке');
     }
-    return order;
+    const dispute = await this.prisma.dispute.findFirst({ where: { orderId: id }, orderBy: { createdAt: 'desc' } });
+    return { ...order, dispute };
   }
 
   async findOrThrow(id: string) {
@@ -143,7 +144,8 @@ export class OrdersService implements OnModuleInit {
       include: ORDER_INCLUDE,
     });
     if (!order) throw new NotFoundException('Заявка не найдена');
-    return order;
+    const dispute = await this.prisma.dispute.findFirst({ where: { orderId: id }, orderBy: { createdAt: 'desc' } });
+    return { ...order, dispute };
   }
 
   /** Атомарный гейт перехода. count===0 → 409. */
