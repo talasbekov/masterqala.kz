@@ -1,11 +1,21 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { api } from '../api';
 import { getSocket } from '../socket';
-import { STATUS_LABELS } from '../orderStatus';
+import { useAuth } from '../auth';
+import { STATUS_LABELS, urgentStatusVariant } from '../orderStatus';
+import Card from '../components/ui/Card';
+import Avatar from '../components/ui/Avatar';
+import StatusPill from '../components/ui/StatusPill';
+import CategoryTile from '../components/ui/CategoryTile';
+import { categoryIcon } from '../components/ui/categoryIcons';
+import { ChevronRightIcon } from '../components/ui/icons';
 
 export default function HomePage() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [order, setOrder] = useState<any | null>(null);
+  const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = () =>
@@ -15,6 +25,7 @@ export default function HomePage() {
 
   useEffect(() => {
     load();
+    api('/categories').then(setCategories);
     const socket = getSocket();
     const onStatus = () => load();
     socket.on('order:status', onStatus);
@@ -23,24 +34,73 @@ export default function HomePage() {
     };
   }, []);
 
-  if (loading) return <div className="p-6 text-gray-500">Загрузка…</div>;
+  if (loading) return <div className="p-6 text-muted">Загрузка…</div>;
 
   return (
-    <div className="mx-auto max-w-sm p-6 space-y-6">
-      <h1 className="text-2xl font-bold">MasterQala</h1>
-      {order ? (
-        <Link to={`/order/${order.id}`} className="block rounded-xl border p-4 shadow-sm">
-          <div className="font-semibold">{order.category?.name}</div>
-          <div className="text-teal-700">{STATUS_LABELS[order.status]}</div>
-          <div className="text-sm text-gray-500">{order.address}</div>
-        </Link>
-      ) : (
-        <Link to="/order/new" className="block rounded-xl bg-teal-700 p-6 text-center text-xl font-semibold text-white">
-          Вызвать мастера
+    <div className="mx-auto max-w-sm space-y-6 p-6">
+      <div>
+        <p className="text-sm text-muted">Добрый день</p>
+        <h1 className="text-xl font-extrabold text-foreground">{user?.name ?? 'Гость'}</h1>
+      </div>
+
+      {order && (
+        <Link to={`/order/${order.id}`}>
+          <Card className="flex items-center gap-3">
+            <Avatar name={order.master?.name} />
+            <div className="min-w-0 flex-1">
+              <div className="truncate font-bold text-foreground">{order.category?.name}</div>
+              <div className="truncate text-sm text-muted">{order.address}</div>
+              <div className="mt-1.5">
+                <StatusPill variant={urgentStatusVariant(order.status)}>{STATUS_LABELS[order.status]}</StatusPill>
+              </div>
+            </div>
+          </Card>
         </Link>
       )}
-      <Link to="/planned/new" className="block rounded-xl border border-teal-700 p-6 text-center text-xl font-semibold text-teal-700">
-        Запланировать
+
+      {categories.length > 0 && (
+        <div>
+          <h2 className="mb-2 text-[15px] font-extrabold text-foreground">Категории услуг</h2>
+          <div className="grid grid-cols-3 gap-2.5">
+            {categories.map((c) => {
+              const { Icon, bg, color } = categoryIcon(c.slug);
+              return (
+                <CategoryTile
+                  key={c.id}
+                  label={c.name}
+                  icon={<Icon className="h-6 w-6" />}
+                  iconBg={bg}
+                  iconColor={color}
+                  onClick={() => navigate('/order/new')}
+                />
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {!order && (
+        <button
+          onClick={() => navigate('/order/new')}
+          className="flex w-full items-center justify-between gap-3 rounded-lg bg-primary p-4 text-left text-white"
+        >
+          <div>
+            <div className="font-bold">Срочно нужен мастер?</div>
+            <div className="mt-0.5 text-[13px] opacity-85">Найдём ближайшего свободного</div>
+          </div>
+          <span className="shrink-0 rounded-full bg-accent px-4 py-2 text-[13px] font-bold">Вызвать</span>
+        </button>
+      )}
+
+      <Link
+        to="/planned/new"
+        className="flex items-center justify-between rounded-md border-2 border-dashed border-primary-light/40 bg-surface p-3.5"
+      >
+        <div>
+          <div className="text-[13px] font-bold text-primary">Запланировать на удобное время</div>
+          <div className="text-xs text-muted">Ставки от мастеров, вы выбираете</div>
+        </div>
+        <ChevronRightIcon className="h-4 w-4 text-primary" />
       </Link>
     </div>
   );
