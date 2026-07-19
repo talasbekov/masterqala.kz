@@ -18,6 +18,7 @@ import { OrdersModule } from './orders/orders.module';
 import { PlannedOrdersModule } from './planned-orders/planned-orders.module';
 import { WalletModule } from './wallet/wallet.module';
 import { DisputesModule } from './disputes/disputes.module';
+import { AddressesModule } from './addresses/addresses.module';
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { DisputesModule } from './disputes/disputes.module';
     PlannedOrdersModule,
     WalletModule,
     DisputesModule,
+    AddressesModule,
   ],
   controllers: [HealthController],
   providers: [],
