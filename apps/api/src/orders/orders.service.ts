@@ -91,8 +91,13 @@ export class OrdersService implements OnModuleInit {
       return created;
     });
 
+    // Холд на полную стоимость выезда, не только на сбор: при ПРИНЯТА капчится
+    // целиком, платформа удерживает serviceFee себе, остаток уходит мастеру
+    // компенсацией (accrueCallout = calloutPrice − serviceFee) — без этого
+    // с реальным провайдером компенсация платилась бы из денег, которых
+    // платформа не собирала (P0, §23 отчёта).
     // Ошибка холда → заявка остаётся CREATED и не публикуется (§3.3).
-    await this.payments.hold(order.id, order.serviceFee);
+    await this.payments.hold(order.id, order.calloutPrice);
     await this.gate(order.id, 'CREATED', { status: 'SEARCHING' });
     await this.queue.send(JOBS.WAVE, { orderId: order.id, wave: 1 });
     return this.findOrThrow(order.id);
@@ -437,7 +442,7 @@ export class OrdersService implements OnModuleInit {
     // Hold ставится до гейта: если гейт бросит 409 (статус уже не NO_MASTERS),
     // лишний HOLD останется висеть в mock-журнале — приемлемо для этапа 2
     // (реальный провайдер этапа 4 получит компенсирующий void).
-    await this.payments.hold(orderId, (await this.findOrThrow(orderId)).serviceFee);
+    await this.payments.hold(orderId, (await this.findOrThrow(orderId)).calloutPrice);
     await this.gate(orderId, 'NO_MASTERS', {
       status: 'SEARCHING',
       wave: 0,
