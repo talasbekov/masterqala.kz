@@ -14,7 +14,7 @@ import AdminWithdrawalsPage from './pages/AdminWithdrawalsPage';
 import AdminDisputesPage from './pages/AdminDisputesPage';
 import AdminDisputeDetailPage from './pages/AdminDisputeDetailPage';
 import NewOrderPage from './features/client-v2/pages/NewOrderPage';
-import OrderPage from './pages/OrderPage';
+import OrderPage from './features/client-v2/pages/OrderPage';
 import MyOrdersPage from './pages/MyOrdersPage';
 import WorkPage from './pages/WorkPage';
 import PlannedNewOrderPage from './pages/PlannedNewOrderPage';
