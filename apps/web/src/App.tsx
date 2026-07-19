@@ -2,7 +2,9 @@ import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom
 import { AuthProvider, useAuth } from './auth';
 import Layout from './Layout';
 import LoginPage from './features/client-v2/pages/LoginPage';
-import HomePage from './pages/HomePage';
+import AppShell from './features/client-v2/components/AppShell';
+import HomePage from './features/client-v2/pages/HomePage';
+import NotificationsPage from './features/client-v2/pages/NotificationsPage';
 import ProfilePage from './pages/ProfilePage';
 import BecomeMasterPage from './pages/BecomeMasterPage';
 import AdminListPage from './pages/AdminListPage';
@@ -36,8 +38,12 @@ export default function App() {
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route element={<RequireAuth />}>
-            <Route element={<Layout />}>
+            <Route element={<AppShell />}>
               <Route path="/" element={<HomePage />} />
+              <Route path="/notifications" element={<NotificationsPage />} />
+              <Route path="/support" element={<Navigate to="/" replace />} />
+            </Route>
+            <Route element={<Layout />}>
               <Route path="/orders" element={<MyOrdersPage />} />
               <Route path="/order/new" element={<NewOrderPage />} />
               <Route path="/order/:id" element={<OrderPage />} />

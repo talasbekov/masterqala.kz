@@ -13,6 +13,26 @@ async function main() {
     create: { slug: 'electrics', name: 'Электрика' },
     update: {},
   });
+  await prisma.category.upsert({
+    where: { slug: 'appliances' },
+    create: { slug: 'appliances', name: 'Бытовая техника' },
+    update: {},
+  });
+  await prisma.category.upsert({
+    where: { slug: 'locksmith' },
+    create: { slug: 'locksmith', name: 'Замки и двери' },
+    update: {},
+  });
+  await prisma.category.upsert({
+    where: { slug: 'handyman' },
+    create: { slug: 'handyman', name: 'Мелкий ремонт' },
+    update: {},
+  });
+  await prisma.category.upsert({
+    where: { slug: 'other' },
+    create: { slug: 'other', name: 'Другие услуги' },
+    update: {},
+  });
   const operatorPhone = process.env.OPERATOR_PHONE;
   if (operatorPhone) {
     await prisma.user.upsert({
