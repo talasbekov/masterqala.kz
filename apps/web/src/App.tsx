@@ -5,6 +5,7 @@ import LoginPage from './features/client-v2/pages/LoginPage';
 import AppShell from './features/client-v2/components/AppShell';
 import HomePage from './features/client-v2/pages/HomePage';
 import NotificationsPage from './features/client-v2/pages/NotificationsPage';
+import CatalogPage from './features/client-v2/pages/CatalogPage';
 import ProfilePage from './pages/ProfilePage';
 import BecomeMasterPage from './pages/BecomeMasterPage';
 import AdminListPage from './pages/AdminListPage';
@@ -41,6 +42,7 @@ export default function App() {
             <Route element={<AppShell />}>
               <Route path="/" element={<HomePage />} />
               <Route path="/notifications" element={<NotificationsPage />} />
+              <Route path="/catalog" element={<CatalogPage />} />
               <Route path="/support" element={<Navigate to="/" replace />} />
             </Route>
             <Route element={<Layout />}>
