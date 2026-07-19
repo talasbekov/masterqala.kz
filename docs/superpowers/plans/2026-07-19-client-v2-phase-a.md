@@ -330,11 +330,11 @@ export default function LoginPage() {
           <div className="mt-2.5 text-[26px] font-extrabold leading-tight text-c2-ink">{t('auth.smsTitle')}</div>
           <div className="text-sm text-c2-ink-soft">{t('auth.smsSubtitle', { phone: `+7 ${phone}` })}</div>
           <div className="relative mt-2 w-fit" onClick={() => codeInputRef.current?.focus()}>
-            <div className="flex gap-2.5">
-              {[0, 1, 2, 3].map((i) => (
+            <div className="flex gap-1.5">
+              {[0, 1, 2, 3, 4, 5].map((i) => (
                 <div
                   key={i}
-                  className={`flex h-16 w-14 items-center justify-center rounded-c2-md border-[1.5px] bg-c2-surface text-2xl font-extrabold text-c2-ink ${
+                  className={`flex h-14 w-10 items-center justify-center rounded-c2-md border-[1.5px] bg-c2-surface text-xl font-extrabold text-c2-ink ${
                     code[i] ? 'border-c2-primary' : 'border-c2-border'
                   }`}
                 >
@@ -347,9 +347,9 @@ export default function LoginPage() {
               type="text"
               inputMode="numeric"
               autoFocus
-              maxLength={4}
+              maxLength={6}
               value={code}
-              onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 4))}
+              onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
               className="absolute inset-0 opacity-0"
             />
           </div>
@@ -367,7 +367,7 @@ export default function LoginPage() {
           <button
             type="button"
             onClick={verify}
-            disabled={submitting || code.length < 4}
+            disabled={submitting || code.length < 6}
             className="rounded-c2-pill bg-c2-primary p-4 text-base font-extrabold text-white disabled:opacity-40"
           >
             {t('auth.loginButton')}
@@ -379,7 +379,7 @@ export default function LoginPage() {
 }
 ```
 
-Примечание к шагу: сплэш-экран в прототипе продвигается тапом (`onClick="{{ go.phone }}"`) — для реального продукта добавлен автопереход через 1.2с (тап по-прежнему работает), т.к. требовать тап от живого пользователя на сплэше нетипично для мобильных приложений. Ввод SMS-кода в прототипе — статичная демо-заливка 2 из 4 клеток; в реальном коде — рабочий 4-значный OTP-инпут поверх визуальных клеток. Таймер повторной отправки — реальный обратный отсчёт с 60 секунд (прототип показывает статичное «0:42» как демо-значение).
+Примечание к шагу: сплэш-экран в прототипе продвигается тапом (`onClick="{{ go.phone }}"`) — для реального продукта добавлен автопереход через 1.2с (тап по-прежнему работает), т.к. требовать тап от живого пользователя на сплэше нетипично для мобильных приложений. Ввод SMS-кода в прототипе — статичная демо-заливка 2 из 4 клеток (случайное демо-число, не привязанное к реальной длине кода); в реальном коде — рабочий **6-значный** OTP-инпут (не 4, как в прототипе) поверх визуальных клеток, т.к. бэкенд генерирует и валидирует ровно 6-значный код (`apps/api/src/auth/auth.service.ts` — `randomInt(100000, 1000000)`, `apps/api/src/auth/dto.ts` — `@Length(6, 6)`; это давно существующий, вне-скоупа-этого-цикла контракт — старый v1 `LoginPage` его не нарушал только потому, что использовал обычный текстовый инпут без ограничения длины). Таймер повторной отправки — реальный обратный отсчёт с 60 секунд (прототип показывает статичное «0:42» как демо-значение).
 
 - [ ] **Step 7: Заменить маршрут в App.tsx, удалить старый файл**
 

@@ -131,11 +131,11 @@ export default function LoginPage() {
           <div className="mt-2.5 text-[26px] font-extrabold leading-tight text-c2-ink">{t('auth.smsTitle')}</div>
           <div className="text-sm text-c2-ink-soft">{t('auth.smsSubtitle', { phone: `+7 ${phone}` })}</div>
           <div className="relative mt-2 w-fit" onClick={() => codeInputRef.current?.focus()}>
-            <div className="flex gap-2.5">
-              {[0, 1, 2, 3].map((i) => (
+            <div className="flex gap-1.5">
+              {[0, 1, 2, 3, 4, 5].map((i) => (
                 <div
                   key={i}
-                  className={`flex h-16 w-14 items-center justify-center rounded-c2-md border-[1.5px] bg-c2-surface text-2xl font-extrabold text-c2-ink ${
+                  className={`flex h-14 w-10 items-center justify-center rounded-c2-md border-[1.5px] bg-c2-surface text-xl font-extrabold text-c2-ink ${
                     code[i] ? 'border-c2-primary' : 'border-c2-border'
                   }`}
                 >
@@ -148,9 +148,9 @@ export default function LoginPage() {
               type="text"
               inputMode="numeric"
               autoFocus
-              maxLength={4}
+              maxLength={6}
               value={code}
-              onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 4))}
+              onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
               className="absolute inset-0 opacity-0"
             />
           </div>
@@ -168,7 +168,7 @@ export default function LoginPage() {
           <button
             type="button"
             onClick={verify}
-            disabled={submitting || code.length < 4}
+            disabled={submitting || code.length < 6}
             className="rounded-c2-pill bg-c2-primary p-4 text-base font-extrabold text-white disabled:opacity-40"
           >
             {t('auth.loginButton')}
