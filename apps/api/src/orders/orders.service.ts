@@ -121,15 +121,16 @@ export class OrdersService implements OnModuleInit {
       orderBy: { createdAt: 'desc' },
       include: ORDER_INCLUDE,
     });
-    return { order };
+    return { order: order ? this.withDeadlines(order) : null };
   }
 
   async listMine(clientId: string) {
-    return this.prisma.order.findMany({
+    const orders = await this.prisma.order.findMany({
       where: { clientId },
       orderBy: { createdAt: 'desc' },
       include: ORDER_INCLUDE,
     });
+    return orders.map((o) => this.withDeadlines(o));
   }
 
   async getMasterActive(masterUserId: string) {
@@ -137,7 +138,7 @@ export class OrdersService implements OnModuleInit {
       where: { masterId: masterUserId, status: { in: ACTIVE_MASTER_STATUSES } },
       include: ORDER_INCLUDE,
     });
-    return { order };
+    return { order: order ? this.withDeadlines(order) : null };
   }
 
   async getById(user: User, id: string) {
@@ -154,7 +155,7 @@ export class OrdersService implements OnModuleInit {
       throw new ForbiddenException('Нет доступа к заявке');
     }
     const dispute = await this.prisma.dispute.findFirst({ where: { orderId: id }, orderBy: { createdAt: 'desc' } });
-    return { ...order, dispute };
+    return this.withDeadlines({ ...order, dispute });
   }
 
   async getPhotoStream(user: User, orderId: string, photoId: string) {
@@ -167,6 +168,15 @@ export class OrdersService implements OnModuleInit {
     return this.storage.absolutePath(photo.path);
   }
 
+  private withDeadlines<T extends { priceProposedAt: Date | null }>(order: T) {
+    return {
+      ...order,
+      priceDeadline: order.priceProposedAt
+        ? new Date(order.priceProposedAt.getTime() + PRICE_CONFIRM_TIMEOUT_S * 1000).toISOString()
+        : null,
+    };
+  }
+
   async findOrThrow(id: string) {
     const order = await this.prisma.order.findUnique({
       where: { id },
@@ -174,7 +184,7 @@ export class OrdersService implements OnModuleInit {
     });
     if (!order) throw new NotFoundException('Заявка не найдена');
     const dispute = await this.prisma.dispute.findFirst({ where: { orderId: id }, orderBy: { createdAt: 'desc' } });
-    return { ...order, dispute };
+    return this.withDeadlines({ ...order, dispute });
   }
 
   /** Атомарный гейт перехода. count===0 → 409. */

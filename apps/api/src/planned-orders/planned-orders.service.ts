@@ -101,11 +101,21 @@ export class PlannedOrdersService implements OnModuleInit {
     return Promise.all(orders.map(async (order) => this.redactMasterContact({ ...order, bids: await this.enrichBids(order.bids) })));
   }
 
+  private withDeadline<T extends { selectedAt: Date | null; status: string }>(order: T) {
+    return {
+      ...order,
+      confirmDeadline:
+        order.selectedAt && order.status === 'MASTER_SELECTED'
+          ? new Date(order.selectedAt.getTime() + PLANNED_CONFIRM_TIMEOUT_S * 1000).toISOString()
+          : null,
+    };
+  }
+
   async findOrThrow(id: string) {
     const order = await this.prisma.plannedOrder.findUnique({ where: { id }, include: PLANNED_ORDER_INCLUDE });
     if (!order) throw new NotFoundException('Заявка не найдена');
     const dispute = await this.prisma.dispute.findFirst({ where: { plannedOrderId: id }, orderBy: { createdAt: 'desc' } });
-    return { ...order, bids: await this.enrichBids(order.bids), dispute };
+    return this.withDeadline({ ...order, bids: await this.enrichBids(order.bids), dispute });
   }
 
   private async enrichBids<

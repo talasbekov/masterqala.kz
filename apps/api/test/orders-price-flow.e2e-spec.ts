@@ -75,4 +75,18 @@ describe('Цепочка до цены и таймаут цены (e2e)', () => 
     await orders.handlePriceTimeout({ orderId }); // не в AWAITING — тихо выходит
     expect(await prisma.accrual.count({ where: { orderId } })).toBe(1);
   });
+
+  it('priceDeadline = priceProposedAt + 15 минут', async () => {
+    await post(master.token, 'on-way').expect(201);
+    await post(master.token, 'on-site').expect(201);
+    await post(master.token, 'propose-price', { amount: 15000 }).expect(201);
+
+    const detail = await request(app.getHttpServer())
+      .get(`/api/v1/orders/${orderId}`)
+      .set('Authorization', `Bearer ${client.token}`)
+      .expect(200);
+    const proposedAt = new Date(detail.body.priceProposedAt).getTime();
+    const deadline = new Date(detail.body.priceDeadline).getTime();
+    expect(deadline - proposedAt).toBe(15 * 60 * 1000);
+  });
 });
