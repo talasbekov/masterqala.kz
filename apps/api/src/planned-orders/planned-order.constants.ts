@@ -13,6 +13,7 @@ export const PLANNED_ORDER_INCLUDE = {
     include: { master: { select: { id: true, name: true } } },
     orderBy: { createdAt: 'asc' },
   },
+  photos: true,
 } satisfies Prisma.PlannedOrderInclude;
 
 export const FEED_SELECT = {
@@ -21,7 +22,9 @@ export const FEED_SELECT = {
   category: { select: { id: true, name: true } },
   district: true,
   description: true,
-  scheduledAt: true,
+  slotStart: true,
+  slotEnd: true,
+  budget: true,
   status: true,
   createdAt: true,
   _count: { select: { bids: true } },

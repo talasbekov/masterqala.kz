@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ConflictException,
   ForbiddenException,
+  Inject,
   Injectable,
   NotFoundException,
   OnModuleInit,
@@ -14,6 +15,7 @@ import { DisputesService } from '../disputes/disputes.service';
 import { QueueService } from '../queue/queue.service';
 import { JOBS } from '../queue/queue.constants';
 import { RealtimeGateway } from '../realtime/realtime.gateway';
+import { FileStorage, FILE_STORAGE } from '../storage/storage.interface';
 import {
   FEED_SELECT,
   PLANNED_AUTO_CLOSE_S,
@@ -34,6 +36,7 @@ export class PlannedOrdersService implements OnModuleInit {
     private readonly gateway: RealtimeGateway,
     private readonly penalties: MasterPenaltyService,
     private readonly disputes: DisputesService,
+    @Inject(FILE_STORAGE) private readonly storage: FileStorage,
   ) {}
 
   onModuleInit(): void {
@@ -48,27 +51,43 @@ export class PlannedOrdersService implements OnModuleInit {
     const category = await this.prisma.category.findUnique({ where: { id: dto.categoryId } });
     if (!category) throw new BadRequestException('Неизвестная категория');
 
-    const scheduledAt = new Date(dto.scheduledAt);
+    const slotStart = new Date(dto.slotStart);
+    const slotEnd = new Date(dto.slotEnd);
     const now = new Date();
     const horizon = new Date(now.getTime() + PLANNED_HORIZON_DAYS * 24 * 3600 * 1000);
-    if (scheduledAt <= now) throw new BadRequestException('Дата должна быть в будущем');
-    if (scheduledAt > horizon) {
+    if (slotStart <= now) throw new BadRequestException('Дата должна быть в будущем');
+    if (slotStart > horizon) {
       throw new BadRequestException(`Дата должна быть не позднее ${PLANNED_HORIZON_DAYS} дней вперёд`);
     }
+    if (slotEnd <= slotStart) throw new BadRequestException('Конец слота должен быть позже начала');
 
-    const order = await this.prisma.plannedOrder.create({
-      data: {
-        clientId,
-        categoryId: dto.categoryId,
-        description: dto.description,
-        address: dto.address,
-        district: dto.district,
-        scheduledAt,
-        status: 'PUBLISHED',
-        publishedAt: now,
-      },
+    const order = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.plannedOrder.create({
+        data: {
+          clientId,
+          categoryId: dto.categoryId,
+          description: dto.description,
+          address: dto.address,
+          district: dto.district,
+          entrance: dto.entrance ?? null,
+          floor: dto.floor ?? null,
+          apartment: dto.apartment ?? null,
+          addressComment: dto.addressComment ?? null,
+          budget: dto.budget ?? null,
+          slotStart,
+          slotEnd,
+          status: 'PUBLISHED',
+          publishedAt: now,
+        },
+      });
+      if (dto.photoPaths?.length) {
+        await tx.plannedOrderPhoto.createMany({
+          data: dto.photoPaths.map((path) => ({ plannedOrderId: created.id, path })),
+        });
+      }
+      return created;
     });
-    const delaySeconds = Math.max(0, Math.floor((scheduledAt.getTime() - Date.now()) / 1000));
+    const delaySeconds = Math.max(0, Math.floor((slotStart.getTime() - Date.now()) / 1000));
     await this.queue.send(JOBS.PLANNED_EXPIRY, { plannedOrderId: order.id }, delaySeconds);
     return this.findOrThrow(order.id);
   }
@@ -126,7 +145,7 @@ export class PlannedOrdersService implements OnModuleInit {
     if (categoryIds.length === 0) return [];
     return this.prisma.plannedOrder.findMany({
       where: { status: 'PUBLISHED', categoryId: { in: categoryIds } },
-      orderBy: { scheduledAt: 'asc' },
+      orderBy: { slotStart: 'asc' },
       select: FEED_SELECT,
     });
   }
@@ -274,7 +293,7 @@ export class PlannedOrdersService implements OnModuleInit {
     await this.emitPlannedStatus(plannedOrderId);
   }
 
-  /** Джоба: наступил scheduledAt, а заявка ещё PUBLISHED без единой ставки. */
+  /** Джоба: наступил slotStart, а заявка ещё PUBLISHED без единой ставки. */
   async handlePlannedExpiry({ plannedOrderId }: { plannedOrderId: string }): Promise<void> {
     const order = await this.prisma.plannedOrder.findUnique({
       where: { id: plannedOrderId },
@@ -293,7 +312,8 @@ export class PlannedOrdersService implements OnModuleInit {
       status: order.status,
       workPrice: order.workPrice,
       cancelReason: order.cancelReason,
-      scheduledAt: order.scheduledAt,
+      slotStart: order.slotStart,
+      slotEnd: order.slotEnd,
     };
     this.gateway.emitToUser(order.clientId, 'planned:status', { ...base, master: this.redactMasterContact(order).master });
     if (order.masterId) this.gateway.emitToUser(order.masterId, 'planned:status', { ...base, master: order.master });
@@ -360,6 +380,16 @@ export class PlannedOrdersService implements OnModuleInit {
       await this.penalties.penalizeForCancellation(tx, order.masterId!, 'PLANNED', order.id);
     });
     await this.emitPlannedStatus(order.id);
+  }
+
+  async getPhotoStream(user: User, plannedOrderId: string, photoId: string) {
+    const order = await this.findOrThrow(plannedOrderId);
+    if (order.clientId !== user.id && order.masterId !== user.id && user.role !== 'OPERATOR') {
+      throw new ForbiddenException('Нет доступа к заявке');
+    }
+    const photo = order.photos.find((p) => p.id === photoId);
+    if (!photo) throw new NotFoundException('Фото не найдено');
+    return this.storage.absolutePath(photo.path);
   }
 
   async getByIdForUser(user: User, id: string) {
