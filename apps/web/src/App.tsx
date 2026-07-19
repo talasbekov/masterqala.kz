@@ -15,6 +15,7 @@ import AdminDisputesPage from './pages/AdminDisputesPage';
 import AdminDisputeDetailPage from './pages/AdminDisputeDetailPage';
 import NewOrderPage from './features/client-v2/pages/NewOrderPage';
 import OrderPage from './features/client-v2/pages/OrderPage';
+import DisputePage from './features/client-v2/pages/DisputePage';
 import MyOrdersPage from './pages/MyOrdersPage';
 import WorkPage from './pages/WorkPage';
 import PlannedNewOrderPage from './pages/PlannedNewOrderPage';
@@ -49,6 +50,7 @@ export default function App() {
               <Route path="/orders" element={<MyOrdersPage />} />
               <Route path="/order/new" element={<NewOrderPage />} />
               <Route path="/order/:id" element={<OrderPage />} />
+              <Route path="/order/:id/dispute" element={<DisputePage />} />
               <Route path="/planned/new" element={<PlannedNewOrderPage />} />
               <Route path="/planned/:id" element={<PlannedOrderPage />} />
               <Route path="/work" element={<WorkPage />} />
