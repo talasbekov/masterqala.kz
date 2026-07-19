@@ -20,6 +20,7 @@ import MyOrdersPage from './pages/MyOrdersPage';
 import WorkPage from './pages/WorkPage';
 import PlannedNewOrderPage from './features/client-v2/pages/PlannedNewOrderPage';
 import PlannedOrderPage from './features/client-v2/pages/PlannedOrderPage';
+import PlannedComparePage from './features/client-v2/pages/PlannedComparePage';
 import LeadCreditsPage from './pages/LeadCreditsPage';
 import WalletPage from './pages/WalletPage';
 
@@ -53,6 +54,7 @@ export default function App() {
               <Route path="/order/:id/dispute" element={<DisputePage />} />
               <Route path="/planned/new" element={<PlannedNewOrderPage />} />
               <Route path="/planned/:id" element={<PlannedOrderPage />} />
+              <Route path="/planned/:id/compare" element={<PlannedComparePage />} />
               <Route path="/work" element={<WorkPage />} />
               <Route path="/lead-credits" element={<LeadCreditsPage />} />
               <Route path="/wallet" element={<WalletPage />} />
