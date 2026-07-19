@@ -1,0 +1,20 @@
+{
+  "common": {
+    "loading": "Загрузка…"
+  },
+  "auth": {
+    "splashTagline": "Проверенные мастера рядом",
+    "phoneTitle": "Вход по номеру телефона",
+    "phoneSubtitle": "Отправим SMS с кодом подтверждения",
+    "phonePlaceholder": "707 123 45 67",
+    "termsPrefix": "Продолжая, вы соглашаетесь с",
+    "termsLink": "условиями сервиса",
+    "getCodeButton": "Получить код",
+    "changeNumber": "Изменить номер",
+    "smsTitle": "Код из SMS",
+    "smsSubtitle": "Отправили на {{phone}}",
+    "resendIn": "Отправить снова через {{time}}",
+    "resendNow": "Отправить код повторно",
+    "loginButton": "Войти"
+  }
+}

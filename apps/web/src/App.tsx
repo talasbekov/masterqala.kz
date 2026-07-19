@@ -1,7 +1,7 @@
 import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom';
 import { AuthProvider, useAuth } from './auth';
 import Layout from './Layout';
-import LoginPage from './pages/LoginPage';
+import LoginPage from './features/client-v2/pages/LoginPage';
 import HomePage from './pages/HomePage';
 import ProfilePage from './pages/ProfilePage';
 import BecomeMasterPage from './pages/BecomeMasterPage';
