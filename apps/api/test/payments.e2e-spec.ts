@@ -22,7 +22,7 @@ describe('MockPaymentProvider (e2e)', () => {
     const { userId } = await loginAs(app, '+77010000001');
     const order = await prisma.order.create({
       data: {
-        clientId: userId, categoryId: plumbing.id, description: 'т', address: 'а',
+        clientId: userId, categoryId: plumbing.id, description: 'т', address: 'а', district: 'р',
         calloutPrice: 3000, serviceFee: 1200,
       },
     });
