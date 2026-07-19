@@ -6,6 +6,7 @@ import { CommonModule } from './common/common.module';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { MastersModule } from './masters/masters.module';
+import { UploadsModule } from './uploads/uploads.module';
 import { AdminModule } from './admin/admin.module';
 import { PaymentsModule } from './payments/payments.module';
 import { RoutingModule } from './routing/routing.module';
@@ -27,6 +28,7 @@ import { DisputesModule } from './disputes/disputes.module';
     AuthModule,
     UsersModule,
     MastersModule,
+    UploadsModule,
     AdminModule,
     PaymentsModule,
     RoutingModule,
