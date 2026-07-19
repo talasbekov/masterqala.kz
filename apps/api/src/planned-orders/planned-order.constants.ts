@@ -10,7 +10,15 @@ export const PLANNED_ORDER_INCLUDE = {
   master: { select: { id: true, name: true, phone: true } },
   client: { select: { id: true, name: true, phone: true } },
   bids: {
-    include: { master: { select: { id: true, name: true } } },
+    include: {
+      master: {
+        select: {
+          id: true,
+          name: true,
+          masterProfile: { select: { experienceYears: true, status: true } },
+        },
+      },
+    },
     orderBy: { createdAt: 'asc' },
   },
   photos: true,

@@ -98,14 +98,37 @@ export class PlannedOrdersService implements OnModuleInit {
       orderBy: { createdAt: 'desc' },
       include: PLANNED_ORDER_INCLUDE,
     });
-    return orders.map((order) => this.redactMasterContact(order));
+    return Promise.all(orders.map(async (order) => this.redactMasterContact({ ...order, bids: await this.enrichBids(order.bids) })));
   }
 
   async findOrThrow(id: string) {
     const order = await this.prisma.plannedOrder.findUnique({ where: { id }, include: PLANNED_ORDER_INCLUDE });
     if (!order) throw new NotFoundException('Заявка не найдена');
     const dispute = await this.prisma.dispute.findFirst({ where: { plannedOrderId: id }, orderBy: { createdAt: 'desc' } });
-    return { ...order, dispute };
+    return { ...order, bids: await this.enrichBids(order.bids), dispute };
+  }
+
+  private async enrichBids<
+    T extends { masterUserId: string; master: { id: string; name: string | null; masterProfile: { experienceYears: number; status: string } | null } },
+  >(bids: T[]) {
+    const counts = await Promise.all(
+      bids.map((b) =>
+        Promise.all([
+          this.prisma.order.count({ where: { masterId: b.masterUserId, status: 'CLOSED' } }),
+          this.prisma.plannedOrder.count({ where: { masterId: b.masterUserId, status: 'CLOSED' } }),
+        ]),
+      ),
+    );
+    return bids.map((b, i) => ({
+      ...b,
+      master: {
+        id: b.master.id,
+        name: b.master.name,
+        experienceYears: b.master.masterProfile?.experienceYears ?? 0,
+        completedCount: counts[i][0] + counts[i][1],
+        verified: b.master.masterProfile?.status === 'ACTIVE',
+      },
+    }));
   }
 
   /** Атомарный гейт перехода. count===0 → 409. */
