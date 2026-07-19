@@ -430,14 +430,27 @@ export class PlannedOrdersService implements OnModuleInit {
     if (order.clientId === user.id) return this.redactMasterContact(order);
     const revealed = order.masterId === user.id;
     if (revealed) return order;
-    return {
-      ...order,
-      address: null,
-      client: null,
-      master: order.master ? { ...order.master, phone: '' } : null,
-      bids: [],
-    };
+    return { ...order, ...PlannedOrdersService.NON_PRIVILEGED_REDACTION(order) };
   }
+
+  /**
+   * Поля, скрываемые от мастера, который заявку не выиграл (не назначен): точный адрес,
+   * детали доступа и фото — потенциальные метки геолокации до того, как мастер вложился в отклик.
+   * `budget` намеренно не редактируется — уже публично виден в feed().
+   */
+  private static readonly NON_PRIVILEGED_REDACTION = (order: {
+    master: { id: string; name: string | null; phone: string } | null;
+  }) => ({
+    address: null,
+    entrance: null,
+    floor: null,
+    apartment: null,
+    addressComment: null,
+    photos: [] as never[],
+    client: null,
+    master: order.master ? { ...order.master, phone: '' } : null,
+    bids: [] as never[],
+  });
 
   private static readonly MASTER_CONTACT_REVEALED_STATUSES: PlannedOrder['status'][] = [
     'CONFIRMED',
