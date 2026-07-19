@@ -105,6 +105,10 @@
     "closedCancelledTitle": "Заявка отменена",
     "rateTitle": "Оцените мастера",
     "rateThanks": "Спасибо за отзыв!",
-    "submitRating": "Отправить"
+    "submitRating": "Отправить",
+    "callMaster": "Позвонить",
+    "verified": "✓ проверен",
+    "etaLabel": "Мастер приедет",
+    "cancellationRules": "Правила отмены"
   }
 }
