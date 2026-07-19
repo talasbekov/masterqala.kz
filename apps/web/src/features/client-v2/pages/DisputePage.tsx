@@ -12,7 +12,7 @@ interface Dispute {
 
 const CATEGORY_KEYS = ['categoryQuality', 'categoryPrice', 'categoryBehavior', 'categoryOther'] as const;
 
-export default function DisputePage() {
+export default function DisputePage({ kind }: { kind: 'orders' | 'planned-orders' }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
@@ -24,17 +24,17 @@ export default function DisputePage() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    api(`/orders/${id}`)
+    api(`/${kind}/${id}`)
       .then((o) => setDispute(o.dispute ?? null))
       .catch((e) => setError((e as Error).message));
-  }, [id]);
+  }, [id, kind]);
 
   async function send() {
     setError('');
     setSubmitting(true);
     try {
       const reason = `${t(`dispute.${category}`)}. ${text}`.trim();
-      const created = await api(`/orders/${id}/disputes`, { method: 'POST', body: JSON.stringify({ reason }) });
+      const created = await api(`/${kind}/${id}/disputes`, { method: 'POST', body: JSON.stringify({ reason }) });
       setDispute(created);
     } catch (e) {
       setError((e as Error).message);

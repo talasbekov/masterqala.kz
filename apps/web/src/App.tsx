@@ -51,10 +51,11 @@ export default function App() {
               <Route path="/orders" element={<MyOrdersPage />} />
               <Route path="/order/new" element={<NewOrderPage />} />
               <Route path="/order/:id" element={<OrderPage />} />
-              <Route path="/order/:id/dispute" element={<DisputePage />} />
+              <Route path="/order/:id/dispute" element={<DisputePage kind="orders" />} />
               <Route path="/planned/new" element={<PlannedNewOrderPage />} />
               <Route path="/planned/:id" element={<PlannedOrderPage />} />
               <Route path="/planned/:id/compare" element={<PlannedComparePage />} />
+              <Route path="/planned/:id/dispute" element={<DisputePage kind="planned-orders" />} />
               <Route path="/work" element={<WorkPage />} />
               <Route path="/lead-credits" element={<LeadCreditsPage />} />
               <Route path="/wallet" element={<WalletPage />} />
