@@ -22,6 +22,7 @@ export const PLANNED_ORDER_INCLUDE = {
     orderBy: { createdAt: 'asc' },
   },
   photos: true,
+  review: { select: { rating: true, comment: true } },
 } satisfies Prisma.PlannedOrderInclude;
 
 export const FEED_SELECT = {
