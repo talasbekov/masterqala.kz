@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../../../api';
@@ -5,10 +6,16 @@ import { api } from '../../../../api';
 export default function NoMastersView({ orderId, onChanged }: { orderId: string; onChanged: () => void }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const [error, setError] = useState('');
 
   async function retry() {
-    await api(`/orders/${orderId}/retry-search`, { method: 'POST' });
-    onChanged();
+    setError('');
+    try {
+      await api(`/orders/${orderId}/retry-search`, { method: 'POST' });
+      onChanged();
+    } catch (e) {
+      setError((e as Error).message);
+    }
   }
 
   return (
@@ -16,6 +23,7 @@ export default function NoMastersView({ orderId, onChanged }: { orderId: string;
       <div className="text-4xl">😔</div>
       <div className="text-xl font-extrabold text-c2-ink">{t('orderDetail.noMastersTitle')}</div>
       <div className="max-w-[290px] text-sm leading-relaxed text-c2-ink-soft">{t('orderDetail.noMastersText')}</div>
+      {error && <p className="text-sm font-semibold text-c2-danger">{error}</p>}
       <button
         type="button"
         onClick={retry}

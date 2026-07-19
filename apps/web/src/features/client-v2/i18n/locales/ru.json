@@ -1,8 +1,10 @@
 {
   "common": {
     "loading": "Загрузка…",
+    "photosCount": "{{n}} фото",
     "stepOf": "шаг {{n}} из {{total}}",
-    "next": "Далее"
+    "next": "Далее",
+    "retry": "Повторить"
   },
   "auth": {
     "splashTagline": "Проверенные мастера рядом",
@@ -77,6 +79,7 @@
     "geoError": "Не удалось определить геолокацию — разрешите доступ и повторите"
   },
   "orderDetail": {
+    "notFound": "Заявка не найдена",
     "cancelFree": "Отменить — бесплатно",
     "cancel": "Отменить",
     "noMastersTitle": "Никто не откликнулся",
@@ -85,6 +88,7 @@
     "startPlanned": "Запланировать на время",
     "toHome": "На главную",
     "priceTitle": "Цена работ",
+    "priceOffered": "{{name}} осмотрел проблему и предлагает:",
     "priceCalloutLabel": "Выезд (уже оплачен)",
     "priceWorkLabel": "Работы",
     "priceTotalLabel": "Итого",
@@ -109,6 +113,8 @@
     "callMaster": "Позвонить",
     "verified": "✓ проверен",
     "etaLabel": "Мастер приедет",
+    "etaMinutes": "{{n}} мин",
+    "ordersCount": "{{n}} заказов",
     "cancellationRules": "Правила отмены"
   },
   "dispute": {

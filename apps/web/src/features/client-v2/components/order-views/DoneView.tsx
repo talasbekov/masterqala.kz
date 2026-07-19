@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../../../api';
@@ -6,10 +7,16 @@ import type { OrderDetail } from '../../pages/OrderPage';
 export default function DoneView({ order, orderId, onChanged }: { order: OrderDetail; orderId: string; onChanged: () => void }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const [error, setError] = useState('');
 
   async function confirmDone() {
-    await api(`/orders/${orderId}/confirm-completion`, { method: 'POST' });
-    onChanged();
+    setError('');
+    try {
+      await api(`/orders/${orderId}/confirm-completion`, { method: 'POST' });
+      onChanged();
+    } catch (e) {
+      setError((e as Error).message);
+    }
   }
 
   const total = order.calloutPrice + (order.workPrice ?? 0);
@@ -34,6 +41,7 @@ export default function DoneView({ order, orderId, onChanged }: { order: OrderDe
         </div>
       </div>
       <p className="text-xs leading-relaxed text-c2-ink-soft">{t('orderDetail.doneNote')}</p>
+      {error && <p className="text-sm font-semibold text-c2-danger">{error}</p>}
       <div className="mt-auto" />
       <button
         type="button"

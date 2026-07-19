@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { api } from '../../../api';
 import { getSocket } from '../../../socket';
 import SearchView from '../components/order-views/SearchView';
@@ -39,11 +40,19 @@ export interface OrderDetail {
 const TRACK_STATUSES = ['ACCEPTED', 'MASTER_ON_WAY', 'INSPECTION'];
 
 export default function OrderPage() {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  const load = () => api(`/orders/${id}`).then(setOrder).finally(() => setLoading(false));
+  const load = () => {
+    setError('');
+    return api(`/orders/${id}`)
+      .then(setOrder)
+      .catch((e) => setError((e as Error).message))
+      .finally(() => setLoading(false));
+  };
 
   useEffect(() => {
     load();
@@ -58,7 +67,22 @@ export default function OrderPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  if (loading || !order || !id) return <div className="p-6 text-c2-ink-soft">Загрузка…</div>;
+  if (loading) return <div className="p-6 text-c2-ink-soft">{t('common.loading')}</div>;
+
+  if (error || !order || !id) {
+    return (
+      <div className="flex flex-col gap-3 p-6">
+        <p className="text-sm font-semibold text-c2-danger">{error || t('orderDetail.notFound')}</p>
+        <button
+          type="button"
+          onClick={load}
+          className="rounded-c2-pill border-[1.5px] border-c2-primary p-3 text-sm font-extrabold text-c2-primary"
+        >
+          {t('common.retry')}
+        </button>
+      </div>
+    );
+  }
 
   if (order.status === 'SEARCHING') return <SearchView order={order} onChanged={load} />;
   if (order.status === 'NO_MASTERS') return <NoMastersView orderId={id} onChanged={load} />;

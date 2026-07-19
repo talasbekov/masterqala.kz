@@ -24,7 +24,9 @@ export default function DisputePage() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    api(`/orders/${id}`).then((o) => setDispute(o.dispute ?? null));
+    api(`/orders/${id}`)
+      .then((o) => setDispute(o.dispute ?? null))
+      .catch((e) => setError((e as Error).message));
   }, [id]);
 
   async function send() {
@@ -109,7 +111,9 @@ export default function DisputePage() {
         <>
           <div className="rounded-c2-md border border-c2-border bg-c2-surface p-3.5">
             <div className="text-sm font-extrabold text-c2-ink">{dispute.reason}</div>
-            {evidenceCount > 0 && <div className="mt-1 text-xs text-c2-ink-soft">{evidenceCount} фото</div>}
+            {evidenceCount > 0 && (
+              <div className="mt-1 text-xs text-c2-ink-soft">{t('common.photosCount', { n: evidenceCount })}</div>
+            )}
           </div>
           <div className="text-sm font-extrabold text-c2-ink">
             {t('dispute.evidenceLabel')} <span className="text-xs font-semibold text-c2-ink-soft">{t('dispute.evidenceHint')}</span>

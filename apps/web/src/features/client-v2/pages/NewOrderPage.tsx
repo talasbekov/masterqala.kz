@@ -54,8 +54,8 @@ export default function NewOrderPage() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    api('/categories').then(setCategories);
-    api('/addresses').then(setSavedAddresses);
+    api('/categories').then(setCategories).catch((e) => setError((e as Error).message));
+    api('/addresses').then(setSavedAddresses).catch(() => {});
     navigator.geolocation?.getCurrentPosition(
       (pos) => setGeo({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
       () => setError(t('newOrder.geoError')),
@@ -64,9 +64,9 @@ export default function NewOrderPage() {
 
   useEffect(() => {
     if (step !== 4 || !categoryId) return;
-    api('/orders/preview', { method: 'POST', body: JSON.stringify({ categoryId, lat: geo.lat, lng: geo.lng }) }).then(
-      setPreview,
-    );
+    api('/orders/preview', { method: 'POST', body: JSON.stringify({ categoryId, lat: geo.lat, lng: geo.lng }) })
+      .then(setPreview)
+      .catch((e) => setError((e as Error).message));
   }, [step, categoryId, geo]);
 
   function selectAddress(a: Address) {
@@ -330,7 +330,8 @@ export default function NewOrderPage() {
       <div className="rounded-c2-md bg-c2-fill p-3.5">
         <div className="text-sm font-extrabold text-c2-ink">
           {categoryMeta(categories.find((c) => c.id === categoryId)?.slug ?? '').icon}{' '}
-          {categories.find((c) => c.id === categoryId)?.name} · «{description.slice(0, 40)}» · {photoPaths.length} фото
+          {categories.find((c) => c.id === categoryId)?.name} · «{description.slice(0, 40)}» ·{' '}
+          {t('common.photosCount', { n: photoPaths.length })}
         </div>
         <div className="mt-1 text-xs font-semibold text-c2-on-fill">
           {addressText} · {t('newOrder.step3Entrance')} {entrance} · {t('newOrder.step3Floor')} {floor} · {t('newOrder.step3Apartment')} {apartment}

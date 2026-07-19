@@ -47,7 +47,8 @@ export default function TrackView({ order, orderId }: { order: OrderDetail; orde
               </span>
             </div>
             <div className="text-xs font-semibold text-c2-ink-soft">
-              ★ {order.master?.rating?.toFixed(1) ?? '—'} · {order.master?.reviewCount ?? 0} заказов · {STATUS_LABELS[order.status]}
+              ★ {order.master?.rating?.toFixed(1) ?? '—'} · {t('orderDetail.ordersCount', { n: order.master?.reviewCount ?? 0 })} ·{' '}
+              {STATUS_LABELS[order.status]}
             </div>
           </div>
           {order.master?.phone && (
@@ -62,7 +63,7 @@ export default function TrackView({ order, orderId }: { order: OrderDetail; orde
         {eta != null && (
           <div className="mt-2.5 flex items-center justify-between rounded-c2-md bg-c2-fill px-3.5 py-2.5">
             <span className="text-[13px] font-bold text-c2-ink">{t('orderDetail.etaLabel')}</span>
-            <span className="text-base font-extrabold text-c2-primary">{eta} мин</span>
+            <span className="text-base font-extrabold text-c2-primary">{t('orderDetail.etaMinutes', { n: eta })}</span>
           </div>
         )}
         <div className="mt-2.5 flex items-center gap-3.5 text-xs font-extrabold text-c2-primary">

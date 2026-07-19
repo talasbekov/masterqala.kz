@@ -6,6 +6,7 @@ import type { OrderDetail } from '../../pages/OrderPage';
 export default function PriceView({ order, orderId, onChanged }: { order: OrderDetail; orderId: string; onChanged: () => void }) {
   const { t } = useTranslation();
   const [remaining, setRemaining] = useState(0);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     if (!order.priceDeadline) return;
@@ -17,12 +18,22 @@ export default function PriceView({ order, orderId, onChanged }: { order: OrderD
   }, [order.priceDeadline]);
 
   async function confirm() {
-    await api(`/orders/${orderId}/confirm-price`, { method: 'POST' });
-    onChanged();
+    setError('');
+    try {
+      await api(`/orders/${orderId}/confirm-price`, { method: 'POST' });
+      onChanged();
+    } catch (e) {
+      setError((e as Error).message);
+    }
   }
   async function reject() {
-    await api(`/orders/${orderId}/reject-price`, { method: 'POST' });
-    onChanged();
+    setError('');
+    try {
+      await api(`/orders/${orderId}/reject-price`, { method: 'POST' });
+      onChanged();
+    } catch (e) {
+      setError((e as Error).message);
+    }
   }
 
   const mm = Math.floor(remaining / 60);
@@ -37,7 +48,7 @@ export default function PriceView({ order, orderId, onChanged }: { order: OrderD
           ⏱ {mm}:{String(ss).padStart(2, '0')}
         </span>
       </div>
-      <div className="text-sm font-semibold text-c2-ink">{order.master?.name} осмотрел проблему и предлагает:</div>
+      <div className="text-sm font-semibold text-c2-ink">{t('orderDetail.priceOffered', { name: order.master?.name })}</div>
       <div className="rounded-c2-md border border-c2-border bg-c2-surface p-3.5">
         <div className="flex justify-between text-[13.5px] font-semibold text-c2-ink-soft">
           <span>{t('orderDetail.priceCalloutLabel')}</span>
@@ -57,6 +68,7 @@ export default function PriceView({ order, orderId, onChanged }: { order: OrderD
         <div className="rounded-c2-md bg-c2-fill p-3 text-[13px] leading-relaxed text-c2-ink">«{order.workComment}»</div>
       )}
       <p className="text-xs leading-relaxed text-c2-ink-soft">{t('orderDetail.priceRejectNote')}</p>
+      {error && <p className="text-sm font-semibold text-c2-danger">{error}</p>}
       <div className="mt-auto" />
       <button
         type="button"
