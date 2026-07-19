@@ -49,7 +49,7 @@ export default function HomePage() {
     <div className="flex flex-col gap-3.5 px-5 pb-3.5 pt-1.5">
       <div className="flex items-center justify-between">
         <div className="text-[22px] font-extrabold text-c2-ink">
-          {t('home.greeting', { name: user?.name ?? 'Гость' })}
+          {t('home.greeting', { name: user?.name ?? t('home.guestName') })}
         </div>
         <Link
           to="/support"

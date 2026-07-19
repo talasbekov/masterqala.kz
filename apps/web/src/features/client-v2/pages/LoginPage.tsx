@@ -36,11 +36,13 @@ export default function LoginPage() {
     return () => clearTimeout(timer);
   }, [step, resendIn]);
 
+  const normalizedPhone = `+7${phone.replace(/\D/g, '').slice(-10)}`;
+
   async function requestCode() {
     setError('');
     setSubmitting(true);
     try {
-      await api('/auth/request-code', { method: 'POST', body: JSON.stringify({ phone: `+7${phone.replace(/\D/g, '')}` }) });
+      await api('/auth/request-code', { method: 'POST', body: JSON.stringify({ phone: normalizedPhone }) });
       setResendIn(60);
       setStep('sms');
     } catch (e) {
@@ -56,7 +58,7 @@ export default function LoginPage() {
     try {
       const res = await api('/auth/verify-code', {
         method: 'POST',
-        body: JSON.stringify({ phone: `+7${phone.replace(/\D/g, '')}`, code }),
+        body: JSON.stringify({ phone: normalizedPhone, code }),
       });
       login(res.accessToken, res.user);
       navigate('/');
@@ -69,9 +71,10 @@ export default function LoginPage() {
 
   if (step === 'splash') {
     return (
-      <div
-        className="flex min-h-screen flex-col items-center justify-center gap-4.5 bg-c2-primary"
+      <button
+        type="button"
         onClick={() => setStep('phone')}
+        className="flex min-h-screen w-full flex-col items-center justify-center gap-4.5 bg-c2-primary"
       >
         <div className="flex h-22 w-22 items-center justify-center rounded-c2-lg bg-white text-4xl font-extrabold text-c2-primary">
           M
@@ -79,7 +82,7 @@ export default function LoginPage() {
         <div className="text-[28px] font-extrabold tracking-tight text-white">MasterQala</div>
         <div className="text-sm text-c2-fill">{t('auth.splashTagline')}</div>
         <div className="mt-3 h-6.5 w-6.5 animate-spin rounded-full border-[3px] border-c2-fill border-t-white" />
-      </div>
+      </button>
     );
   }
 
