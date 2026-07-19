@@ -10,14 +10,18 @@ export default function ClosedView({ order, onChanged }: { order: OrderDetail; o
   const navigate = useNavigate();
   const [rating, setRating] = useState(0);
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
   const isCancelled = order.status !== 'CLOSED';
 
   async function submitRating(stars: number) {
     setRating(stars);
     setSubmitting(true);
+    setError('');
     try {
       await api(`/orders/${order.id}/review`, { method: 'POST', body: JSON.stringify({ rating: stars }) });
       onChanged();
+    } catch (e) {
+      setError((e as Error).message);
     } finally {
       setSubmitting(false);
     }
@@ -56,6 +60,7 @@ export default function ClosedView({ order, onChanged }: { order: OrderDetail; o
                   </button>
                 ))}
               </div>
+              {error && <div className="mt-2 text-xs font-semibold text-c2-danger">{error}</div>}
             </>
           )}
         </div>
