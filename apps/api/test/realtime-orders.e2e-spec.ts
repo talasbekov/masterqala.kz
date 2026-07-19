@@ -48,7 +48,8 @@ describe('Realtime события заявки (e2e)', () => {
     const searchingStatusPromise = once<any>(clientSocket, 'order:status');
     await app.get(MatchingService).handleWave({ orderId: order.id, wave: 1 });
     const offer = await offerPromise;
-    expect(offer).toMatchObject({ orderId: order.id, category: 'Сантехника', wave: 1 });
+    expect(offer).toMatchObject({ orderId: order.id, category: 'Сантехника', wave: 1, district: 'Есильский район' });
+    expect(offer.address).toBeUndefined();
     expect(offer.compensation).toBe(order.calloutPrice - order.serviceFee);
     expect(offer.deadline).toBeDefined();
     const searchingStatus = await searchingStatusPromise;

@@ -108,7 +108,7 @@ export async function createOrderViaApi(
   const res = await request(app.getHttpServer())
     .post('/api/v1/orders')
     .set('Authorization', `Bearer ${clientToken}`)
-    .send({ categoryId, description: 'Прорвало трубу', address: 'ул. Абая, 1', ...point })
+    .send({ categoryId, description: 'Прорвало трубу', address: 'ул. Абая, 1', district: 'Есильский район', ...point })
     .expect(201);
   return res.body;
 }
