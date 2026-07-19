@@ -26,4 +26,5 @@ export const ORDER_INCLUDE = {
   category: true,
   master: { select: { id: true, name: true, phone: true } },
   client: { select: { id: true, name: true, phone: true } },
+  photos: true,
 } satisfies Prisma.OrderInclude;

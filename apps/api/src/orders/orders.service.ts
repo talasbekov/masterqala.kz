@@ -21,6 +21,7 @@ import { RealtimeGateway } from '../realtime/realtime.gateway';
 import { MasterPenaltyService } from '../common/master-penalty.service';
 import { CompensationService } from '../common/compensation.service';
 import { DisputesService } from '../disputes/disputes.service';
+import { FileStorage, FILE_STORAGE } from '../storage/storage.interface';
 import {
   ACTIVE_CLIENT_STATUSES,
   ACTIVE_MASTER_STATUSES,
@@ -43,6 +44,7 @@ export class OrdersService implements OnModuleInit {
     private readonly penalties: MasterPenaltyService,
     private readonly compensation: CompensationService,
     private readonly disputes: DisputesService,
+    @Inject(FILE_STORAGE) private readonly storage: FileStorage,
   ) {}
 
   async preview(clientId: string, dto: PreviewOrderDto) {
@@ -80,6 +82,11 @@ export class OrdersService implements OnModuleInit {
           categoryId: dto.categoryId,
           description: dto.description,
           address: dto.address,
+          district: dto.district,
+          entrance: dto.entrance ?? null,
+          floor: dto.floor ?? null,
+          apartment: dto.apartment ?? null,
+          addressComment: dto.addressComment ?? null,
           calloutPrice: quote.calloutPrice,
           serviceFee: quote.serviceFee,
         },
@@ -88,6 +95,11 @@ export class OrdersService implements OnModuleInit {
         UPDATE "Order"
         SET location = ST_SetSRID(ST_MakePoint(${dto.lng}, ${dto.lat}), 4326)::geography
         WHERE id = ${created.id}`;
+      if (dto.photoPaths?.length) {
+        await tx.orderPhoto.createMany({
+          data: dto.photoPaths.map((path) => ({ orderId: created.id, path })),
+        });
+      }
       return created;
     });
 
@@ -143,6 +155,16 @@ export class OrdersService implements OnModuleInit {
     }
     const dispute = await this.prisma.dispute.findFirst({ where: { orderId: id }, orderBy: { createdAt: 'desc' } });
     return { ...order, dispute };
+  }
+
+  async getPhotoStream(user: User, orderId: string, photoId: string) {
+    const order = await this.findOrThrow(orderId);
+    if (order.clientId !== user.id && order.masterId !== user.id && user.role !== 'OPERATOR') {
+      throw new ForbiddenException('Нет доступа к заявке');
+    }
+    const photo = order.photos.find((p) => p.id === photoId);
+    if (!photo) throw new NotFoundException('Фото не найдено');
+    return this.storage.absolutePath(photo.path);
   }
 
   async findOrThrow(id: string) {
