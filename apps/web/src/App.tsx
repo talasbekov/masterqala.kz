@@ -19,7 +19,7 @@ import DisputePage from './features/client-v2/pages/DisputePage';
 import MyOrdersPage from './pages/MyOrdersPage';
 import WorkPage from './pages/WorkPage';
 import PlannedNewOrderPage from './features/client-v2/pages/PlannedNewOrderPage';
-import PlannedOrderPage from './pages/PlannedOrderPage';
+import PlannedOrderPage from './features/client-v2/pages/PlannedOrderPage';
 import LeadCreditsPage from './pages/LeadCreditsPage';
 import WalletPage from './pages/WalletPage';
 
