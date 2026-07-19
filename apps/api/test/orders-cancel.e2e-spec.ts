@@ -130,7 +130,9 @@ describe('Отмены по §3.9 и повторный поиск (e2e)', () =>
     await post(client.token, order.id, 'retry-search').expect(201);
     const o = await prisma.order.findUnique({ where: { id: order.id } });
     expect(o).toMatchObject({ status: 'SEARCHING', searchAttempt: 2 });
-    expect(await prisma.paymentTransaction.count({ where: { orderId: order.id, type: 'HOLD' } })).toBe(2);
+    const holds = await prisma.paymentTransaction.findMany({ where: { orderId: order.id, type: 'HOLD' } });
+    expect(holds).toHaveLength(2);
+    expect(holds.every((h) => h.amount === o!.calloutPrice)).toBe(true);
   });
 
   it('посторонний не может отменить (403)', async () => {
