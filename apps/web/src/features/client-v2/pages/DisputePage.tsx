@@ -43,10 +43,15 @@ export default function DisputePage() {
 
   async function uploadEvidence(file: File) {
     if (!dispute) return;
+    setError('');
     const fd = new FormData();
     fd.append('file', file);
-    await apiUpload(`/disputes/${dispute.id}/evidence`, fd);
-    setEvidenceCount((n) => n + 1);
+    try {
+      await apiUpload(`/disputes/${dispute.id}/evidence`, fd);
+      setEvidenceCount((n) => n + 1);
+    } catch (e) {
+      setError((e as Error).message);
+    }
   }
 
   return (
@@ -86,18 +91,6 @@ export default function DisputePage() {
             placeholder={t('dispute.placeholder')}
             className="min-h-24 rounded-c2-md border-[1.5px] border-c2-border bg-c2-surface p-3.5 text-sm text-c2-ink outline-none placeholder:text-c2-muted"
           />
-          <div className="text-sm font-extrabold text-c2-ink">
-            {t('dispute.evidenceLabel')} <span className="text-xs font-semibold text-c2-ink-soft">{t('dispute.evidenceHint')}</span>
-          </div>
-          <label className="flex h-16 w-16 cursor-pointer items-center justify-center rounded-c2-md border-[1.5px] border-dashed border-c2-primary text-xl text-c2-primary">
-            ＋
-            <input
-              type="file"
-              accept="image/jpeg,image/png"
-              className="hidden"
-              onChange={(e) => e.target.files?.[0] && uploadEvidence(e.target.files[0])}
-            />
-          </label>
           <div className="rounded-c2-md bg-c2-fill p-3 text-xs font-semibold leading-relaxed text-c2-ink">{t('dispute.note')}</div>
           {error && <p className="text-sm font-semibold text-c2-danger">{error}</p>}
           <div className="mt-auto" />
@@ -118,6 +111,19 @@ export default function DisputePage() {
             <div className="text-sm font-extrabold text-c2-ink">{dispute.reason}</div>
             {evidenceCount > 0 && <div className="mt-1 text-xs text-c2-ink-soft">{evidenceCount} фото</div>}
           </div>
+          <div className="text-sm font-extrabold text-c2-ink">
+            {t('dispute.evidenceLabel')} <span className="text-xs font-semibold text-c2-ink-soft">{t('dispute.evidenceHint')}</span>
+          </div>
+          <label className="flex h-16 w-16 cursor-pointer items-center justify-center rounded-c2-md border-[1.5px] border-dashed border-c2-primary text-xl text-c2-primary">
+            ＋
+            <input
+              type="file"
+              accept="image/jpeg,image/png"
+              className="hidden"
+              onChange={(e) => e.target.files?.[0] && uploadEvidence(e.target.files[0])}
+            />
+          </label>
+          {error && <p className="text-sm font-semibold text-c2-danger">{error}</p>}
           <div className="flex flex-col gap-2 text-xs">
             <div className="flex items-center gap-2">
               <span className="h-2 w-2 rounded-full bg-c2-success" />
