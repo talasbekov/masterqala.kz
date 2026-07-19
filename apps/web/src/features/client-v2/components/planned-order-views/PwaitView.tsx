@@ -50,7 +50,7 @@ export default function PwaitView({
         </span>
       </div>
       <div className="rounded-c2-md bg-c2-fill px-3.5 py-2.5 text-[12.5px] font-semibold text-c2-ink">
-        {categoryMeta(order.category?.name ?? '').icon} {order.category?.name} · {when} · {order.district}
+        {categoryMeta(order.category?.slug ?? '').icon} {order.category?.name} · {when} · {order.district}
         {order.budget && ` · ~${order.budget} ₸`}
       </div>
       <div className="flex items-baseline justify-between">

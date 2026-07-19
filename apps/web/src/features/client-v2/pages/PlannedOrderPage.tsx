@@ -34,7 +34,7 @@ export interface PlannedOrderMaster {
 export interface PlannedOrderDetail {
   id: string;
   status: string;
-  category: { name: string } | null;
+  category: { name: string; slug: string } | null;
   description: string;
   address: string;
   district: string;
