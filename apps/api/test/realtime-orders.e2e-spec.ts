@@ -67,4 +67,28 @@ describe('Realtime события заявки (e2e)', () => {
     masterSocket.disconnect();
     clientSocket.disconnect();
   });
+
+  it('geo:update от мастера с активной заявкой релеит master:location клиенту', async () => {
+    const { plumbing } = await seedCategories(app);
+    const client = await loginAs(app, '+77100000003');
+    const master = await createActiveMaster(app, '+77100000004', plumbing.id, pointAtKm(1));
+
+    const masterSocket = await connect(url, master.token);
+    const clientSocket = await connect(url, client.token);
+
+    const order = await createOrderViaApi(app, client.token, plumbing.id);
+    await app.get(MatchingService).handleWave({ orderId: order.id, wave: 1 });
+    await request(app.getHttpServer())
+      .post(`/api/v1/orders/${order.id}/accept`)
+      .set('Authorization', `Bearer ${master.token}`)
+      .expect(201);
+
+    const locatedPromise = once<any>(clientSocket, 'master:location');
+    masterSocket.emit('geo:update', { lat: pointAtKm(0.5).lat, lng: pointAtKm(0.5).lng });
+    const located = await locatedPromise;
+    expect(located).toMatchObject({ orderId: order.id, lat: expect.any(Number), lng: expect.any(Number), etaMinutes: expect.any(Number) });
+
+    masterSocket.disconnect();
+    clientSocket.disconnect();
+  });
 });
