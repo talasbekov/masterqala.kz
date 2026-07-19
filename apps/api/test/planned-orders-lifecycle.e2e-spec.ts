@@ -98,4 +98,65 @@ describe('Плановая заявка: полный жизненный цик�
     const deadline = new Date(detail.body.confirmDeadline).getTime();
     expect(deadline - selectedAt).toBe(2 * 3600 * 1000);
   });
+
+  it('отзыв после закрытия — рейтинг мастера появляется в ставках следующей заявки', async () => {
+    await request(app.getHttpServer())
+      .post('/api/v1/lead-credits/purchase')
+      .set('Authorization', `Bearer ${master.token}`)
+      .send({ package: 'single' })
+      .expect(201);
+    const order = await createPlannedOrderViaApi(app, client.token, plumbingId);
+    const bidRes = await request(app.getHttpServer())
+      .post(`/api/v1/planned-orders/${order.id}/bids`)
+      .set('Authorization', `Bearer ${master.token}`)
+      .send({ price: 9000, term: 'завтра утром' })
+      .expect(201);
+    await request(app.getHttpServer())
+      .post(`/api/v1/planned-orders/${order.id}/select`)
+      .set('Authorization', `Bearer ${client.token}`)
+      .send({ bidId: bidRes.body.id })
+      .expect(201);
+    await request(app.getHttpServer())
+      .post(`/api/v1/planned-orders/${order.id}/confirm`)
+      .set('Authorization', `Bearer ${master.token}`)
+      .expect(201);
+    await request(app.getHttpServer())
+      .post(`/api/v1/planned-orders/${order.id}/on-site`)
+      .set('Authorization', `Bearer ${master.token}`)
+      .expect(201);
+    await request(app.getHttpServer())
+      .post(`/api/v1/planned-orders/${order.id}/complete`)
+      .set('Authorization', `Bearer ${master.token}`)
+      .expect(201);
+    await request(app.getHttpServer())
+      .post(`/api/v1/planned-orders/${order.id}/confirm-completion`)
+      .set('Authorization', `Bearer ${client.token}`)
+      .expect(201);
+
+    const review = await request(app.getHttpServer())
+      .post(`/api/v1/planned-orders/${order.id}/review`)
+      .set('Authorization', `Bearer ${client.token}`)
+      .send({ rating: 4, comment: 'Хорошо, но задержался' })
+      .expect(201);
+    expect(review.body).toMatchObject({ rating: 4, plannedOrderId: order.id, masterUserId: master.userId });
+
+    // Новая заявка того же мастера — рейтинг виден в его ставке.
+    await request(app.getHttpServer())
+      .post('/api/v1/lead-credits/purchase')
+      .set('Authorization', `Bearer ${master.token}`)
+      .send({ package: 'single' })
+      .expect(201);
+    const next = await createPlannedOrderViaApi(app, client.token, plumbingId);
+    const nextBid = await request(app.getHttpServer())
+      .post(`/api/v1/planned-orders/${next.id}/bids`)
+      .set('Authorization', `Bearer ${master.token}`)
+      .send({ price: 5000, term: 'сегодня' })
+      .expect(201);
+    void nextBid;
+    const detail = await request(app.getHttpServer())
+      .get(`/api/v1/planned-orders/${next.id}`)
+      .set('Authorization', `Bearer ${client.token}`)
+      .expect(200);
+    expect(detail.body.bids[0].master).toMatchObject({ rating: 4, reviewCount: 1 });
+  });
 });

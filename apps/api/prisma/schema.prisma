@@ -56,6 +56,8 @@ model User {
   addresses              Address[]
   disputesOpened         Dispute[]               @relation("DisputesOpened")
   disputesResolved       Dispute[]               @relation("DisputesResolved")
+  reviewsGiven           Review[]                @relation("ReviewsGiven")
+  reviewsReceived        Review[]                @relation("ReviewsReceived")
 }
 
 model SmsCode {
@@ -205,6 +207,7 @@ model Order {
   accruals        Accrual[]
   disputes        Dispute[]
   photos          OrderPhoto[]
+  review          Review?
 
   @@index([clientId, status])
   @@index([masterId, status])
@@ -312,6 +315,7 @@ model PlannedOrder {
   bids           PlannedOrderBid[]  @relation("OrderBids")
   disputes       Dispute[]
   photos         PlannedOrderPhoto[]
+  review         Review?
 
   @@index([clientId, status])
   @@index([masterId, status])
@@ -459,6 +463,23 @@ model Dispute {
   @@index([orderId])
   @@index([plannedOrderId])
   @@index([status])
+}
+
+model Review {
+  id             String        @id @default(uuid())
+  orderId        String?       @unique
+  order          Order?        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  plannedOrderId String?       @unique
+  plannedOrder   PlannedOrder? @relation(fields: [plannedOrderId], references: [id], onDelete: Cascade)
+  clientId       String
+  client         User          @relation("ReviewsGiven", fields: [clientId], references: [id])
+  masterUserId   String
+  master         User          @relation("ReviewsReceived", fields: [masterUserId], references: [id])
+  rating         Int
+  comment        String?
+  createdAt      DateTime      @default(now())
+
+  @@index([masterUserId])
 }
 
 enum CancelledOrderType {

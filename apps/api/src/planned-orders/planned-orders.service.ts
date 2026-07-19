@@ -16,6 +16,7 @@ import { QueueService } from '../queue/queue.service';
 import { JOBS } from '../queue/queue.constants';
 import { RealtimeGateway } from '../realtime/realtime.gateway';
 import { FileStorage, FILE_STORAGE } from '../storage/storage.interface';
+import { ReviewsService } from '../reviews/reviews.service';
 import {
   FEED_SELECT,
   PLANNED_AUTO_CLOSE_S,
@@ -37,6 +38,7 @@ export class PlannedOrdersService implements OnModuleInit {
     private readonly penalties: MasterPenaltyService,
     private readonly disputes: DisputesService,
     @Inject(FILE_STORAGE) private readonly storage: FileStorage,
+    private readonly reviews: ReviewsService,
   ) {}
 
   onModuleInit(): void {
@@ -98,7 +100,12 @@ export class PlannedOrdersService implements OnModuleInit {
       orderBy: { createdAt: 'desc' },
       include: PLANNED_ORDER_INCLUDE,
     });
-    return Promise.all(orders.map(async (order) => this.redactMasterContact({ ...order, bids: await this.enrichBids(order.bids) })));
+    return Promise.all(
+      orders.map(async (order) => {
+        const withBids = { ...order, bids: await this.enrichBids(order.bids) };
+        return this.reviews.attachRating(this.redactMasterContact(withBids));
+      }),
+    );
   }
 
   private withDeadline<T extends { selectedAt: Date | null; status: string }>(order: T) {
@@ -115,7 +122,8 @@ export class PlannedOrdersService implements OnModuleInit {
     const order = await this.prisma.plannedOrder.findUnique({ where: { id }, include: PLANNED_ORDER_INCLUDE });
     if (!order) throw new NotFoundException('Заявка не найдена');
     const dispute = await this.prisma.dispute.findFirst({ where: { plannedOrderId: id }, orderBy: { createdAt: 'desc' } });
-    return this.withDeadline({ ...order, bids: await this.enrichBids(order.bids), dispute });
+    const withBids = { ...order, bids: await this.enrichBids(order.bids), dispute };
+    return this.reviews.attachRating(this.withDeadline(withBids));
   }
 
   private async enrichBids<
@@ -126,6 +134,7 @@ export class PlannedOrdersService implements OnModuleInit {
         Promise.all([
           this.prisma.order.count({ where: { masterId: b.masterUserId, status: 'CLOSED' } }),
           this.prisma.plannedOrder.count({ where: { masterId: b.masterUserId, status: 'CLOSED' } }),
+          this.reviews.getMasterRatingSummary(b.masterUserId),
         ]),
       ),
     );
@@ -137,6 +146,8 @@ export class PlannedOrdersService implements OnModuleInit {
         experienceYears: b.master.masterProfile?.experienceYears ?? 0,
         completedCount: counts[i][0] + counts[i][1],
         verified: b.master.masterProfile?.status === 'ACTIVE',
+        rating: counts[i][2].rating,
+        reviewCount: counts[i][2].reviewCount,
       },
     }));
   }

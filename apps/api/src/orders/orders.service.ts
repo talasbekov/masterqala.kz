@@ -21,6 +21,7 @@ import { RealtimeGateway } from '../realtime/realtime.gateway';
 import { MasterPenaltyService } from '../common/master-penalty.service';
 import { CompensationService } from '../common/compensation.service';
 import { DisputesService } from '../disputes/disputes.service';
+import { ReviewsService } from '../reviews/reviews.service';
 import { FileStorage, FILE_STORAGE } from '../storage/storage.interface';
 import {
   ACTIVE_CLIENT_STATUSES,
@@ -45,6 +46,7 @@ export class OrdersService implements OnModuleInit {
     private readonly compensation: CompensationService,
     private readonly disputes: DisputesService,
     @Inject(FILE_STORAGE) private readonly storage: FileStorage,
+    private readonly reviews: ReviewsService,
   ) {}
 
   async preview(clientId: string, dto: PreviewOrderDto) {
@@ -121,7 +123,7 @@ export class OrdersService implements OnModuleInit {
       orderBy: { createdAt: 'desc' },
       include: ORDER_INCLUDE,
     });
-    return { order: order ? this.withDeadlines(order) : null };
+    return { order: order ? await this.reviews.attachRating(this.withDeadlines(order)) : null };
   }
 
   async listMine(clientId: string) {
@@ -130,7 +132,7 @@ export class OrdersService implements OnModuleInit {
       orderBy: { createdAt: 'desc' },
       include: ORDER_INCLUDE,
     });
-    return orders.map((o) => this.withDeadlines(o));
+    return this.reviews.attachRatingToAll(orders.map((o) => this.withDeadlines(o)));
   }
 
   async getMasterActive(masterUserId: string) {
@@ -138,7 +140,7 @@ export class OrdersService implements OnModuleInit {
       where: { masterId: masterUserId, status: { in: ACTIVE_MASTER_STATUSES } },
       include: ORDER_INCLUDE,
     });
-    return { order: order ? this.withDeadlines(order) : null };
+    return { order: order ? await this.reviews.attachRating(this.withDeadlines(order)) : null };
   }
 
   async getById(user: User, id: string) {
@@ -155,7 +157,7 @@ export class OrdersService implements OnModuleInit {
       throw new ForbiddenException('Нет доступа к заявке');
     }
     const dispute = await this.prisma.dispute.findFirst({ where: { orderId: id }, orderBy: { createdAt: 'desc' } });
-    return this.withDeadlines({ ...order, dispute });
+    return this.reviews.attachRating(this.withDeadlines({ ...order, dispute }));
   }
 
   async getPhotoStream(user: User, orderId: string, photoId: string) {
@@ -184,7 +186,7 @@ export class OrdersService implements OnModuleInit {
     });
     if (!order) throw new NotFoundException('Заявка не найдена');
     const dispute = await this.prisma.dispute.findFirst({ where: { orderId: id }, orderBy: { createdAt: 'desc' } });
-    return this.withDeadlines({ ...order, dispute });
+    return this.reviews.attachRating(this.withDeadlines({ ...order, dispute }));
   }
 
   /** Атомарный гейт перехода. count===0 → 409. */
