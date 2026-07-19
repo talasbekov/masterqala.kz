@@ -64,4 +64,59 @@ describe('Фото к срочной заявке (e2e)', () => {
       })
       .expect(400);
   });
+
+  describe('GET /orders/:id/photos/:photoId', () => {
+    async function createOrderWithPhoto() {
+      const up = await request(app.getHttpServer())
+        .post('/api/v1/uploads')
+        .set('Authorization', `Bearer ${client.token}`)
+        .attach('file', Buffer.from([0xff, 0xd8, 0xff, 0xdb]), { filename: 'a.jpg', contentType: 'image/jpeg' })
+        .expect(201);
+
+      const order = await request(app.getHttpServer())
+        .post('/api/v1/orders')
+        .set('Authorization', `Bearer ${client.token}`)
+        .send({
+          categoryId: plumbingId,
+          description: 'Прорвало трубу',
+          address: 'ул. Абая, 1',
+          district: 'Есильский район',
+          photoPaths: [up.body.path],
+          ...ALMATY,
+        })
+        .expect(201);
+
+      return { orderId: order.body.id as string, photoId: order.body.photos[0].id as string };
+    }
+
+    it('клиент заявки получает своё фото — 200 image/jpeg', async () => {
+      const { orderId, photoId } = await createOrderWithPhoto();
+
+      const res = await request(app.getHttpServer())
+        .get(`/api/v1/orders/${orderId}/photos/${photoId}`)
+        .set('Authorization', `Bearer ${client.token}`)
+        .expect(200);
+
+      expect(res.headers['content-type']).toBe('image/jpeg');
+    });
+
+    it('посторонний пользователь (не клиент, не мастер заявки, не OPERATOR) — 403', async () => {
+      const { orderId, photoId } = await createOrderWithPhoto();
+      const stranger = await loginAs(app, '+77051000099');
+
+      await request(app.getHttpServer())
+        .get(`/api/v1/orders/${orderId}/photos/${photoId}`)
+        .set('Authorization', `Bearer ${stranger.token}`)
+        .expect(403);
+    });
+
+    it('несуществующий photoId на реальной заявке — 404', async () => {
+      const { orderId } = await createOrderWithPhoto();
+
+      await request(app.getHttpServer())
+        .get(`/api/v1/orders/${orderId}/photos/00000000-0000-0000-0000-000000000000`)
+        .set('Authorization', `Bearer ${client.token}`)
+        .expect(404);
+    });
+  });
 });
