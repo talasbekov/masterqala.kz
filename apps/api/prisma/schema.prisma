@@ -53,6 +53,7 @@ model User {
   masterWalletAccount    MasterWalletAccount?
   withdrawalRequests     WithdrawalRequest[]
   cancellations          MasterCancellation[]
+  addresses              Address[]
   disputesOpened         Dispute[]               @relation("DisputesOpened")
   disputesResolved       Dispute[]               @relation("DisputesResolved")
 }
@@ -176,6 +177,11 @@ model Order {
   category        Category    @relation(fields: [categoryId], references: [id])
   description     String
   address         String
+  district        String
+  entrance        String?
+  floor           String?
+  apartment       String?
+  addressComment  String?
   location        Unsupported("geography(Point, 4326)")?
   status          OrderStatus @default(CREATED)
   masterId        String?
@@ -198,6 +204,7 @@ model Order {
   payments        PaymentTransaction[]
   accruals        Accrual[]
   disputes        Dispute[]
+  photos          OrderPhoto[]
 
   @@index([clientId, status])
   @@index([masterId, status])
@@ -281,7 +288,13 @@ model PlannedOrder {
   description    String
   address        String
   district       String
-  scheduledAt    DateTime
+  entrance       String?
+  floor          String?
+  apartment      String?
+  addressComment String?
+  budget         Int?
+  slotStart      DateTime
+  slotEnd        DateTime
   status         PlannedOrderStatus @default(CREATED)
   masterId       String?
   master         User?              @relation("MasterPlannedOrders", fields: [masterId], references: [id])
@@ -298,6 +311,7 @@ model PlannedOrder {
   updatedAt      DateTime           @updatedAt
   bids           PlannedOrderBid[]  @relation("OrderBids")
   disputes       Dispute[]
+  photos         PlannedOrderPhoto[]
 
   @@index([clientId, status])
   @@index([masterId, status])
@@ -318,6 +332,44 @@ model PlannedOrderBid {
 
   @@unique([plannedOrderId, masterUserId])
   @@index([plannedOrderId])
+}
+
+model OrderPhoto {
+  id        String   @id @default(uuid())
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  path      String
+  createdAt DateTime @default(now())
+
+  @@index([orderId])
+}
+
+model PlannedOrderPhoto {
+  id             String       @id @default(uuid())
+  plannedOrderId String
+  plannedOrder   PlannedOrder @relation(fields: [plannedOrderId], references: [id], onDelete: Cascade)
+  path           String
+  createdAt      DateTime     @default(now())
+
+  @@index([plannedOrderId])
+}
+
+model Address {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  label     String
+  address   String
+  entrance  String?
+  floor     String?
+  apartment String?
+  comment   String?
+  lat       Float?
+  lng       Float?
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }
 
 model LeadCreditAccount {
