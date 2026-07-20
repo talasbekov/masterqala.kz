@@ -40,4 +40,28 @@ describe('Admin masters (e2e)', () => {
     expect(res.body).toHaveLength(1);
     expect(res.body[0]).toEqual(expect.objectContaining({ categories: ['Сантехника'] }));
   });
+
+  it('filters masters by district', async () => {
+    const categories = await seedCategories(app);
+    const operator = await loginAs(app, '+77019999999', 'OPERATOR');
+    const master1 = await createActiveMaster(app, '+77010000001', categories.plumbing.id);
+    const master2 = await createActiveMaster(app, '+77010000002', categories.plumbing.id);
+
+    // Update master2's district to a different one (master1 stays with default 'Алмалинский')
+    const prisma = app.get(require('../src/prisma/prisma.service').PrismaService);
+    await prisma.masterProfile.update({
+      where: { userId: master2.userId },
+      data: { district: 'Жетысуский' },
+    });
+
+    // Query by the new district
+    const res = await request(app.getHttpServer())
+      .get('/api/v1/admin/masters?district=Жетысуский')
+      .set('Authorization', `Bearer ${operator.token}`)
+      .expect(200);
+
+    // Should only return master2
+    expect(res.body).toHaveLength(1);
+    expect(res.body[0].name).toMatch(/\+77010000002/);
+  });
 });
