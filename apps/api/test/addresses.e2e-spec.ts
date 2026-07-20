@@ -40,7 +40,7 @@ describe('CRUD сохранённых адресов (e2e)', () => {
     await request(app.getHttpServer())
       .delete(`/api/v1/addresses/${created.body.id}`)
       .set('Authorization', `Bearer ${client.token}`)
-      .expect(200);
+      .expect(204);
 
     const empty = await request(app.getHttpServer())
       .get('/api/v1/addresses')
