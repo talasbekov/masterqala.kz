@@ -42,6 +42,13 @@
     "notifications": "Уведомл.",
     "profile": "Профиль"
   },
+  "myOrders": {
+    "title": "Мои заявки",
+    "active": "Активные",
+    "history": "История",
+    "emptyActive": "Активных заявок нет",
+    "emptyHistory": "История пуста"
+  },
   "notifications": {
     "title": "Уведомления",
     "emptyTitle": "Пока нет уведомлений",

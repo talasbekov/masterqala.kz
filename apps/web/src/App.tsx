@@ -16,7 +16,7 @@ import AdminDisputeDetailPage from './pages/AdminDisputeDetailPage';
 import NewOrderPage from './features/client-v2/pages/NewOrderPage';
 import OrderPage from './features/client-v2/pages/OrderPage';
 import DisputePage from './features/client-v2/pages/DisputePage';
-import MyOrdersPage from './pages/MyOrdersPage';
+import MyOrdersPage from './features/client-v2/pages/MyOrdersPage';
 import WorkPage from './pages/WorkPage';
 import PlannedNewOrderPage from './features/client-v2/pages/PlannedNewOrderPage';
 import PlannedOrderPage from './features/client-v2/pages/PlannedOrderPage';
@@ -45,10 +45,10 @@ export default function App() {
               <Route path="/" element={<HomePage />} />
               <Route path="/notifications" element={<NotificationsPage />} />
               <Route path="/catalog" element={<CatalogPage />} />
+              <Route path="/orders" element={<MyOrdersPage />} />
               <Route path="/support" element={<Navigate to="/" replace />} />
             </Route>
             <Route element={<Layout />}>
-              <Route path="/orders" element={<MyOrdersPage />} />
               <Route path="/order/new" element={<NewOrderPage />} />
               <Route path="/order/:id" element={<OrderPage />} />
               <Route path="/order/:id/dispute" element={<DisputePage kind="orders" />} />
