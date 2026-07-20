@@ -12,6 +12,7 @@ import { PaymentsModule } from './payments/payments.module';
 import { RoutingModule } from './routing/routing.module';
 import { PricingModule } from './pricing/pricing.module';
 import { QueueModule } from './queue/queue.module';
+import { AuditLogModule } from './audit-log/audit-log.module';
 import { RealtimeModule } from './realtime/realtime.module';
 import { LeadCreditsModule } from './lead-credits/lead-credits.module';
 import { OrdersModule } from './orders/orders.module';
@@ -27,6 +28,7 @@ import { ReviewsModule } from './reviews/reviews.module';
     PrismaModule,
     CommonModule,
     QueueModule,
+    AuditLogModule,
     AuthModule,
     UsersModule,
     MastersModule,
