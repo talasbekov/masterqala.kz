@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { User } from '@prisma/client';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
@@ -26,6 +26,7 @@ export class AddressesController {
   }
 
   @Delete(':id')
+  @HttpCode(204)
   remove(@CurrentUser() user: User, @Param('id') id: string) {
     return this.addresses.remove(user.id, id);
   }

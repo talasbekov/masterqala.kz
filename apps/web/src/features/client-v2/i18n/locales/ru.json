@@ -215,5 +215,22 @@
     "adminPanel": "Панель оператора",
     "logout": "Выйти из аккаунта",
     "blockedUntil": "Доступ к новым заявкам временно ограничен до {{date}}"
+  },
+  "addresses": {
+    "title": "Адреса",
+    "addNew": "Добавить адрес",
+    "empty": "Сохранённых адресов пока нет",
+    "change": "изменить",
+    "addTitle": "Новый адрес",
+    "editTitle": "Изменить адрес",
+    "labelPlaceholder": "Название (Дом, Работа…)",
+    "addressPlaceholder": "Адрес",
+    "entrance": "Подъезд",
+    "floor": "Этаж",
+    "apartment": "Квартира",
+    "commentPlaceholder": "Комментарий",
+    "setDefault": "Сделать основным",
+    "save": "Сохранить",
+    "delete": "Удалить"
   }
 }
