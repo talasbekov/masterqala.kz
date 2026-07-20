@@ -119,7 +119,7 @@ model Order {
   categoryId      String
   description     String
   address         String
-  location        Unsupported("geography")?
+  location        Unsupported("geography(Point, 4326)")?
   status          OrderStatus               @default(CREATED)
   masterId        String?
   wave            Int                       @default(0)
@@ -141,7 +141,7 @@ model Order {
   district        String
   entrance        String?
   floor           String?
-  accruals        Accrual?
+  accruals        Accrual[]
   disputes        Dispute[]
   category        Category                  @relation(fields: [categoryId], references: [id])
   client          User                      @relation("ClientOrders", fields: [clientId], references: [id])
@@ -153,7 +153,6 @@ model Order {
 
   @@index([clientId, status])
   @@index([masterId, status])
-  @@index([location], type: Gist)
 }
 
 model OrderOffer {
@@ -176,10 +175,8 @@ model MasterPresence {
   masterUserId String                    @id
   isOnline     Boolean                   @default(false)
   lastSeenAt   DateTime                  @default(now())
-  location     Unsupported("geography")?
+  location     Unsupported("geography(Point, 4326)")?
   user         User                      @relation(fields: [masterUserId], references: [id])
-
-  @@index([location], type: Gist)
 }
 
 model PaymentTransaction {
