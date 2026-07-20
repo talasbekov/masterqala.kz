@@ -21,7 +21,7 @@ export async function createTestApp(opts: { listen?: boolean } = {}): Promise<IN
 export async function resetDb(app: INestApplication): Promise<void> {
   const prisma = app.get(PrismaService);
   await prisma.$executeRawUnsafe(
-    'TRUNCATE "User","SmsCode","Category","MasterProfile","MasterCategory","MasterDocument","VerificationDecision","Order","OrderOffer","MasterPresence","PaymentTransaction","Accrual","PlannedOrder","PlannedOrderBid","LeadCreditAccount","LeadCreditTransaction","LeadCreditPurchase","MasterWalletAccount","WithdrawalRequest","Dispute","MasterCancellation" CASCADE',
+    'TRUNCATE "User","SmsCode","Category","MasterProfile","MasterCategory","MasterDocument","VerificationDecision","Order","OrderOffer","MasterPresence","PaymentTransaction","Accrual","PlannedOrder","PlannedOrderBid","LeadCreditAccount","LeadCreditTransaction","LeadCreditPurchase","MasterWalletAccount","WithdrawalRequest","Dispute","MasterCancellation","OrderPhoto","PlannedOrderPhoto","Address" CASCADE',
   );
 }
 
@@ -108,7 +108,7 @@ export async function createOrderViaApi(
   const res = await request(app.getHttpServer())
     .post('/api/v1/orders')
     .set('Authorization', `Bearer ${clientToken}`)
-    .send({ categoryId, description: 'Прорвало трубу', address: 'ул. Абая, 1', ...point })
+    .send({ categoryId, description: 'Прорвало трубу', address: 'ул. Абая, 1', district: 'Есильский район', ...point })
     .expect(201);
   return res.body;
 }
@@ -126,9 +126,18 @@ export async function createPlannedOrderViaApi(
   app: INestApplication,
   clientToken: string,
   categoryId: string,
-  overrides: Partial<{ description: string; address: string; district: string; scheduledAt: string }> = {},
+  overrides: Partial<{
+    description: string;
+    address: string;
+    district: string;
+    slotStart: string;
+    slotEnd: string;
+    budget: number;
+    photoPaths: string[];
+  }> = {},
 ) {
-  const scheduledAt = overrides.scheduledAt ?? new Date(Date.now() + 24 * 3600 * 1000).toISOString();
+  const slotStart = overrides.slotStart ?? new Date(Date.now() + 24 * 3600 * 1000).toISOString();
+  const slotEnd = overrides.slotEnd ?? new Date(new Date(slotStart).getTime() + 2 * 3600 * 1000).toISOString();
   const res = await request(app.getHttpServer())
     .post('/api/v1/planned-orders')
     .set('Authorization', `Bearer ${clientToken}`)
@@ -137,7 +146,10 @@ export async function createPlannedOrderViaApi(
       description: overrides.description ?? 'Установить новый смеситель',
       address: overrides.address ?? 'ул. Абая, 1',
       district: overrides.district ?? 'Алмалинский',
-      scheduledAt,
+      slotStart,
+      slotEnd,
+      budget: overrides.budget,
+      photoPaths: overrides.photoPaths,
     })
     .expect(201);
   return res.body;

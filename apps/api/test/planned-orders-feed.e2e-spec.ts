@@ -1,6 +1,6 @@
 import { INestApplication } from '@nestjs/common';
 import * as request from 'supertest';
-import { createTestApp, resetDb, seedCategories, loginAs, createActiveMaster, createPlannedOrderViaApi } from './helpers';
+import { createTestApp, resetDb, seedCategories, loginAs, createActiveMaster, createPlannedOrderViaApi, grantLeadCredits } from './helpers';
 import { PrismaService } from '../src/prisma/prisma.service';
 
 describe('Лента и просмотр плановой заявки (e2e)', () => {
@@ -57,13 +57,57 @@ describe('Лента и просмотр плановой заявки (e2e)', (
     expect(redacted.body.bids).toEqual([]);
   });
 
-  it('выбранный мастер видит адрес и контакт клиента; чужой мастер — по-прежнему нет', async () => {
-    const order = await createPlannedOrderViaApi(app, client.token, plumbingId);
+  it('мастер без ставки не видит детали адреса и фото до просмотра — только после отклика', async () => {
+    const order = await createPlannedOrderViaApi(app, client.token, plumbingId, {
+      photoPaths: ['planned/photo-1.jpg'],
+    } as any);
+    await prisma.plannedOrder.update({
+      where: { id: order.id },
+      data: { entrance: '2', floor: '5', apartment: '42', addressComment: 'домофон не работает, звонить заранее' },
+    });
+
+    const notBid = await request(app.getHttpServer())
+      .get(`/api/v1/planned-orders/${order.id}`)
+      .set('Authorization', `Bearer ${plumber.token}`)
+      .expect(200);
+    expect(notBid.body.address).toBeNull();
+    expect(notBid.body.entrance).toBeNull();
+    expect(notBid.body.floor).toBeNull();
+    expect(notBid.body.apartment).toBeNull();
+    expect(notBid.body.addressComment).toBeNull();
+    expect(notBid.body.photos).toEqual([]);
+    // budget остаётся видимым — уже раскрыт публичной лентой, это не новая утечка
+    expect(notBid.body.budget).not.toBeUndefined();
+
+    await grantLeadCredits(app, plumber.userId, 1);
+    await request(app.getHttpServer())
+      .post(`/api/v1/planned-orders/${order.id}/bids`)
+      .set('Authorization', `Bearer ${plumber.token}`)
+      .send({ price: 8000, term: 'сегодня' })
+      .expect(201);
+
+    const bidder = await request(app.getHttpServer())
+      .get(`/api/v1/planned-orders/${order.id}`)
+      .set('Authorization', `Bearer ${plumber.token}`)
+      .expect(200);
+    // Мастер, откликнувшийся ставкой, но ещё не выбранный клиентом — доступ не расширен: адрес и детали по-прежнему скрыты.
+    expect(bidder.body.address).toBeNull();
+    expect(bidder.body.entrance).toBeNull();
+    expect(bidder.body.floor).toBeNull();
+    expect(bidder.body.apartment).toBeNull();
+    expect(bidder.body.addressComment).toBeNull();
+    expect(bidder.body.photos).toEqual([]);
+  });
+
+  it('выбранный мастер видит адрес, детали и фото; чужой мастер — по-прежнему нет', async () => {
+    const order = await createPlannedOrderViaApi(app, client.token, plumbingId, {
+      photoPaths: ['planned/photo-1.jpg'],
+    } as any);
     const anotherPlumber = await createActiveMaster(app, '+77070000004', plumbingId);
 
     await prisma.plannedOrder.update({
       where: { id: order.id },
-      data: { masterId: plumber.userId },
+      data: { masterId: plumber.userId, entrance: '2', floor: '5', apartment: '42', addressComment: 'домофон не работает' },
     });
 
     const revealed = await request(app.getHttpServer())
@@ -71,6 +115,11 @@ describe('Лента и просмотр плановой заявки (e2e)', (
       .set('Authorization', `Bearer ${plumber.token}`)
       .expect(200);
     expect(revealed.body.address).toBe('ул. Абая, 1');
+    expect(revealed.body.entrance).toBe('2');
+    expect(revealed.body.floor).toBe('5');
+    expect(revealed.body.apartment).toBe('42');
+    expect(revealed.body.addressComment).toBe('домофон не работает');
+    expect(revealed.body.photos).toHaveLength(1);
     expect(revealed.body.client).toMatchObject({
       id: client.userId,
       phone: '+77070000001',
@@ -81,6 +130,11 @@ describe('Лента и просмотр плановой заявки (e2e)', (
       .set('Authorization', `Bearer ${anotherPlumber.token}`)
       .expect(200);
     expect(stillRedacted.body.address).toBeNull();
+    expect(stillRedacted.body.entrance).toBeNull();
+    expect(stillRedacted.body.floor).toBeNull();
+    expect(stillRedacted.body.apartment).toBeNull();
+    expect(stillRedacted.body.addressComment).toBeNull();
+    expect(stillRedacted.body.photos).toEqual([]);
     expect(stillRedacted.body.client).toBeNull();
     expect(stillRedacted.body.master).toMatchObject({ id: plumber.userId, phone: '' });
     expect(stillRedacted.body.bids).toEqual([]);

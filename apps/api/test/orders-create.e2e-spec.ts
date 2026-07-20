@@ -51,15 +51,16 @@ describe('Создание срочной заявки (e2e)', () => {
     expect(empty.body).toEqual({ available: false });
   });
 
-  it('создание: заявка в SEARCHING, есть HOLD на сбор, гео записано', async () => {
+  it('создание: заявка в SEARCHING, есть HOLD на полную стоимость выезда, гео записано', async () => {
     const order = await createOrderViaApi(app, client.token, plumbingId);
     expect(order.status).toBe('SEARCHING');
     expect(order.serviceFee).toBeGreaterThanOrEqual(1000);
+    expect(order.calloutPrice).toBeGreaterThan(order.serviceFee);
     const hold = await prisma.paymentTransaction.findFirst({
       where: { orderId: order.id, type: 'HOLD' },
     });
     expect(hold).toMatchObject({
-      amount: order.serviceFee,
+      amount: order.calloutPrice,
       status: 'SUCCEEDED',
     });
     const [geo] = await prisma.$queryRaw<{ lat: number }[]>`
@@ -76,6 +77,7 @@ describe('Создание срочной заявки (e2e)', () => {
         categoryId: plumbingId,
         description: 'ещё',
         address: 'а',
+        district: 'Есильский район',
         ...ALMATY,
       })
       .expect(409);
@@ -95,6 +97,7 @@ describe('Создание срочной заявки (e2e)', () => {
         categoryId: plumbingId,
         description: 'т',
         address: 'а',
+        district: 'Есильский район',
         ...ALMATY,
       })
       .expect(422);

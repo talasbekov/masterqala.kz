@@ -39,7 +39,8 @@ describe('Публикация плановой заявки (e2e)', () => {
         description: 'т',
         address: 'а',
         district: 'р',
-        scheduledAt: new Date(Date.now() - 3600_000).toISOString(),
+        slotStart: new Date(Date.now() - 3600_000).toISOString(),
+        slotEnd: new Date(Date.now() - 1800_000).toISOString(),
       })
       .expect(400);
   });
@@ -53,7 +54,24 @@ describe('Публикация плановой заявки (e2e)', () => {
         description: 'т',
         address: 'а',
         district: 'р',
-        scheduledAt: new Date(Date.now() + 20 * 24 * 3600_000).toISOString(),
+        slotStart: new Date(Date.now() + 20 * 24 * 3600_000).toISOString(),
+        slotEnd: new Date(Date.now() + 20 * 24 * 3600_000 + 3600_000).toISOString(),
+      })
+      .expect(400);
+  });
+
+  it('slotEnd раньше slotStart — 400', async () => {
+    const start = new Date(Date.now() + 24 * 3600 * 1000);
+    await request(app.getHttpServer())
+      .post('/api/v1/planned-orders')
+      .set('Authorization', `Bearer ${client.token}`)
+      .send({
+        categoryId: plumbingId,
+        description: 'т',
+        address: 'а',
+        district: 'р',
+        slotStart: start.toISOString(),
+        slotEnd: new Date(start.getTime() - 3600 * 1000).toISOString(),
       })
       .expect(400);
   });

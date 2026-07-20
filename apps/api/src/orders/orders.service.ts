@@ -21,6 +21,8 @@ import { RealtimeGateway } from '../realtime/realtime.gateway';
 import { MasterPenaltyService } from '../common/master-penalty.service';
 import { CompensationService } from '../common/compensation.service';
 import { DisputesService } from '../disputes/disputes.service';
+import { ReviewsService } from '../reviews/reviews.service';
+import { FileStorage, FILE_STORAGE } from '../storage/storage.interface';
 import {
   ACTIVE_CLIENT_STATUSES,
   ACTIVE_MASTER_STATUSES,
@@ -43,6 +45,8 @@ export class OrdersService implements OnModuleInit {
     private readonly penalties: MasterPenaltyService,
     private readonly compensation: CompensationService,
     private readonly disputes: DisputesService,
+    @Inject(FILE_STORAGE) private readonly storage: FileStorage,
+    private readonly reviews: ReviewsService,
   ) {}
 
   async preview(clientId: string, dto: PreviewOrderDto) {
@@ -80,6 +84,11 @@ export class OrdersService implements OnModuleInit {
           categoryId: dto.categoryId,
           description: dto.description,
           address: dto.address,
+          district: dto.district,
+          entrance: dto.entrance ?? null,
+          floor: dto.floor ?? null,
+          apartment: dto.apartment ?? null,
+          addressComment: dto.addressComment ?? null,
           calloutPrice: quote.calloutPrice,
           serviceFee: quote.serviceFee,
         },
@@ -88,11 +97,21 @@ export class OrdersService implements OnModuleInit {
         UPDATE "Order"
         SET location = ST_SetSRID(ST_MakePoint(${dto.lng}, ${dto.lat}), 4326)::geography
         WHERE id = ${created.id}`;
+      if (dto.photoPaths?.length) {
+        await tx.orderPhoto.createMany({
+          data: dto.photoPaths.map((path) => ({ orderId: created.id, path })),
+        });
+      }
       return created;
     });
 
+    // Холд на полную стоимость выезда, не только на сбор: при ПРИНЯТА капчится
+    // целиком, платформа удерживает serviceFee себе, остаток уходит мастеру
+    // компенсацией (accrueCallout = calloutPrice − serviceFee) — без этого
+    // с реальным провайдером компенсация платилась бы из денег, которых
+    // платформа не собирала (P0, §23 отчёта).
     // Ошибка холда → заявка остаётся CREATED и не публикуется (§3.3).
-    await this.payments.hold(order.id, order.serviceFee);
+    await this.payments.hold(order.id, order.calloutPrice);
     await this.gate(order.id, 'CREATED', { status: 'SEARCHING' });
     await this.queue.send(JOBS.WAVE, { orderId: order.id, wave: 1 });
     return this.findOrThrow(order.id);
@@ -104,15 +123,16 @@ export class OrdersService implements OnModuleInit {
       orderBy: { createdAt: 'desc' },
       include: ORDER_INCLUDE,
     });
-    return { order };
+    return { order: order ? await this.reviews.attachRating(this.withDeadlines(order)) : null };
   }
 
   async listMine(clientId: string) {
-    return this.prisma.order.findMany({
+    const orders = await this.prisma.order.findMany({
       where: { clientId },
       orderBy: { createdAt: 'desc' },
       include: ORDER_INCLUDE,
     });
+    return this.reviews.attachRatingToAll(orders.map((o) => this.withDeadlines(o)));
   }
 
   async getMasterActive(masterUserId: string) {
@@ -120,7 +140,7 @@ export class OrdersService implements OnModuleInit {
       where: { masterId: masterUserId, status: { in: ACTIVE_MASTER_STATUSES } },
       include: ORDER_INCLUDE,
     });
-    return { order };
+    return { order: order ? await this.reviews.attachRating(this.withDeadlines(order)) : null };
   }
 
   async getById(user: User, id: string) {
@@ -137,7 +157,26 @@ export class OrdersService implements OnModuleInit {
       throw new ForbiddenException('Нет доступа к заявке');
     }
     const dispute = await this.prisma.dispute.findFirst({ where: { orderId: id }, orderBy: { createdAt: 'desc' } });
-    return { ...order, dispute };
+    return this.reviews.attachRating(this.withDeadlines({ ...order, dispute }));
+  }
+
+  async getPhotoStream(user: User, orderId: string, photoId: string) {
+    const order = await this.findOrThrow(orderId);
+    if (order.clientId !== user.id && order.masterId !== user.id && user.role !== 'OPERATOR') {
+      throw new ForbiddenException('Нет доступа к заявке');
+    }
+    const photo = order.photos.find((p) => p.id === photoId);
+    if (!photo) throw new NotFoundException('Фото не найдено');
+    return this.storage.absolutePath(photo.path);
+  }
+
+  private withDeadlines<T extends { priceProposedAt: Date | null }>(order: T) {
+    return {
+      ...order,
+      priceDeadline: order.priceProposedAt
+        ? new Date(order.priceProposedAt.getTime() + PRICE_CONFIRM_TIMEOUT_S * 1000).toISOString()
+        : null,
+    };
   }
 
   async findOrThrow(id: string) {
@@ -147,7 +186,7 @@ export class OrdersService implements OnModuleInit {
     });
     if (!order) throw new NotFoundException('Заявка не найдена');
     const dispute = await this.prisma.dispute.findFirst({ where: { orderId: id }, orderBy: { createdAt: 'desc' } });
-    return { ...order, dispute };
+    return this.reviews.attachRating(this.withDeadlines({ ...order, dispute }));
   }
 
   /** Атомарный гейт перехода. count===0 → 409. */
@@ -437,7 +476,7 @@ export class OrdersService implements OnModuleInit {
     // Hold ставится до гейта: если гейт бросит 409 (статус уже не NO_MASTERS),
     // лишний HOLD останется висеть в mock-журнале — приемлемо для этапа 2
     // (реальный провайдер этапа 4 получит компенсирующий void).
-    await this.payments.hold(orderId, (await this.findOrThrow(orderId)).serviceFee);
+    await this.payments.hold(orderId, (await this.findOrThrow(orderId)).calloutPrice);
     await this.gate(orderId, 'NO_MASTERS', {
       status: 'SEARCHING',
       wave: 0,

@@ -12,11 +12,13 @@
       "import": "./dist/index.js"
     },
     "./tokens.css": "./src/tokens.css",
+    "./tokens-client-v2.css": "./src/tokens-client-v2.css",
     "./styles.css": "./dist/styles.css"
   },
   "files": [
     "dist",
-    "src/tokens.css"
+    "src/tokens.css",
+    "src/tokens-client-v2.css"
   ],
   "scripts": {
     "build": "tsup src/index.ts --format esm --dts --external react --external react-dom && tailwindcss -i ./src/styles.css -o ./dist/styles.css --minify",

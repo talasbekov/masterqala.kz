@@ -6,6 +6,7 @@ import { CommonModule } from './common/common.module';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { MastersModule } from './masters/masters.module';
+import { UploadsModule } from './uploads/uploads.module';
 import { AdminModule } from './admin/admin.module';
 import { PaymentsModule } from './payments/payments.module';
 import { RoutingModule } from './routing/routing.module';
@@ -17,6 +18,8 @@ import { OrdersModule } from './orders/orders.module';
 import { PlannedOrdersModule } from './planned-orders/planned-orders.module';
 import { WalletModule } from './wallet/wallet.module';
 import { DisputesModule } from './disputes/disputes.module';
+import { AddressesModule } from './addresses/addresses.module';
+import { ReviewsModule } from './reviews/reviews.module';
 
 @Module({
   imports: [
@@ -27,6 +30,7 @@ import { DisputesModule } from './disputes/disputes.module';
     AuthModule,
     UsersModule,
     MastersModule,
+    UploadsModule,
     AdminModule,
     PaymentsModule,
     RoutingModule,
@@ -37,6 +41,8 @@ import { DisputesModule } from './disputes/disputes.module';
     PlannedOrdersModule,
     WalletModule,
     DisputesModule,
+    AddressesModule,
+    ReviewsModule,
   ],
   controllers: [HealthController],
   providers: [],

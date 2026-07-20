@@ -1,0 +1,30 @@
+@theme {
+  --color-c2-primary: #166088;
+  --color-c2-primary-hover: #134F73;
+  --color-c2-bg: #F2F7FA;
+  --color-c2-surface: #FFFFFF;
+  --color-c2-border: #C0D6DF;
+  --color-c2-fill: #CFE0E8;
+  --color-c2-fill-soft: #EAF2F6;
+  --color-c2-fill-faint: #F6FAFC;
+  --color-c2-ink: #14303C;
+  --color-c2-ink-soft: #5B7B8A;
+  --color-c2-muted: #8FAAB8;
+  --color-c2-on-fill: #38596A;
+  --color-c2-success: #059669;
+  --color-c2-success-bg: #E5F3EE;
+  --color-c2-success-ink: #065F46;
+  --color-c2-danger: #DC2626;
+  --color-c2-danger-bg: #FBECEC;
+  --color-c2-danger-ink: #991B1B;
+  --color-c2-warning-bg: #FFF1E8;
+  --color-c2-warning-ink: #B4530A;
+
+  --radius-c2-md: 14px;
+  --radius-c2-lg: 18px;
+  --radius-c2-pill: 999px;
+  --radius-c2-sheet: 22px;
+
+  --shadow-c2-card: 0 2px 8px rgba(20, 48, 60, 0.06);
+  --shadow-c2-sheet: 0 -6px 24px rgba(20, 48, 60, 0.12);
+}

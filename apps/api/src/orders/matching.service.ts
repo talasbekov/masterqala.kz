@@ -82,7 +82,7 @@ export class MatchingService implements OnModuleInit {
         orderId,
         category: order.category.name,
         description: order.description,
-        address: order.address,
+        district: order.district,
         distanceKm: Math.round((c.meters / 1000) * PostgisRoutingService.ROAD_FACTOR * 10) / 10,
         compensation,
         deadline,

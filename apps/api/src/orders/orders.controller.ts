@@ -1,4 +1,5 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, StreamableFile, UseGuards } from '@nestjs/common';
+import { createReadStream } from 'fs';
 import { User } from '@prisma/client';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
@@ -33,6 +34,12 @@ export class OrdersController {
   @Get('orders/:id')
   getById(@CurrentUser() user: User, @Param('id') id: string) {
     return this.orders.getById(user, id);
+  }
+
+  @Get('orders/:id/photos/:photoId')
+  async photo(@CurrentUser() user: User, @Param('id') id: string, @Param('photoId') photoId: string) {
+    const absPath = await this.orders.getPhotoStream(user, id, photoId);
+    return new StreamableFile(createReadStream(absPath), { type: 'image/jpeg', disposition: 'inline' });
   }
 
   @Get('master/active-order')

@@ -4,7 +4,9 @@ import {
   ForbiddenException,
   Inject,
   Injectable,
+  Logger,
   NotFoundException,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import { Prisma, User } from '@prisma/client';
 import { createReadStream } from 'fs';
@@ -21,6 +23,8 @@ const MAX_FILE_BYTES = 10 * 1024 * 1024;
 
 @Injectable()
 export class DisputesService {
+  private readonly logger = new Logger(DisputesService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     @Inject(FILE_STORAGE) private readonly storage: FileStorage,
@@ -180,7 +184,17 @@ export class DisputesService {
 
     if (refundServiceFee && orderId) {
       const order = await this.prisma.order.findUniqueOrThrow({ where: { id: orderId } });
-      await this.payments.refund(orderId, order.serviceFee);
+      // Спор уже сохранён RESOLVED в транзакции выше — откатить это здесь нельзя.
+      // Исход неизвестен при исключении провайдера: громкий лог для ручной сверки
+      // оператором, тот же fail-safe принцип, что и в WalletService.request().
+      try {
+        await this.payments.refund(orderId, order.serviceFee);
+      } catch (e) {
+        this.logger.error(
+          `refund() упал для disputeId=${disputeId} orderId=${orderId} amount=${order.serviceFee}: ${(e as Error).message}`,
+        );
+        throw new ServiceUnavailableException('Спор разрешён, но возврат сбора не удался — требуется ручная сверка');
+      }
     }
 
     return this.findOrThrow(disputeId);

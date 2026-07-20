@@ -1,4 +1,4 @@
-import { IsISO8601, IsInt, IsNotEmpty, IsOptional, IsString, IsUUID, Max, MaxLength, Min } from 'class-validator';
+import { ArrayMaxSize, IsISO8601, IsInt, IsNotEmpty, IsOptional, IsString, IsUUID, Max, MaxLength, Min } from 'class-validator';
 
 export class CreatePlannedOrderDto {
   @IsUUID()
@@ -19,8 +19,41 @@ export class CreatePlannedOrderDto {
   @MaxLength(200)
   district!: string;
 
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  entrance?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  floor?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  apartment?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  addressComment?: string;
+
   @IsISO8601()
-  scheduledAt!: string;
+  slotStart!: string;
+
+  @IsISO8601()
+  slotEnd!: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  budget?: number;
+
+  @IsOptional()
+  @ArrayMaxSize(5)
+  @IsString({ each: true })
+  photoPaths?: string[];
 }
 
 export class PlaceBidDto {
