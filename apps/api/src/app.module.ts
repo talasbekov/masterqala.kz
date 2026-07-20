@@ -21,6 +21,7 @@ import { WalletModule } from './wallet/wallet.module';
 import { DisputesModule } from './disputes/disputes.module';
 import { AddressesModule } from './addresses/addresses.module';
 import { ReviewsModule } from './reviews/reviews.module';
+import { AdminUsersModule } from './admin-users/admin-users.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { ReviewsModule } from './reviews/reviews.module';
     MastersModule,
     UploadsModule,
     AdminModule,
+    AdminUsersModule,
     PaymentsModule,
     RoutingModule,
     PricingModule,
