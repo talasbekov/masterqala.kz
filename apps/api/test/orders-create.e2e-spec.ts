@@ -77,6 +77,7 @@ describe('Создание срочной заявки (e2e)', () => {
         categoryId: plumbingId,
         description: 'ещё',
         address: 'а',
+        district: 'Есильский район',
         ...ALMATY,
       })
       .expect(409);
@@ -96,6 +97,7 @@ describe('Создание срочной заявки (e2e)', () => {
         categoryId: plumbingId,
         description: 'т',
         address: 'а',
+        district: 'Есильский район',
         ...ALMATY,
       })
       .expect(422);

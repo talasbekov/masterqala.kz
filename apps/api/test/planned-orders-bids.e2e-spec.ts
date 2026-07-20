@@ -109,4 +109,24 @@ describe('Ставки на плановую заявку (e2e)', () => {
       .send({ price: 7000, term: 'сегодня' })
       .expect(201);
   });
+
+  it('ставка включает опыт, кол-во закрытых заказов и verified мастера', async () => {
+    const order = await createPlannedOrderViaApi(app, client.token, plumbingId);
+    await request(app.getHttpServer())
+      .post(`/api/v1/planned-orders/${order.id}/bids`)
+      .set('Authorization', `Bearer ${masters[0].token}`)
+      .send({ price: 5000, term: '2 часа' })
+      .expect(201);
+
+    const detail = await request(app.getHttpServer())
+      .get(`/api/v1/planned-orders/${order.id}`)
+      .set('Authorization', `Bearer ${client.token}`)
+      .expect(200);
+
+    expect(detail.body.bids[0].master).toMatchObject({
+      experienceYears: expect.any(Number),
+      completedCount: 0,
+      verified: true,
+    });
+  });
 });

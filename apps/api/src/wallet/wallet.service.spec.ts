@@ -1,4 +1,5 @@
 import { Test } from '@nestjs/testing';
+import { Logger, ServiceUnavailableException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { PAYMENT_PROVIDER, PaymentProvider } from '../payments/payment.interface';
 import { WalletService } from './wallet.service';
@@ -46,5 +47,19 @@ describe('WalletService — ветка FAILED', () => {
       where: { masterUserId: 'm1' },
       data: { balance: { increment: 7000 } },
     });
+  });
+
+  it('при исключении провайдера — баланс и статус не трогает, пробрасывает безопасную ошибку', async () => {
+    prisma.masterWalletAccount.updateMany.mockResolvedValue({ count: 1 });
+    prisma.withdrawalRequest.create.mockResolvedValue({ id: 'w1', masterUserId: 'm1', amount: 7000, status: 'PENDING' });
+    payments.payout.mockRejectedValue(new Error('ECONNRESET: провайдер недоступен'));
+    const errorSpy = jest.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
+
+    await expect(service.request('m1', 7000)).rejects.toThrow(ServiceUnavailableException);
+
+    expect(prisma.withdrawalRequest.update).not.toHaveBeenCalled();
+    expect(prisma.masterWalletAccount.update).not.toHaveBeenCalled();
+    expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('w1'));
+    errorSpy.mockRestore();
   });
 });

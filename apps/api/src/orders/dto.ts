@@ -1,4 +1,5 @@
 import {
+  ArrayMaxSize,
   IsInt,
   IsNotEmpty,
   IsNumber,
@@ -35,6 +36,36 @@ export class CreateOrderDto extends PreviewOrderDto {
   @IsNotEmpty()
   @MaxLength(500)
   address!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(200)
+  district!: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  entrance?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  floor?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  apartment?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  addressComment?: string;
+
+  @IsOptional()
+  @ArrayMaxSize(5)
+  @IsString({ each: true })
+  photoPaths?: string[];
 }
 
 export class ProposePriceDto {
