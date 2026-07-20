@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="_ds/masterqala-design-system-e764316c-0ca9-499e-8a35-b9393de66d34/fonts/fonts.css">
+  <style>
+    body { margin:0; background:#DBE9EE; font-family:'Manrope',ui-sans-serif,system-ui,sans-serif; color:#14303C; }
+    a { color:#166088; } a:hover { color:#134F73; }
+    @keyframes mqUp { from{transform:translateY(10px);opacity:0} to{transform:translateY(0);opacity:1} }
+    button:focus-visible, textarea:focus-visible { outline:2px solid #166088; outline-offset:2px; }
+    textarea::placeholder { color:#8FAAB8; }
+  </style>
+</helmet>
+<div style="min-width:1440px;min-height:100vh;display:flex;flex-direction:column">
+  <div style="height:56px;flex:none;background:#FFFFFF;border-bottom:1px solid #C0D6DF;display:flex;align-items:center;gap:14px;padding:0 24px">
+    <div style="width:32px;height:32px;border-radius:9px;background:#166088;color:#FFFFFF;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px">M</div>
+    <div style="font-size:15px;font-weight:800">MasterQala · Панель оператора</div>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:14px">
+      <span style="font-size:12px;font-weight:800;background:#EAF2F6;color:#166088;border-radius:999px;padding:5px 12px">Астана · пн, 19 июля · 14:22</span>
+      <span style="font-size:12.5px;font-weight:700;color:#5B7B8A">RU ▾</span>
+      <div style="display:flex;align-items:center;gap:8px"><div style="width:30px;height:30px;border-radius:50%;background:#CFE0E8;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:11px">АО</div><span style="font-size:12.5px;font-weight:800">Айдана О.</span></div>
+    </div>
+  </div>
+  <div style="flex:1;display:flex">
+    <div style="width:216px;flex:none;background:#FFFFFF;border-right:1px solid #C0D6DF;padding:14px 10px;display:flex;flex-direction:column;gap:3px">
+      <sc-for list="{{ navItems }}" as="n" hint-placeholder-count="8">
+        <button onClick="{{ n.onTap }}" style="font-family:inherit;display:flex;align-items:center;gap:10px;background:{{ n.bg }};color:{{ n.fg }};border:none;border-radius:10px;padding:10px 12px;font-size:13px;font-weight:800;cursor:pointer;text-align:left">
+          <span style="font-size:15px">{{ n.icon }}</span><span style="flex:1">{{ n.label }}</span>
+          <sc-if value="{{ n.badge }}" hint-placeholder-val="{{ false }}"><span style="font-size:10.5px;font-weight:800;background:{{ n.badgeBg }};color:#FFFFFF;border-radius:999px;padding:2px 8px">{{ n.badge }}</span></sc-if>
+        </button>
+      </sc-for>
+    </div>
+
+    <div style="flex:1;padding:22px 26px;display:flex;flex-direction:column;gap:16px;min-width:0">
+
+      <sc-if value="{{ sec.dashboard }}" hint-placeholder-val="{{ true }}">
+        <div style="font-size:22px;font-weight:800">Обзор</div>
+        <div style="font-size:13px;font-weight:800;color:#DC2626;margin-bottom:-6px">Требует внимания</div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
+          <button onClick="{{ goOrders }}" style="font-family:inherit;text-align:left;background:#FFFFFF;border:1.5px solid #DC2626;border-radius:14px;padding:14px 16px;cursor:pointer"><div style="font-size:24px;font-weight:800;color:#DC2626">2</div><div style="font-size:12px;font-weight:700;color:#5B7B8A">поиск без мастера &gt; 5 мин</div></button>
+          <button onClick="{{ goDisputes }}" style="font-family:inherit;text-align:left;background:#FFFFFF;border:1.5px solid #C77B2B;border-radius:14px;padding:14px 16px;cursor:pointer"><div style="font-size:24px;font-weight:800;color:#B4530A">{{ openDisputes }}</div><div style="font-size:12px;font-weight:700;color:#5B7B8A">открытых спора</div></button>
+          <button onClick="{{ goVerify }}" style="font-family:inherit;text-align:left;background:#FFFFFF;border:1.5px solid #C77B2B;border-radius:14px;padding:14px 16px;cursor:pointer"><div style="font-size:24px;font-weight:800;color:#B4530A">{{ queueCount }}</div><div style="font-size:12px;font-weight:700;color:#5B7B8A">анкеты на верификации</div></button>
+          <button onClick="{{ goWithdrawals }}" style="font-family:inherit;text-align:left;background:#FFFFFF;border:1.5px solid #C0D6DF;border-radius:14px;padding:14px 16px;cursor:pointer"><div style="font-size:24px;font-weight:800">2</div><div style="font-size:12px;font-weight:700;color:#5B7B8A">заявки на вывод</div></button>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
+          <div style="background:#FFFFFF;border:1px solid #C0D6DF;border-radius:14px;padding:14px 16px"><div style="font-size:24px;font-weight:800">38</div><div style="font-size:12px;font-weight:700;color:#5B7B8A">активных срочных</div></div>
+          <div style="background:#FFFFFF;border:1px solid #C0D6DF;border-radius:14px;padding:14px 16px"><div style="font-size:24px;font-weight:800">12</div><div style="font-size:12px;font-weight:700;color:#5B7B8A">плановых опубликовано</div></div>
+          <div style="background:#FFFFFF;border:1px solid #C0D6DF;border-radius:14px;padding:14px 16px"><div style="font-size:24px;font-weight:800">91%</div><div style="font-size:12px;font-weight:700;color:#5B7B8A">заказов нашли мастера</div></div>
+          <div style="background:#FFFFFF;border:1px solid #C0D6DF;border-radius:14px;padding:14px 16px"><div style="font-size:24px;font-weight:800">4:10</div><div style="font-size:12px;font-weight:700;color:#5B7B8A">медиана времени поиска</div></div>
+        </div>
+        <div style="background:#FFFFFF;border:1px solid #C0D6DF;border-radius:16px;padding:16px 18px">
+          <div style="font-size:14.5px;font-weight:800;margin-bottom:10px">Поиск без мастера — вмешательство оператора</div>
+          <div style="display:grid;grid-template-columns:80px 130px 1fr 110px 150px;gap:10px;font-size:11px;font-weight:800;color:#5B7B8A;text-transform:uppercase;letter-spacing:0.04em;border-bottom:1.5px solid #DBE9EE;padding-bottom:8px">
+            <span>ID</span><span>Категория</span><span>Адрес</span><span>Волна</span><span></span>
+          </div>
+          <div style="display:grid;grid-template-columns:80px 130px 1fr 110px 150px;gap:10px;align-items:center;font-size:13px;font-weight:700;padding:10px 0;border-bottom:1px solid #EAF2F6">
+            <span>#1044</span><span>⚡ Электрика</span><span>пр. Мәңгілік Ел, 55</span><span style="color:#DC2626">3 из 3 · 6:12</span>
+            <button onClick="{{ goOrders }}" style="font-family:inherit;background:#166088;color:#FFFFFF;border:none;border-radius:999px;padding:7px 14px;font-size:12px;font-weight:800;cursor:pointer">Назначить вручную</button>
+          </div>
+          <div style="display:grid;grid-template-columns:80px 130px 1fr 110px 150px;gap:10px;align-items:center;font-size:13px;font-weight:700;padding:10px 0">
+            <span>#1047</span><span>🔐 Замки</span><span>ул. Сыганак, 18</span><span style="color:#B4530A">2 из 3 · 3:40</span>
+            <button onClick="{{ goOrders }}" style="font-family:inherit;background:none;border:1.5px solid #166088;color:#166088;border-radius:999px;padding:6px 14px;font-size:12px;font-weight:800;cursor:pointer">Наблюдать</button>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ sec.verify }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;align-items:baseline;gap:12px"><span style="font-size:22px;font-weight:800">Верификация мастеров</span><span style="font-size:12.5px;font-weight:700;color:#5B7B8A">фильтр: все статусы ▾ · сортировка: дольше всех ждут</span></div>
+        <div style="display:flex;gap:16px;min-height:0">
+          <div style="width:300px;flex:none;display:flex;flex-direction:column;gap:8px">
+            <sc-for list="{{ apps }}" as="a" hint-placeholder-count="3">
+              <button onClick="{{ a.onSel }}" style="font-family:inherit;text-align:left;background:#FFFFFF;border:2px solid {{ a.bc }};border-radius:14px;padding:12px 14px;cursor:pointer">
+                <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:13.5px;font-weight:800">{{ a.name }}</span><span style="font-size:10.5px;font-weight:800;background:{{ a.stBg }};color:{{ a.stFg }};border-radius:999px;padding:3px 9px">{{ a.stLabel }}</span></div>
+                <div style="font-size:11.5px;color:#5B7B8A;font-weight:600;margin-top:3px">{{ a.meta }}</div>
+              </button>
+            </sc-for>
+          </div>
+          <div style="flex:1;background:#FFFFFF;border:1px solid #C0D6DF;border-radius:16px;padding:18px 20px;display:flex;flex-direction:column;gap:12px;animation:mqUp 0.25s ease">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div style="font-size:18px;font-weight:800">{{ selApp.name }} · ИИН {{ selApp.iin }}</div>
+              <span style="font-size:11px;font-weight:800;background:{{ selApp.stBg }};color:{{ selApp.stFg }};border-radius:999px;padding:4px 12px">{{ selApp.stLabel }}</span>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">
+              <div style="background:#EAF2F6;border-radius:12px;padding:10px 12px"><div style="font-size:10.5px;font-weight:700;color:#5B7B8A">Опыт</div><div style="font-size:14px;font-weight:800">{{ selApp.exp }}</div></div>
+              <div style="background:#EAF2F6;border-radius:12px;padding:10px 12px"><div style="font-size:10.5px;font-weight:700;color:#5B7B8A">Категории</div><div style="font-size:14px;font-weight:800">{{ selApp.cats }}</div></div>
+              <div style="background:#EAF2F6;border-radius:12px;padding:10px 12px"><div style="font-size:10.5px;font-weight:700;color:#5B7B8A">Геозона</div><div style="font-size:14px;font-weight:800">{{ selApp.zone }}</div></div>
+              <div style="background:#EAF2F6;border-radius:12px;padding:10px 12px"><div style="font-size:10.5px;font-weight:700;color:#5B7B8A">Телефон</div><div style="font-size:14px;font-weight:800">+7 ··· {{ selApp.ph }}</div></div>
+            </div>
+            <div style="font-size:13.5px;font-weight:800">Документы</div>
+            <div style="display:flex;gap:10px">
+              <div style="width:170px;height:106px;border-radius:12px;background:repeating-linear-gradient(45deg,#C0D6DF 0 9px,#CFE0E8 9px 18px);display:flex;align-items:flex-end;padding:8px"><span style="font-size:10.5px;font-weight:800;background:#FFFFFF;border-radius:999px;padding:3px 9px">удостоверение · лицевая ⤢</span></div>
+              <div style="width:170px;height:106px;border-radius:12px;background:repeating-linear-gradient(45deg,#C0D6DF 0 9px,#CFE0E8 9px 18px);display:flex;align-items:flex-end;padding:8px"><span style="font-size:10.5px;font-weight:800;background:#FFFFFF;border-radius:999px;padding:3px 9px">удостоверение · обратная ⤢</span></div>
+              <div style="width:170px;height:106px;border-radius:12px;background:repeating-linear-gradient(45deg,#C0D6DF 0 9px,#CFE0E8 9px 18px);display:flex;align-items:flex-end;padding:8px"><span style="font-size:10.5px;font-weight:800;background:#FFFFFF;border-radius:999px;padding:3px 9px">сертификат · сантехник ⤢</span></div>
+            </div>
+            <sc-if value="{{ selApp.decided }}" hint-placeholder-val="{{ false }}">
+              <div style="background:{{ selApp.noteBg }};border-radius:12px;padding:11px 14px;font-size:13px;font-weight:700;color:{{ selApp.noteFg }};animation:mqUp 0.25s ease">{{ selApp.note }} Запись добавлена в журнал действий.</div>
+            </sc-if>
+            <sc-if value="{{ selApp.open }}" hint-placeholder-val="{{ true }}">
+              <textarea onChange="{{ setVComment }}" placeholder="Комментарий решения — обязателен при отказе или запросе данных" style="font-family:inherit;background:#F6FAFC;border:1.5px solid #C0D6DF;border-radius:12px;padding:11px 13px;font-size:13px;min-height:60px;resize:none;color:#14303C;line-height:1.5"></textarea>
+              <div style="display:flex;gap:10px">
+                <button onClick="{{ act.approve }}" style="font-family:inherit;background:#059669;color:#FFFFFF;border:none;border-radius:999px;padding:11px 22px;font-size:13.5px;font-weight:800;cursor:pointer">Одобрить</button>
+                <button onClick="{{ act.needsInfo }}" style="font-family:inherit;background:none;border:1.5px solid #166088;color:#166088;border-radius:999px;padding:11px 22px;font-size:13.5px;font-weight:800;cursor:pointer;opacity:{{ vBtnOp }}">Запросить данные</button>
+                <button onClick="{{ act.reject }}" style="font-family:inherit;background:none;border:1.5px solid #DC2626;color:#DC2626;border-radius:999px;padding:11px 22px;font-size:13.5px;font-weight:800;cursor:pointer;opacity:{{ vBtnOp }}">Отклонить</button>
+                <sc-if value="{{ vNeedComment }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;color:#B4530A;font-weight:700;align-self:center">для отказа/запроса нужен комментарий</span></sc-if>
+              </div>
+            </sc-if>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ sec.users }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;align-items:center;gap:12px"><span style="font-size:22px;font-weight:800">Пользователи</span><span style="font-size:12.5px;font-weight:700;color:#5B7B8A">🔍 поиск по телефону/имени · роль ▾ · статус ▾</span></div>
+        <div style="background:#FFFFFF;border:1px solid #C0D6DF;border-radius:16px;padding:6px 18px">
+          <div style="display:grid;grid-template-columns:1fr 170px 120px 140px 130px;gap:10px;font-size:11px;font-weight:800;color:#5B7B8A;text-transform:uppercase;letter-spacing:0.04em;border-bottom:1.5px solid #DBE9EE;padding:12px 0 8px"><span>Пользователь</span><span>Телефон</span><span>Роль</span><span>Заказов</span><span></span></div>
+          <sc-for list="{{ users }}" as="u" hint-placeholder-count="4">
+            <div style="display:grid;grid-template-columns:1fr 170px 120px 140px 130px;gap:10px;align-items:center;font-size:13px;font-weight:700;padding:11px 0;border-bottom:1px solid #EAF2F6">
+              <span>{{ u.name }} <sc-if value="{{ u.blocked }}" hint-placeholder-val="{{ false }}"><span style="font-size:10px;font-weight:800;background:#FBECEC;color:#DC2626;border-radius:999px;padding:2px 8px">заблокирован</span></sc-if></span>
+              <span style="color:#5B7B8A">{{ u.phone }}</span><span>{{ u.role }}</span><span>{{ u.orders }}</span>
+              <button onClick="{{ u.onToggle }}" style="font-family:inherit;background:none;border:1.5px solid {{ u.btnC }};color:{{ u.btnC }};border-radius:999px;padding:6px 12px;font-size:11.5px;font-weight:800;cursor:pointer">{{ u.btnLabel }}</button>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ sec.masters }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;align-items:center;gap:12px"><span style="font-size:22px;font-weight:800">Мастера</span><span style="font-size:12.5px;font-weight:700;color:#5B7B8A">статус ▾ · категория ▾ · район ▾</span></div>
+        <div style="background:#FFFFFF;border:1px solid #C0D6DF;border-radius:16px;padding:6px 18px">
+          <div style="display:grid;grid-template-columns:1fr 170px 120px 110px 160px;gap:10px;font-size:11px;font-weight:800;color:#5B7B8A;text-transform:uppercase;letter-spacing:0.04em;border-bottom:1.5px solid #DBE9EE;padding:12px 0 8px"><span>Мастер</span><span>Категории</span><span>Рейтинг</span><span>Заказов</span><span>Статус</span></div>
+          <div style="display:grid;grid-template-columns:1fr 170px 120px 110px 160px;gap:10px;align-items:center;font-size:13px;font-weight:700;padding:11px 0;border-bottom:1px solid #EAF2F6"><span>Данияр С. ✓</span><span style="color:#5B7B8A">Сантехника, Замки</span><span>★ 4.9</span><span>214</span><span><span style="font-size:10.5px;font-weight:800;background:#E5F3EE;color:#059669;border-radius:999px;padding:3px 9px">активен · онлайн</span></span></div>
+          <div style="display:grid;grid-template-columns:1fr 170px 120px 110px 160px;gap:10px;align-items:center;font-size:13px;font-weight:700;padding:11px 0;border-bottom:1px solid #EAF2F6"><span>Арман Ж. ✓</span><span style="color:#5B7B8A">Электрика</span><span>★ 4.8</span><span>96</span><span><span style="font-size:10.5px;font-weight:800;background:#EAF2F6;color:#5B7B8A;border-radius:999px;padding:3px 9px">активен · офлайн</span></span></div>
+          <div style="display:grid;grid-template-columns:1fr 170px 120px 110px 160px;gap:10px;align-items:center;font-size:13px;font-weight:700;padding:11px 0;border-bottom:1px solid #EAF2F6"><span>Айбек Т. ✓</span><span style="color:#5B7B8A">Электрика, Техника</span><span>★ 4.9</span><span>210</span><span><span style="font-size:10.5px;font-weight:800;background:#FFF1E8;color:#B4530A;border-radius:999px;padding:3px 9px">приоритет ↓ до 20.07</span></span></div>
+          <div style="display:grid;grid-template-columns:1fr 170px 120px 110px 160px;gap:10px;align-items:center;font-size:13px;font-weight:700;padding:11px 0"><span>Нурлан Б.</span><span style="color:#5B7B8A">Мелкий ремонт</span><span>★ 4.2</span><span>37</span><span><span style="font-size:10.5px;font-weight:800;background:#FBECEC;color:#DC2626;border-radius:999px;padding:3px 9px">блокирован до 26.07</span></span></div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ sec.orders }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;align-items:center;gap:12px"><span style="font-size:22px;font-weight:800">Заказы</span><span style="font-size:12.5px;font-weight:700;color:#5B7B8A">🔍 поиск · тип: все ▾ · статус: активные ▾ · период: сегодня ▾</span></div>
+        <div style="display:flex;gap:16px;min-height:0">
+          <div style="flex:1.35;background:#FFFFFF;border:1px solid #C0D6DF;border-radius:16px;padding:6px 18px;min-width:0">
+            <div style="display:grid;grid-template-columns:70px 56px 1fr 1fr 130px 130px;gap:10px;font-size:11px;font-weight:800;color:#5B7B8A;text-transform:uppercase;letter-spacing:0.04em;border-bottom:1.5px solid #DBE9EE;padding:12px 0 8px"><span>ID</span><span>Тип</span><span>Клиент</span><span>Мастер</span><span>Категория</span><span>Статус</span></div>
+            <sc-for list="{{ orders }}" as="o" hint-placeholder-count="5">
+              <button onClick="{{ o.onSel }}" style="font-family:inherit;width:100%;display:grid;grid-template-columns:70px 56px 1fr 1fr 130px 130px;gap:10px;align-items:center;font-size:13px;font-weight:700;padding:11px 0;border:none;border-bottom:1px solid #EAF2F6;background:{{ o.bg }};cursor:pointer;text-align:left;border-radius:8px">
+                <span>{{ o.id }}</span><span>{{ o.type }}</span><span>{{ o.client }}</span><span style="color:#5B7B8A">{{ o.master }}</span><span>{{ o.cat }}</span>
+                <span><span style="font-size:10.5px;font-weight:800;background:{{ o.stBg }};color:{{ o.stFg }};border-radius:999px;padding:3px 9px">{{ o.st }}</span></span>
+              </button>
+            </sc-for>
+            <div style="text-align:center;font-size:12px;font-weight:700;color:#5B7B8A;padding:10px 0">‹ 1 2 3 … 12 ›</div>
+          </div>
+          <div style="width:400px;flex:none;background:#FFFFFF;border:1px solid #C0D6DF;border-radius:16px;padding:16px 18px;display:flex;flex-direction:column;gap:11px;animation:mqUp 0.25s ease">
+            <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:16px;font-weight:800">{{ selOrder.id }} · {{ selOrder.cat }}</span><span style="font-size:10.5px;font-weight:800;background:{{ selOrder.stBg }};color:{{ selOrder.stFg }};border-radius:999px;padding:3px 10px">{{ selOrder.st }}</span></div>
+            <div style="font-size:12.5px;color:#5B7B8A;font-weight:600">{{ selOrder.addr }} · создана {{ selOrder.created }}</div>
+            <div style="display:flex;flex-direction:column;gap:7px;font-size:12.5px;font-weight:700">
+              <sc-for list="{{ selOrder.timeline }}" as="tl" hint-placeholder-count="4">
+                <div style="display:flex;gap:9px;align-items:baseline"><span style="width:8px;height:8px;border-radius:50%;background:{{ tl.c }};flex:none;position:relative;top:-1px"></span><span style="color:#5B7B8A;flex:none">{{ tl.t }}</span><span>{{ tl.e }}</span></div>
+              </sc-for>
+            </div>
+            <div style="background:#EAF2F6;border-radius:12px;padding:10px 13px;font-size:12.5px;font-weight:700">Платежи: {{ selOrder.pay }}</div>
+            <sc-if value="{{ selOrder.canAssign }}" hint-placeholder-val="{{ false }}">
+              <sc-if value="{{ assigned }}" hint-placeholder-val="{{ false }}">
+                <div style="background:#E5F3EE;border-radius:12px;padding:11px 13px;font-size:12.5px;font-weight:800;color:#065F46;animation:mqUp 0.25s ease">✓ Назначен Айбек Т. вручную — мастер уведомлён, запись в журнале</div>
+              </sc-if>
+              <sc-if value="{{ notAssigned }}" hint-placeholder-val="{{ true }}">
+                <button onClick="{{ act.assign }}" style="font-family:inherit;background:#166088;color:#FFFFFF;border:none;border-radius:999px;padding:11px;font-size:13px;font-weight:800;cursor:pointer">Назначить мастера вручную (Айбек Т. · 1.8 км · онлайн)</button>
+              </sc-if>
+            </sc-if>
+            <textarea placeholder="Внутренний комментарий (виден только операторам)" style="font-family:inherit;background:#F6FAFC;border:1.5px solid #C0D6DF;border-radius:12px;padding:10px 13px;font-size:12.5px;min-height:48px;resize:none;color:#14303C"></textarea>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ sec.disputes }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;align-items:center;gap:12px"><span style="font-size:22px;font-weight:800">Споры</span><span style="font-size:12.5px;font-weight:700;color:#5B7B8A">статус: открытые ▾ · сначала старые</span></div>
+        <div style="display:flex;gap:16px;min-height:0">
+          <div style="width:300px;flex:none;display:flex;flex-direction:column;gap:8px">
+            <button style="font-family:inherit;text-align:left;background:#FFFFFF;border:2px solid #166088;border-radius:14px;padding:12px 14px;cursor:pointer">
+              <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:13.5px;font-weight:800">#D-17 · заказ №1042</span><span style="font-size:10.5px;font-weight:800;background:{{ dStBg }};color:{{ dStFg }};border-radius:999px;padding:3px 9px">{{ dStLabel }}</span></div>
+              <div style="font-size:11.5px;color:#5B7B8A;font-weight:600;margin-top:3px">клиент Айгерім · качество работ · ждёт 6 ч</div>
+            </button>
+            <button style="font-family:inherit;text-align:left;background:#FFFFFF;border:2px solid #C0D6DF;border-radius:14px;padding:12px 14px;cursor:pointer">
+              <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:13.5px;font-weight:800">#D-16 · заказ №P-83</span><span style="font-size:10.5px;font-weight:800;background:#FFF1E8;color:#B4530A;border-radius:999px;padding:3px 9px">открыт</span></div>
+              <div style="font-size:11.5px;color:#5B7B8A;font-weight:600;margin-top:3px">мастер Ерлан К. · клиент не подтверждает · 22 ч ⚠</div>
+            </button>
+            <button style="font-family:inherit;text-align:left;background:#FFFFFF;border:2px solid #C0D6DF;border-radius:14px;padding:12px 14px;cursor:pointer;opacity:0.7">
+              <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:13.5px;font-weight:800">#D-15 · заказ №1029</span><span style="font-size:10.5px;font-weight:800;background:#E5F3EE;color:#059669;border-radius:999px;padding:3px 9px">решён</span></div>
+              <div style="font-size:11.5px;color:#5B7B8A;font-weight:600;margin-top:3px">возврат сбора · без санкции · 11 июля</div>
+            </button>
+          </div>
+          <div style="flex:1;display:flex;gap:16px;min-width:0">
+            <div style="flex:1;background:#FFFFFF;border:1px solid #C0D6DF;border-radius:16px;padding:16px 18px;display:flex;flex-direction:column;gap:10px">
+              <div style="font-size:15px;font-weight:800">Контекст заказа №1042</div>
+              <div style="display:flex;flex-direction:column;gap:7px;font-size:12.5px;font-weight:700">
+                <div style="display:flex;gap:9px;align-items:baseline"><span style="width:8px;height:8px;border-radius:50%;background:#C0D6DF;flex:none"></span><span style="color:#5B7B8A">14:02</span><span>создана · выезд 3 500 ₸ (HOLD)</span></div>
+                <div style="display:flex;gap:9px;align-items:baseline"><span style="width:8px;height:8px;border-radius:50%;background:#C0D6DF;flex:none"></span><span style="color:#5B7B8A">14:05</span><span>принял Данияр С. (CAPTURE)</span></div>
+                <div style="display:flex;gap:9px;align-items:baseline"><span style="width:8px;height:8px;border-radius:50%;background:#C0D6DF;flex:none"></span><span style="color:#5B7B8A">14:41</span><span>цена 15 000 ₸ подтверждена клиентом</span></div>
+                <div style="display:flex;gap:9px;align-items:baseline"><span style="width:8px;height:8px;border-radius:50%;background:#B4530A;flex:none"></span><span style="color:#5B7B8A">16:20</span><span>выполнено → клиент открыл спор</span></div>
+              </div>
+              <div style="background:#EAF2F6;border-radius:12px;padding:10px 13px;font-size:12.5px;font-weight:700">Платежи: HOLD → CAPTURE 3 500 ₸ · SUCCEEDED. Авто-закрытие заморожено спором.</div>
+              <div style="font-size:13px;font-weight:800;margin-top:2px">Заявление клиента (Айгерім)</div>
+              <div style="background:#F6FAFC;border:1px solid #DBE9EE;border-radius:12px;padding:11px 13px;font-size:12.5px;line-height:1.5">«Через час после ремонта труба снова потекла. Прошу вернуть сервисный сбор.»</div>
+              <div style="display:flex;gap:8px">
+                <div style="width:86px;height:60px;border-radius:10px;background:repeating-linear-gradient(45deg,#C0D6DF 0 8px,#CFE0E8 8px 16px);display:flex;align-items:flex-end;padding:5px"><span style="font-size:9.5px;font-weight:800;background:#FFFFFF;border-radius:999px;padding:2px 7px">фото 1 ⤢</span></div>
+                <div style="width:86px;height:60px;border-radius:10px;background:repeating-linear-gradient(45deg,#C0D6DF 0 8px,#CFE0E8 8px 16px);display:flex;align-items:flex-end;padding:5px"><span style="font-size:9.5px;font-weight:800;background:#FFFFFF;border-radius:999px;padding:2px 7px">фото 2 ⤢</span></div>
+              </div>
+              <div style="font-size:13px;font-weight:800;margin-top:2px">Пояснение мастера (Данияр С.)</div>
+              <div style="background:#F6FAFC;border:1px solid #DBE9EE;border-radius:12px;padding:11px 13px;font-size:12.5px;line-height:1.5">«Прокладка заменена, течь в другом соединении — показал клиенту на месте и предложил устранить отдельно.» · 1 фото</div>
+            </div>
+            <div style="width:360px;flex:none;background:#FFFFFF;border:1px solid #C0D6DF;border-radius:16px;padding:16px 18px;display:flex;flex-direction:column;gap:12px">
+              <div style="font-size:15px;font-weight:800">Решение оператора</div>
+              <sc-if value="{{ dOpen }}" hint-placeholder-val="{{ true }}">
+                <button onClick="{{ act.toggleRefund }}" style="font-family:inherit;display:flex;gap:10px;align-items:flex-start;background:{{ refundBg }};border:1.5px solid {{ refundBc }};border-radius:12px;padding:11px 13px;cursor:pointer;text-align:left">
+                  <span style="width:20px;height:20px;border-radius:6px;border:2px solid {{ refundBc }};background:{{ refundChk }};color:#FFFFFF;font-size:12px;display:flex;align-items:center;justify-content:center;flex:none">{{ refundMark }}</span>
+                  <span style="font-size:13px;font-weight:800;line-height:1.4">Вернуть сервисный сбор клиенту<br><span style="font-weight:600;color:#5B7B8A;font-size:11.5px">1 400 ₸ · refund через платёжный провайдер</span></span>
+                </button>
+                <button onClick="{{ act.togglePenalty }}" style="font-family:inherit;display:flex;gap:10px;align-items:flex-start;background:{{ penBg }};border:1.5px solid {{ penBc }};border-radius:12px;padding:11px 13px;cursor:pointer;text-align:left">
+                  <span style="width:20px;height:20px;border-radius:6px;border:2px solid {{ penBc }};background:{{ penChk }};color:#FFFFFF;font-size:12px;display:flex;align-items:center;justify-content:center;flex:none">{{ penMark }}</span>
+                  <span style="font-size:13px;font-weight:800;line-height:1.4">Санкция мастеру<br><span style="font-weight:600;color:#5B7B8A;font-size:11.5px">−2 кредита · приоритет ↓ на 24 ч · не считается в окно отмен</span></span>
+                </button>
+                <textarea onChange="{{ setDComment }}" placeholder="Комментарий решения — обязателен, увидят обе стороны" style="font-family:inherit;background:#F6FAFC;border:1.5px solid #C0D6DF;border-radius:12px;padding:11px 13px;font-size:12.5px;min-height:70px;resize:none;color:#14303C;line-height:1.5"></textarea>
+                <sc-if value="{{ dConfirming }}" hint-placeholder-val="{{ false }}">
+                  <div style="background:#FFF1E8;border-radius:12px;padding:11px 13px;font-size:12px;font-weight:700;color:#9A3412;line-height:1.5;animation:mqUp 0.2s ease">Подтвердите: {{ dSummary }}. Действие необратимо и попадёт в журнал.</div>
+                  <div style="display:flex;gap:8px">
+                    <button onClick="{{ act.resolveFinal }}" style="font-family:inherit;flex:1;background:#DC2626;color:#FFFFFF;border:none;border-radius:999px;padding:11px;font-size:13px;font-weight:800;cursor:pointer">Подтверждаю решение</button>
+                    <button onClick="{{ act.resolveBack }}" style="font-family:inherit;background:none;border:1.5px solid #C0D6DF;color:#5B7B8A;border-radius:999px;padding:11px 16px;font-size:13px;font-weight:800;cursor:pointer">Назад</button>
+                  </div>
+                </sc-if>
+                <sc-if value="{{ dNotConfirming }}" hint-placeholder-val="{{ true }}">
+                  <button onClick="{{ act.resolveAsk }}" style="font-family:inherit;background:#166088;color:#FFFFFF;border:none;border-radius:999px;padding:12px;font-size:13.5px;font-weight:800;cursor:pointer;opacity:{{ dBtnOp }}">Решить спор</button>
+                  <sc-if value="{{ dNeedComment }}" hint-placeholder-val="{{ false }}"><div style="font-size:11.5px;color:#B4530A;font-weight:700;text-align:center">введите комментарий решения</div></sc-if>
+                </sc-if>
+              </sc-if>
+              <sc-if value="{{ dResolved }}" hint-placeholder-val="{{ false }}">
+                <div style="background:#E5F3EE;border-radius:12px;padding:13px 15px;font-size:13px;font-weight:700;color:#065F46;line-height:1.55;animation:mqUp 0.25s ease">✓ Спор решён: {{ dSummary }}.<br>Заказ №1042 закрыт, стороны уведомлены, запись в журнале действий.</div>
+              </sc-if>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ sec.withdrawals }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;align-items:center;gap:12px"><span style="font-size:22px;font-weight:800">Вывод средств</span><span style="font-size:12.5px;font-weight:700;color:#5B7B8A">статус: все ▾</span></div>
+        <div style="background:#FFFFFF;border:1px solid #C0D6DF;border-radius:16px;padding:6px 18px">
+          <div style="display:grid;grid-template-columns:1fr 160px 140px 140px 150px;gap:10px;font-size:11px;font-weight:800;color:#5B7B8A;text-transform:uppercase;letter-spacing:0.04em;border-bottom:1.5px solid #DBE9EE;padding:12px 0 8px"><span>Мастер</span><span>Реквизиты</span><span>Сумма</span><span>Дата</span><span>Статус</span></div>
+          <div style="display:grid;grid-template-columns:1fr 160px 140px 140px 150px;gap:10px;align-items:center;font-size:13px;font-weight:700;padding:11px 0;border-bottom:1px solid #EAF2F6"><span>Данияр С.</span><span style="color:#5B7B8A">+7 ··· 45 67</span><span>20 000 ₸</span><span style="color:#5B7B8A">сегодня 14:02</span><span><span style="font-size:10.5px;font-weight:800;background:#FFF1E8;color:#B4530A;border-radius:999px;padding:3px 9px">в обработке</span></span></div>
+          <div style="display:grid;grid-template-columns:1fr 160px 140px 140px 150px;gap:10px;align-items:center;font-size:13px;font-weight:700;padding:11px 0;border-bottom:1px solid #EAF2F6"><span>Арман Ж.</span><span style="color:#5B7B8A">+7 ··· 12 30</span><span>45 000 ₸</span><span style="color:#5B7B8A">сегодня 11:37</span><span><span style="font-size:10.5px;font-weight:800;background:#FFF1E8;color:#B4530A;border-radius:999px;padding:3px 9px">в обработке</span></span></div>
+          <div style="display:grid;grid-template-columns:1fr 160px 140px 140px 150px;gap:10px;align-items:center;font-size:13px;font-weight:700;padding:11px 0;border-bottom:1px solid #EAF2F6"><span>Айбек Т.</span><span style="color:#5B7B8A">+7 ··· 88 01</span><span>12 000 ₸</span><span style="color:#5B7B8A">18 июля</span><span><span style="font-size:10.5px;font-weight:800;background:#E5F3EE;color:#059669;border-radius:999px;padding:3px 9px">выплачено</span></span></div>
+          <div style="display:grid;grid-template-columns:1fr 160px 140px 140px 150px;gap:10px;align-items:center;font-size:13px;font-weight:700;padding:11px 0"><span>Нурлан Б.</span><span style="color:#5B7B8A">+7 ··· 43 55</span><span>8 000 ₸</span><span style="color:#5B7B8A">17 июля</span><span><span style="font-size:10.5px;font-weight:800;background:#FBECEC;color:#DC2626;border-radius:999px;padding:3px 9px">отклонено · возврат</span></span></div>
+        </div>
+        <div style="font-size:12px;color:#5B7B8A;font-weight:600">Выплаты проходят автоматически через платёжного провайдера; при отказе банка сумма возвращается на баланс мастера. Раздел read-only.</div>
+      </sc-if>
+
+      <sc-if value="{{ sec.journal }}" hint-placeholder-val="{{ false }}">
+        <div style="font-size:22px;font-weight:800">Журнал действий</div>
+        <div style="background:#FFFFFF;border:1px solid #C0D6DF;border-radius:16px;padding:6px 18px">
+          <sc-for list="{{ journal }}" as="j" hint-placeholder-count="6">
+            <div style="display:grid;grid-template-columns:130px 130px 1fr;gap:12px;align-items:baseline;font-size:13px;padding:11px 0;border-bottom:1px solid #EAF2F6">
+              <span style="color:#5B7B8A;font-weight:700">{{ j.t }}</span><span style="font-weight:800">{{ j.who }}</span><span style="font-weight:600">{{ j.what }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = {
+    section: 'dashboard',
+    apps: [
+      { name:'Арман Ж.', iin:'870301 300 456', exp:'7 лет', cats:'Электрика', zone:'Есиль · 8 км', ph:'12 30', meta:'Электрика · ждёт 2 дня', status:'PENDING' },
+      { name:'Ерлан К.', iin:'900215 300 123', exp:'4 года', cats:'Электрика', zone:'Алматы р-н · 10 км', ph:'77 41', meta:'Электрика · ждёт 5 ч', status:'PENDING' },
+      { name:'Айбек Т.', iin:'910712 300 889', exp:'9 лет', cats:'Эл., Техника', zone:'Сарыарка · 12 км', ph:'88 01', meta:'дозагрузил документы · ждёт 1 день', status:'NEEDS' },
+    ],
+    selApp: 1, vComment: '',
+    selOrder: 1, assigned: false,
+    blockedUsers: { 3: true },
+    refund: true, penalty: false, dComment: '', dState: 'open', dConfirming: false,
+  };
+  renderVals() {
+    const s = this.state;
+    const set = (patch) => () => this.setState(patch);
+    const sections = ['dashboard','verify','users','masters','orders','disputes','withdrawals','journal'];
+    const sec = {}; sections.forEach(n => sec[n] = s.section === n);
+
+    const queueCount = s.apps.filter(a => ['PENDING','NEEDS'].includes(a.status)).length;
+    const openDisputes = s.dState === 'open' ? 2 : 1;
+
+    const navDefs = [
+      ['dashboard','◫','Обзор',''], ['verify','🛡','Верификация', String(queueCount)], ['users','👤','Пользователи',''],
+      ['masters','🛠','Мастера',''], ['orders','☰','Заказы','2'], ['disputes','⚖️','Споры', String(openDisputes)],
+      ['withdrawals','₸','Вывод средств','2'], ['journal','▤','Журнал',''],
+    ];
+    const navItems = navDefs.map(([id, icon, label, badge]) => ({
+      icon, label, badge,
+      badgeBg: ['verify','disputes'].includes(id) ? '#B4530A' : '#166088',
+      onTap: set({ section: id }),
+      bg: s.section === id ? '#166088' : 'transparent',
+      fg: s.section === id ? '#FFFFFF' : '#14303C',
+    }));
+
+    const stMap = {
+      PENDING: { stLabel:'на проверке', stBg:'#FFF1E8', stFg:'#B4530A' },
+      NEEDS: { stLabel:'нужны данные', stBg:'#EAF2F6', stFg:'#166088' },
+      ACTIVE: { stLabel:'одобрен ✓', stBg:'#E5F3EE', stFg:'#059669' },
+      REJECTED: { stLabel:'отклонён', stBg:'#FBECEC', stFg:'#DC2626' },
+    };
+    const apps = s.apps.map((a, i) => ({
+      ...a, ...stMap[a.status],
+      bc: i === s.selApp ? '#166088' : '#C0D6DF',
+      onSel: set({ selApp: i, vComment: '' }),
+    }));
+    const a0 = s.apps[s.selApp];
+    const decideNotes = {
+      ACTIVE: { note:'✓ Мастер одобрен и активирован — может выходить на линию.', noteBg:'#E5F3EE', noteFg:'#065F46' },
+      NEEDS: { note:'📎 Запрошены дополнительные данные — мастер получил комментарий.', noteBg:'#EAF2F6', noteFg:'#134F73' },
+      REJECTED: { note:'✕ Заявка отклонена — мастер видит причину и может подать заново.', noteBg:'#FBECEC', noteFg:'#991B1B' },
+    };
+    const decided = ['ACTIVE','NEEDS','REJECTED'].includes(a0.status);
+    const selApp = {
+      ...a0, ...stMap[a0.status],
+      decided, open: !decided,
+      ...(decided ? decideNotes[a0.status] : { note:'', noteBg:'#EAF2F6', noteFg:'#134F73' }),
+    };
+    const decide = (status, needComment) => () => {
+      if (needComment && !this.state.vComment.trim()) return;
+      const apps2 = this.state.apps.map((a, i) => i === this.state.selApp ? { ...a, status } : a);
+      this.setState({ apps: apps2 });
+    };
+
+    const orderDefs = [
+      { id:'#1042', type:'⚡', client:'Айгерім', master:'Данияр С.', cat:'Сантехника', st:'Спор', stBg:'#FFF1E8', stFg:'#B4530A',
+        addr:'пр. Кабанбай батыра, 42', created:'сегодня 14:02', pay:'HOLD → CAPTURE 3 500 ₸ · SUCCEEDED', canAssign:false,
+        timeline:[{t:'14:02',e:'создана · выезд 3 500 ₸',c:'#C0D6DF'},{t:'14:05',e:'принял Данияр С.',c:'#C0D6DF'},{t:'14:41',e:'цена 15 000 ₸ подтверждена',c:'#C0D6DF'},{t:'16:20',e:'выполнено → открыт спор #D-17',c:'#B4530A'}] },
+      { id:'#1044', type:'⚡', client:'Арман', master:'—', cat:'Электрика', st:'Поиск · волна 3', stBg:'#EAF2F6', stFg:'#166088',
+        addr:'пр. Мәңгілік Ел, 55', created:'сегодня 13:58', pay:'HOLD 4 200 ₸ · PENDING', canAssign:true,
+        timeline:[{t:'13:58',e:'создана · выезд 4 200 ₸',c:'#C0D6DF'},{t:'13:59',e:'волна 1 (3 км) — 0 откликов',c:'#C0D6DF'},{t:'14:01',e:'волна 2 (6 км) — 0 откликов',c:'#C0D6DF'},{t:'14:03',e:'волна 3 (10 км) — идёт · 6:12',c:'#DC2626'}] },
+      { id:'#P-88', type:'📅', client:'Айгерім', master:'Арман Ж.', cat:'Электрика', st:'Мастер выбран', stBg:'#EAF2F6', stFg:'#166088',
+        addr:'ул. Сыганак, 18 · Есиль', created:'вчера 18:40', pay:'ставок 3/5 · списано 3 lead-кредита', canAssign:false,
+        timeline:[{t:'18:40',e:'опубликована · вт 22.07 10:00–13:00',c:'#C0D6DF'},{t:'19:12',e:'3 ставки: 18 000 / 22 000 / 24 500 ₸',c:'#C0D6DF'},{t:'сегодня',e:'выбран Арман Ж. — ждём подтверждения (2 ч)',c:'#166088'}] },
+      { id:'#1031', type:'⚡', client:'Айгерім', master:'Ерлан К.', cat:'Замки', st:'Закрыта', stBg:'#E5F3EE', stFg:'#059669',
+        addr:'пр. Мәңгілік Ел, 55', created:'12 июля', pay:'CAPTURE 2 500 ₸ · начисление 1 500 ₸', canAssign:false,
+        timeline:[{t:'14:20',e:'создана',c:'#C0D6DF'},{t:'14:24',e:'принял Ерлан К.',c:'#C0D6DF'},{t:'15:40',e:'закрыта клиентом · 9 500 ₸',c:'#059669'}] },
+      { id:'#P-71', type:'📅', client:'Ерлан', master:'—', cat:'Техника', st:'Истекла', stBg:'#FBECEC', stFg:'#DC2626',
+        addr:'Сарыарка', created:'4 июля', pay:'ставок не было', canAssign:false,
+        timeline:[{t:'4.07',e:'опубликована',c:'#C0D6DF'},{t:'8.07',e:'истекла без ставок',c:'#DC2626'}] },
+    ];
+    const orders = orderDefs.map((o, i) => ({ ...o, bg: i === s.selOrder ? '#EAF2F6' : 'transparent', onSel: set({ selOrder: i }) }));
+    const selOrder = orderDefs[s.selOrder];
+
+    const userDefs = [
+      { name:'Айгерім Н.', phone:'+7 707 ··· 45 67', role:'клиент', orders:'12' },
+      { name:'Данияр С.', phone:'+7 701 ··· 22 18', role:'клиент + мастер', orders:'214' },
+      { name:'Арман Б.', phone:'+7 775 ··· 90 04', role:'клиент', orders:'3' },
+      { name:'Тимур Х.', phone:'+7 702 ··· 61 12', role:'клиент', orders:'1' },
+    ];
+    const users = userDefs.map((u, i) => {
+      const blocked = !!s.blockedUsers[i];
+      return { ...u, blocked,
+        btnLabel: blocked ? 'Разблокировать' : 'Заблокировать',
+        btnC: blocked ? '#059669' : '#DC2626',
+        onToggle: () => this.setState({ blockedUsers: { ...this.state.blockedUsers, [i]: !blocked } }),
+      };
+    });
+
+    const chk = (on) => ({ bg: on ? '#EAF2F6' : '#FFFFFF', bc: on ? '#166088' : '#C0D6DF', chkBg: on ? '#166088' : '#FFFFFF', mark: on ? '✓' : '' });
+    const r = chk(s.refund), p = chk(s.penalty);
+    const dParts = [];
+    if (s.refund) dParts.push('возврат сбора 1 400 ₸ клиенту');
+    if (s.penalty) dParts.push('санкция мастеру (−2 ⬡, приоритет ↓)');
+    if (!dParts.length) dParts.push('без возврата и без санкции');
+    const dSummary = dParts.join(' + ');
+    const dResolved = s.dState === 'resolved';
+
+    const act = {
+      approve: decide('ACTIVE', false),
+      needsInfo: decide('NEEDS', true),
+      reject: decide('REJECTED', true),
+      assign: set({ assigned: true }),
+      toggleRefund: set({ refund: !s.refund }),
+      togglePenalty: set({ penalty: !s.penalty }),
+      resolveAsk: () => { if (this.state.dComment.trim()) this.setState({ dConfirming: true }); },
+      resolveBack: set({ dConfirming: false }),
+      resolveFinal: set({ dState: 'resolved', dConfirming: false }),
+    };
+
+    return {
+      sec, navItems, act, queueCount, openDisputes,
+      goOrders: set({ section:'orders', selOrder:1 }),
+      goDisputes: set({ section:'disputes' }),
+      goVerify: set({ section:'verify' }),
+      goWithdrawals: set({ section:'withdrawals' }),
+      apps, selApp,
+      setVComment: (e) => this.setState({ vComment: e.target.value }),
+      vBtnOp: s.vComment.trim() ? 1 : 0.45,
+      vNeedComment: !s.vComment.trim(),
+      users,
+      orders, selOrder, assigned: s.assigned, notAssigned: !s.assigned,
+      dOpen: !dResolved, dResolved,
+      dStLabel: dResolved ? 'решён' : 'открыт',
+      dStBg: dResolved ? '#E5F3EE' : '#FFF1E8', dStFg: dResolved ? '#059669' : '#B4530A',
+      refundBg: r.bg, refundBc: r.bc, refundChk: r.chkBg, refundMark: r.mark,
+      penBg: p.bg, penBc: p.bc, penChk: p.chkBg, penMark: p.mark,
+      setDComment: (e) => this.setState({ dComment: e.target.value }),
+      dBtnOp: s.dComment.trim() ? 1 : 0.45,
+      dNeedComment: !s.dComment.trim(),
+      dConfirming: s.dConfirming, dNotConfirming: !s.dConfirming,
+      dSummary,
+      journal: [
+        { t:'сегодня 14:22', who:'Айдана О.', what:'Спор #D-17: открыт разбор, запрошено пояснение мастера' },
+        { t:'сегодня 13:05', who:'Айдана О.', what:'Верификация: одобрен мастер Санжар М. (Сантехника, Есиль)' },
+        { t:'сегодня 11:48', who:'система', what:'Заказ #1038: авто-закрытие через 24 ч после «Выполнено»' },
+        { t:'вчера 17:31', who:'Айдана О.', what:'Верификация: запрошены данные у Айбека Т. — нечитаемое фото удостоверения' },
+        { t:'вчера 16:02', who:'Айдана О.', what:'Пользователь +7 702 ··· 61 12 заблокирован — жалобы мастеров (3)' },
+        { t:'вчера 12:15', who:'система', what:'Мастер Нурлан Б.: 3-я отмена за 30 дней → блокировка до 26.07' },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>

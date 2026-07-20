@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="_ds/masterqala-design-system-e764316c-0ca9-499e-8a35-b9393de66d34/fonts/fonts.css">
+  <style>
+    body { margin:0; background:#EDE9E0; font-family:'Manrope',ui-sans-serif,system-ui,sans-serif; }
+    a { color:#1E40AF; } a:hover { color:#3B82F6; }
+    doc-page:not(:defined){visibility:hidden}
+    doc-page table { border-collapse:collapse; width:100%; font-size:12.5px; margin:10px 0 18px; }
+    doc-page th { text-align:left; font-weight:800; color:#1B1B1F; background:#FFFCF5; border:1px solid #F0EAE0; padding:7px 10px; }
+    doc-page td { border:1px solid #F0EAE0; padding:7px 10px; vertical-align:top; color:#1B1B1F; }
+    doc-page p, doc-page li { orphans:3; widows:3; }
+    doc-page .keep { break-inside:avoid; }
+  </style>
+</helmet>
+<x-import component-from-global-scope="doc-page" from="./doc-page.js" size="a4" margin="0.7in" hint-size="100%,2000px">
+  <div style="display:flex;justify-content:space-between;align-items:baseline;border-bottom:3px solid #1E40AF;padding-bottom:14px;margin-bottom:22px">
+    <div>
+      <div style="font-size:12px;font-weight:800;letter-spacing:0.08em;color:#EA580C;text-transform:uppercase">MasterQala.kz · Этапы 1–3</div>
+      <h1 style="font-size:27px;font-weight:800;color:#1B1B1F;margin:6px 0 0;line-height:1.2">UX-аудит, информационная архитектура и user flows</h1>
+    </div>
+    <div style="font-size:12px;color:#8A8A8F;text-align:right;white-space:nowrap">19.07.2026<br>по репозиторию talasbekov/masterqala.kz@main</div>
+  </div>
+
+  <h2 style="font-size:19px;font-weight:800;color:#1E40AF;margin:26px 0 10px">1. Продукт в одном абзаце</h2>
+  <p style="font-size:14px;line-height:1.65;margin:0 0 10px">MasterQala.kz — казахстанский маркетплейс бытовых услуг «на дом». Два режима: <strong>«Сейчас»</strong> — система сама находит ближайшего активного мастера волновым матчингом (3 → 6 → 10 км, таймауты 60/90 с), клиент оплачивает выезд (hold → capture), цена работ согласуется после осмотра; <strong>«Запланировать»</strong> — клиент публикует обезличенную заявку, мастера делают до 5 ставок (цена + срок + комментарий, 1 lead-кредит за отклик), клиент выбирает, мастер подтверждает за 2 ч. Бэкенд MVP полностью реализован (5 этапов: фундамент, срочный, плановый, деньги, споры). Фронтенд — 17 страниц, из которых дизайн-система применена только к 7 клиентским.</p>
+
+  <h2 style="font-size:19px;font-weight:800;color:#1E40AF;margin:26px 0 10px">2. Карта ролей</h2>
+  <table>
+    <thead><tr><th style="width:14%">Роль</th><th>Что делает</th><th style="width:30%">Ключевые ограничения</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Клиент</strong></td><td>SMS-вход, срочные и плановые заявки, подтверждение цены и выполнения, отмены, споры, история</td><td>1 активная срочная заявка; телефон мастера виден после ACCEPTED; отмена после ACCEPTED — сбор удержан</td></tr>
+      <tr><td><strong>Мастер</strong></td><td>Анкета → верификация → онлайн/офлайн с геолокацией, офферы в realtime, статусы, цена работ, ставки на плановые, lead-кредиты, кошелёк, вывод ≥ 5 000 ₸</td><td>Адрес/контакт клиента — только после принятия (срочный) / подтверждения выбора (плановый); отмена = −2 кредита + приоритет-штраф 24 ч; 3 отмены за 30 дней = блокировка 7 дней</td></tr>
+      <tr><td><strong>Оператор</strong></td><td>Верификация мастеров (одобрить / отклонить / запросить данные), споры (возврат сбора + санкция, чекбоксы независимы), заявки на вывод</td><td>Desktop web; роль OPERATOR; критические решения — с обязательным комментарием</td></tr>
+    </tbody>
+  </table>
+  <p style="font-size:13px;line-height:1.6;color:#8A8A8F;margin:0 0 8px">Роль «мастер» — надстройка над клиентским аккаунтом (таб «Работа» появляется при статусе ACTIVE). Переключения аккаунтов нет и не нужно — нужен явный контекст-переключатель «Я заказчик / Я работаю» в навигации.</p>
+
+  <h2 style="font-size:19px;font-weight:800;color:#1E40AF;margin:26px 0 10px">3. Существующие экраны (17)</h2>
+  <table>
+    <thead><tr><th style="width:24%">Файл</th><th>Что есть</th><th style="width:34%">Состояние</th></tr></thead>
+    <tbody>
+      <tr><td>LoginPage</td><td>Телефон → SMS-код</td><td>Редизайн есть (этап «клиентская ДС»)</td></tr>
+      <tr><td>HomePage</td><td>Приветствие, активная заявка, сетка категорий, CTA «Вызвать», строка «Запланировать»</td><td>Редизайн есть; «Запланировать» визуально вторична — противоречит брифу «две крупные карточки»</td></tr>
+      <tr><td>NewOrderPage</td><td>Одностраничная форма: чипы категорий, описание, гео + адрес-текст, превью «Выезд: N ₸»</td><td>Нет фото, нет карты, нет подъезда/этажа/квартиры, нет сохранённых адресов, не wizard</td></tr>
+      <tr><td>OrderPage</td><td>Степпер статусов, карточка мастера, подтверждение цены, отмена, спор</td><td>Нет карты/ETA/позиции мастера</td></tr>
+      <tr><td>MyOrdersPage</td><td>Список с бейджами «Сейчас/Запланировать»</td><td>Нет фильтров, нет отдельной истории</td></tr>
+      <tr><td>PlannedNewOrderPage</td><td>Категория, описание, адрес, район, дата</td><td>Нет фото, слотов времени, бюджета, предпросмотра</td></tr>
+      <tr><td>PlannedOrderPage</td><td>Ставки, выбор, статусы, спор</td><td>Нет сравнения; в ставке только имя+цена+срок+комментарий — нет рейтинга/опыта/числа заказов</td></tr>
+      <tr><td>WorkPage</td><td>Тумблер онлайн, полноэкранный оффер (звук+таймер), активный заказ, лента плановых, форма ставки</td><td><strong>Без дизайн-системы</strong> (teal-700); критические статусы через window.confirm; всё в одном файле 13 КБ</td></tr>
+      <tr><td>LeadCreditsPage / WalletPage</td><td>Баланс, пакеты / баланс, вывод, история</td><td>Без дизайн-системы</td></tr>
+      <tr><td>ProfilePage / BecomeMasterPage</td><td>Профиль; анкета мастера одной формой + доп. загрузка документов</td><td>Без ДС; онбординг не пошаговый, статусы верификации — текстом</td></tr>
+      <tr><td>Admin*: List, Detail, Withdrawals, Disputes, DisputeDetail</td><td>Очередь верификации, деталь заявки, споры, выводы</td><td>Без ДС; нет dashboard, нет списков пользователей/мастеров/заказов, навигация — россыпь ссылок</td></tr>
+    </tbody>
+  </table>
+
+  <h2 style="font-size:19px;font-weight:800;color:#1E40AF;margin:26px 0 10px">4. Недостающие экраны (относительно §22 брифа)</h2>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;font-size:12.5px;line-height:1.6">
+    <div class="keep" style="border:1px solid #F0EAE0;border-radius:10px;padding:12px 14px;background:#FFFCF5">
+      <div style="font-weight:800;color:#1B1B1F;margin-bottom:6px">Клиент (11)</div>
+      Splash · Каталог категорий · Wizard срочной заявки (4 шага) · Экран поиска с картой · Сравнение мастеров · Ожидание предложений (полноценное) · История · Поддержка · Адреса · Способы оплаты · Уведомления
+    </div>
+    <div class="keep" style="border:1px solid #F0EAE0;border-radius:10px;padding:12px 14px;background:#FFFCF5">
+      <div style="font-weight:800;color:#1B1B1F;margin-bottom:6px">Мастер (7)</div>
+      Пошаговый онбординг (сейчас — одна форма) · Геозона · Навигация к клиенту · Экран предложения цены (сейчас — 2 инпута) · Покупка кредитов (отдельный флоу) · История операций (полная) · Документы и категории
+    </div>
+    <div class="keep" style="border:1px solid #F0EAE0;border-radius:10px;padding:12px 14px;background:#FFFCF5">
+      <div style="font-weight:800;color:#1B1B1F;margin-bottom:6px">Оператор (7)</div>
+      Dashboard · Пользователи · Мастера (список) · Заказы (срочные+плановые) · Детали заказа с timeline · Ручной матчинг · Журнал действий
+    </div>
+  </div>
+
+  <h2 style="font-size:19px;font-weight:800;color:#1E40AF;margin:26px 0 10px">5. UX-проблемы текущего интерфейса</h2>
+  <table>
+    <thead><tr><th style="width:5%">№</th><th>Проблема</th><th style="width:14%">Серьёзность</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td><strong>Оффер мастеру показывает точный адрес до принятия</strong> (WorkPage рендерит offer.address) — нарушает правило защиты контакта/адреса из брифа и логику «раскрытие после принятия»</td><td style="color:#DC2626;font-weight:800">Критично</td></tr>
+      <tr><td>2</td><td>Критические статусы (отмена мастером) — через window.confirm без объяснения последствий (−2 кредита, окно блокировки)</td><td style="color:#DC2626;font-weight:800">Критично</td></tr>
+      <tr><td>3</td><td>Нет фотографий ни в срочной, ни в плановой заявке — мастер принимает решение вслепую, растёт доля споров «не та цена после осмотра»</td><td style="color:#DC2626;font-weight:800">Критично</td></tr>
+      <tr><td>4</td><td>Ставки нельзя сравнить: нет рейтинга, числа заказов, опыта, верификации, позиции цены — выбор сводится к минимальной цене (анти-цель брифа)</td><td style="color:#DC2626;font-weight:800">Критично</td></tr>
+      <tr><td>5</td><td>Нет карты нигде: ни при указании адреса, ни при поиске, ни при движении мастера (geo:update уже ходит по WS, но клиенту не показывается)</td><td style="color:#EA580C;font-weight:800">Высокая</td></tr>
+      <tr><td>6</td><td>Создание срочной заявки — одна длинная форма вместо 3–4 шагов; превью цены не объясняет структуру (выезд vs сервисный сбор vs работа после осмотра)</td><td style="color:#EA580C;font-weight:800">Высокая</td></tr>
+      <tr><td>7</td><td>Адрес — одно текстовое поле: нет подъезда/этажа/квартиры/комментария, нет сохранённых адресов</td><td style="color:#EA580C;font-weight:800">Высокая</td></tr>
+      <tr><td>8</td><td>Онбординг мастера — плоская форма; статусы NEEDS_INFO/REJECTED показаны строкой, без «что делать дальше»</td><td style="color:#EA580C;font-weight:800">Высокая</td></tr>
+      <tr><td>9</td><td>Экраны мастера, денег и вся админка — вне дизайн-системы (голый teal-700), выглядят как другой продукт</td><td style="color:#EA580C;font-weight:800">Высокая</td></tr>
+      <tr><td>10</td><td>Админка без dashboard и master-detail: оператор не видит «горящее» (поиск без мастера, просроченные споры), переходит по страницам вслепую</td><td style="color:#EA580C;font-weight:800">Высокая</td></tr>
+      <tr><td>11</td><td>Плановая заявка: дата без слота времени, нет бюджета, нет предпросмотра перед публикацией; «срок» в ставке — свободный текст</td><td style="font-weight:800">Средняя</td></tr>
+      <tr><td>12</td><td>Нет offline/reconnecting-состояний в UI (socket connected показан только мастеру), нет push-нотификаций, нет уведомлений</td><td style="font-weight:800">Средняя</td></tr>
+      <tr><td>13</td><td>Lead-кредиты и деньги живут на разных страницах, но визуально не различены — риск смешения «кредиты ≠ тенге»</td><td style="font-weight:800">Средняя</td></tr>
+    </tbody>
+  </table>
+
+  <h2 style="font-size:19px;font-weight:800;color:#1E40AF;margin:26px 0 10px">6. Противоречия UI ↔ документация</h2>
+  <ul style="font-size:13.5px;line-height:1.7;margin:0 0 10px;padding-left:20px">
+    <li>Спека этапа 2 описывает карточку оффера без адреса («категория, расстояние, описание, компенсация») — UI отдаёт и рендерит адрес. Чинится на уровне DTO оффера (район вместо адреса).</li>
+    <li>Бриф требует «две крупные карточки» режимов на главной — в UI «Запланировать» — тонкая пунктирная строка.</li>
+    <li>Бриф требует таймер подтверждения выбора мастером (2 ч) и таймер цены (15 мин) видимыми — бэкенд-джобы есть, но дедлайны не везде отдаются клиенту в DTO.</li>
+    <li>Спека споров: статус заявки при споре НЕ меняется (отдельная сущность Dispute) — фронтовые STATUS_LABELS содержат «DISPUTE» как статус заявки; в новом UI спор показываем бейджем-надстройкой, не статусом.</li>
+    <li>Бриф упоминает «сообщения/чат» — в системе его нет; проектируем только звонок + поддержку, чат не рисуем.</li>
+    <li>Рейтинг мастера — фаза 2 по спеке: в макетах закладываем слот Rating/VerificationBadge, скрываемый при отсутствии данных.</li>
+  </ul>
+
+  <h2 style="font-size:19px;font-weight:800;color:#1E40AF;margin:26px 0 10px">7. API-ограничения и минимальные расширения DTO</h2>
+  <table>
+    <thead><tr><th>Чего не хватает</th><th>Где нужно</th><th>Минимальное расширение (согласовать отдельно)</th></tr></thead>
+    <tbody>
+      <tr><td>Фото заявки</td><td>Оба wizard'а, оффер, карточка оператора, споры</td><td>OrderPhoto/PlannedOrderPhoto + upload по прецеденту FileStorage (как evidence в спорах)</td></tr>
+      <tr><td>Детали адреса</td><td>Шаг «Адрес», карточка мастера после принятия</td><td>Поля entrance/floor/apartment/comment в Order (или JSON addressDetails)</td></tr>
+      <tr><td>Сохранённые адреса</td><td>Wizard, профиль</td><td>Модель Address (userId, label, address, location) + CRUD</td></tr>
+      <tr><td>Статистика мастера в ставке</td><td>BidCard, сравнение</td><td>В DTO бида: experienceYears (есть в MasterProfile), completedCount (COUNT по CLOSED), verified=true</td></tr>
+      <tr><td>Бюджет и слот времени</td><td>Плановый wizard</td><td>PlannedOrder.budget Int?, slotStart/slotEnd вместо одного scheduledAt</td></tr>
+      <tr><td>Позиция мастера клиенту</td><td>Карта «Мастер едет», ETA</td><td>Ретрансляция geo:update в комнату order:{id} + ETA от ROUTING_SERVICE</td></tr>
+      <tr><td>Дедлайны таймеров в DTO</td><td>Таймер цены (15 мин), подтверждение выбора (2 ч), оффер</td><td>Поля priceDeadline/confirmDeadline в ответах заказов</td></tr>
+      <tr><td>Оффер без адреса</td><td>Offer-screen мастера</td><td>В offer:new отдавать district/расстояние, адрес — после accept</td></tr>
+      <tr><td>Операторские списки</td><td>Dashboard, пользователи, мастера, заказы, журнал</td><td>GET /admin/orders, /admin/users (+block/unblock), /admin/metrics, AuditLog append-only</td></tr>
+      <tr><td>Уведомления</td><td>Колокольчик клиента/мастера</td><td>Фаза 2: Notification feed поверх существующих WS-событий</td></tr>
+    </tbody>
+  </table>
+
+  <h2 style="font-size:19px;font-weight:800;color:#1E40AF;margin:26px 0 10px;break-before:page">8. Информационная архитектура</h2>
+  <h3 style="font-size:15px;font-weight:800;margin:14px 0 6px">Мобильная навигация (нижние табы)</h3>
+  <table>
+    <thead><tr><th style="width:18%">Роль</th><th>Табы</th></tr></thead>
+    <tbody>
+      <tr><td>Клиент</td><td>Главная · Заявки · <strong>[＋ Создать]</strong> (центральная, поднятая) · Уведомления · Профиль</td></tr>
+      <tr><td>Мастер (режим «Я работаю»)</td><td>Работа · Плановые · <strong>[Активный заказ]</strong> (центральная, живая) · Кошелёк · Профиль</td></tr>
+    </tbody>
+  </table>
+  <p style="font-size:13px;line-height:1.6;margin:0 0 10px">Переключение ролей — сегмент «Я заказчик / Я работаю» в шапке профиля и на главной мастера; состояние запоминается. Активный оффер/заказ мастера всегда перекрывает навигацию (полноэкранный offer-screen).</p>
+  <h3 style="font-size:15px;font-weight:800;margin:14px 0 6px">Desktop web (клиент/мастер) и панель оператора</h3>
+  <p style="font-size:13px;line-height:1.6;margin:0 0 10px">Левая вертикальная навигация + верхняя сервисная панель (город, язык RU/KK/EN, уведомления, аккаунт). Клиент: Главная, Создать заявку, Мои заявки, Поддержка, Профиль (Адреса, Оплата). Мастер: Работа, Срочные, Плановые, Мои заказы, Lead-кредиты, Кошелёк, Профиль, Документы. Оператор: Обзор, Верификация, Пользователи, Мастера, Заказы, Споры, Вывод средств, Журнал — списки master-detail (деталь в правой панели, без перехода со страницы), bulk-действия только безопасные.</p>
+  <p style="font-size:13px;line-height:1.6;margin:0 0 10px">Полный визуальный sitemap и диаграммы 13 флоу — в интерактивном холсте <strong>«Этап 1-3 — Sitemap и Flows»</strong> (второй файл этой поставки).</p>
+
+  <h2 style="font-size:19px;font-weight:800;color:#1E40AF;margin:26px 0 10px">9. User flows — ключевые решения</h2>
+  <ul style="font-size:13.5px;line-height:1.7;margin:0 0 10px;padding-left:20px">
+    <li><strong>Срочный заказ — 4 шага:</strong> Категория → Проблема + фото → Адрес (карта) → Расчёт и подтверждение. Расчёт всегда раскладывает: выезд N ₸ (в т.ч. сервисный сбор M ₸) + «работа — после осмотра». Отмена бесплатна до принятия — пишем это прямо на кнопке.</li>
+    <li><strong>Поиск — 9 состояний</strong> (подготовка, волна 1/2/3, долго, нет мастеров, повтор, найден, едет, прибыл) — тексты волн уже есть в WAVE_TEXTS, добавляем карту и честный таймер.</li>
+    <li><strong>Цена после осмотра:</strong> полноэкранная карточка с разбивкой (выезд + работа = итого), таймер 15:00, последствия отклонения («выезд не возвращается») — без dark patterns.</li>
+    <li><strong>Плановый — сравнение:</strong> мобайл — карусель карточек + шторка «Сравнить (N)» с построчным сопоставлением 2–3 мастеров; desktop — таблица. Позиция цены — бейдж «ниже средней / средняя / выше средней».</li>
+    <li><strong>Ставка мастера:</strong> форма всегда показывает баланс кредитов, «будет списано: 1», и подтверждение; недостаточно кредитов → инлайн-переход к покупке пакета, после покупки возврат в форму.</li>
+    <li><strong>Отмены:</strong> каждая кнопка отмены показывает таблицу последствий для текущего статуса до подтверждения (двухшаговое: причина → подтвердить).</li>
+    <li><strong>Спор:</strong> причина → описание → фото → отправка; вторая сторона получает один слот пояснения; оператор — timeline заказа + два независимых решения (возврат сбора / санкция) + обязательный комментарий + повторное подтверждение.</li>
+    <li><strong>Верификация мастера — 6 статусов</strong> (черновик, на проверке, нужны данные, одобрен, отклонён, заблокирован); для NEEDS_INFO/REJECTED всегда: причина + конкретное следующее действие.</li>
+    <li><strong>Вывод средств:</strong> сумма ≥ 5 000 ₸ → списание сразу → статус PENDING/PAID/FAILED в истории; FAILED возвращает сумму на баланс — показываем это событием в истории.</li>
+  </ul>
+
+  <h2 style="font-size:19px;font-weight:800;color:#1E40AF;margin:26px 0 10px">10. Обязательные состояния (матрица)</h2>
+  <p style="font-size:13px;line-height:1.6;margin:0 0 8px">Каждый ключевой экран проектируется минимум с: loading/skeleton, empty, error (что случилось / почему / что делать), offline + reconnecting. Плюс специфичные:</p>
+  <table>
+    <thead><tr><th style="width:30%">Экран</th><th>Специфичные состояния</th></tr></thead>
+    <tbody>
+      <tr><td>Поиск мастера</td><td>волны 1–3, долгий поиск, нет мастеров, повторный поиск, отмена</td></tr>
+      <tr><td>Ожидание предложений</td><td>0 ставок, новая ставка (анимация), 5/5 достигнут, срок истёк (EXPIRED)</td></tr>
+      <tr><td>Ставка мастера</td><td>недостаточно кредитов, лимит 5/5, повторный отклик (409), проигрыш/возврат</td></tr>
+      <tr><td>Оффер мастера</td><td>таймер истёк, «заявку принял другой», гео запрещена, соединение потеряно</td></tr>
+      <tr><td>Оплата/вывод</td><td>processing, payment failed, ниже минимума, недостаточно средств, PAID/FAILED</td></tr>
+      <tr><td>Верификация</td><td>6 статусов + upload failed + blocked (blockedUntil)</td></tr>
+      <tr><td>Аккаунт</td><td>заблокирован, требуется дозагрузка данных</td></tr>
+    </tbody>
+  </table>
+
+  <h2 style="font-size:19px;font-weight:800;color:#1E40AF;margin:26px 0 10px">11. Что дальше</h2>
+  <p style="font-size:13.5px;line-height:1.65;margin:0 0 6px"><strong>Этап 4</strong> — low-fi wireframes ключевых экранов (клиент mobile, мастер mobile, оператор desktop). <strong>Этап 5–6</strong> — hi-fi кликабельные прототипы с симуляцией realtime: 390×844 для клиента/мастера, 1440 для оператора; язык RU с переключателем KK/EN; карты — реальные тайлы Астаны/Алматы. Дизайн-токены — существующие (#1E40AF / #EA580C / #FFFCF5, Manrope, радиусы 10/14/18).</p>
+</x-import>
+</x-dc>
+</body>
+</html>
