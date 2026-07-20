@@ -11,6 +11,7 @@ export default function TrackView({ order, orderId }: { order: OrderDetail; orde
   const { t } = useTranslation();
   const [masterPos, setMasterPos] = useState<LatLng | null>(null);
   const [eta, setEta] = useState<number | null>(null);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     const socket = getSocket();
@@ -27,7 +28,12 @@ export default function TrackView({ order, orderId }: { order: OrderDetail; orde
 
   async function cancel() {
     if (!confirm(t('orderDetail.cancel') + '?')) return;
-    await api(`/orders/${orderId}/cancel`, { method: 'POST' });
+    setError('');
+    try {
+      await api(`/orders/${orderId}/cancel`, { method: 'POST' });
+    } catch (e) {
+      setError((e as Error).message);
+    }
   }
 
   return (
@@ -66,6 +72,7 @@ export default function TrackView({ order, orderId }: { order: OrderDetail; orde
             <span className="text-base font-extrabold text-c2-primary">{t('orderDetail.etaMinutes', { n: eta })}</span>
           </div>
         )}
+        {error && <p className="mt-2 text-sm font-semibold text-c2-danger">{error}</p>}
         <div className="mt-2.5 flex items-center gap-3.5 text-xs font-extrabold text-c2-primary">
           <Link to="/support">{t('orderDetail.support')}</Link>
           <span className="text-c2-border">·</span>

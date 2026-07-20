@@ -8,6 +8,7 @@ import type { OrderDetail } from '../../pages/OrderPage';
 export default function SearchView({ order, onChanged }: { order: OrderDetail; onChanged: () => void }) {
   const { t } = useTranslation();
   const [elapsed, setElapsed] = useState(0);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     const start = new Date(order.createdAt).getTime();
@@ -18,8 +19,13 @@ export default function SearchView({ order, onChanged }: { order: OrderDetail; o
   }, [order.createdAt]);
 
   async function cancel() {
-    await api(`/orders/${order.id}/cancel`, { method: 'POST' });
-    onChanged();
+    setError('');
+    try {
+      await api(`/orders/${order.id}/cancel`, { method: 'POST' });
+      onChanged();
+    } catch (e) {
+      setError((e as Error).message);
+    }
   }
 
   const mm = Math.floor(elapsed / 60);
@@ -36,6 +42,7 @@ export default function SearchView({ order, onChanged }: { order: OrderDetail; o
             {mm}:{String(ss).padStart(2, '0')}
           </div>
         </div>
+        {error && <p className="mt-2 text-sm font-semibold text-c2-danger">{error}</p>}
         <button
           type="button"
           onClick={cancel}
