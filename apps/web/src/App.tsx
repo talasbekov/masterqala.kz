@@ -24,6 +24,8 @@ import PlannedComparePage from './features/client-v2/pages/PlannedComparePage';
 import LeadCreditsPage from './pages/LeadCreditsPage';
 import WalletPage from './pages/WalletPage';
 import AddressesPage from './features/client-v2/pages/AddressesPage';
+import SupportPage from './features/client-v2/pages/SupportPage';
+import PaymentsPage from './features/client-v2/pages/PaymentsPage';
 
 function RequireAuth() {
   const { user } = useAuth();
@@ -47,7 +49,7 @@ export default function App() {
               <Route path="/notifications" element={<NotificationsPage />} />
               <Route path="/catalog" element={<CatalogPage />} />
               <Route path="/orders" element={<MyOrdersPage />} />
-              <Route path="/support" element={<Navigate to="/" replace />} />
+              <Route path="/support" element={<SupportPage />} />
               <Route path="/profile" element={<ProfilePage />} />
             </Route>
             <Route element={<Layout />}>
@@ -62,6 +64,7 @@ export default function App() {
               <Route path="/lead-credits" element={<LeadCreditsPage />} />
               <Route path="/wallet" element={<WalletPage />} />
               <Route path="/profile/addresses" element={<AddressesPage />} />
+              <Route path="/profile/payments" element={<PaymentsPage />} />
             </Route>
             <Route path="/become-master" element={<BecomeMasterPage />} />
             <Route element={<RequireOperator />}>
