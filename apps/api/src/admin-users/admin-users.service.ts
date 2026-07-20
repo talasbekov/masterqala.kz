@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditLogService } from '../audit-log/audit-log.service';
 
@@ -31,6 +31,8 @@ export class AdminUsersService {
   }
 
   async block(operatorId: string, userId: string, reason: string) {
+    const existing = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!existing) throw new NotFoundException('Пользователь не найден');
     await this.prisma.user.update({
       where: { id: userId },
       data: { isBlocked: true, blockedAt: new Date(), blockedReason: reason },
@@ -47,6 +49,8 @@ export class AdminUsersService {
   }
 
   async unblock(operatorId: string, userId: string) {
+    const existing = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!existing) throw new NotFoundException('Пользователь не найден');
     await this.prisma.user.update({
       where: { id: userId },
       data: { isBlocked: false, blockedAt: null, blockedReason: null },

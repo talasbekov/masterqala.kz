@@ -58,4 +58,23 @@ describe('Admin users (e2e)', () => {
       .send({})
       .expect(400);
   });
+
+  it('returns 404 when blocking a nonexistent user', async () => {
+    const operator = await loginAs(app, '+77019999999', 'OPERATOR');
+    const nonexistentId = '00000000-0000-0000-0000-000000000000';
+    await request(app.getHttpServer())
+      .post(`/api/v1/admin/users/${nonexistentId}/block`)
+      .set('Authorization', `Bearer ${operator.token}`)
+      .send({ reason: 'test' })
+      .expect(404);
+  });
+
+  it('returns 404 when unblocking a nonexistent user', async () => {
+    const operator = await loginAs(app, '+77019999999', 'OPERATOR');
+    const nonexistentId = '00000000-0000-0000-0000-000000000000';
+    await request(app.getHttpServer())
+      .post(`/api/v1/admin/users/${nonexistentId}/unblock`)
+      .set('Authorization', `Bearer ${operator.token}`)
+      .expect(404);
+  });
 });
