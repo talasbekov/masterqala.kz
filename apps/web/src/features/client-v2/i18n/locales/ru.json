@@ -197,5 +197,23 @@
     "rateTitle": "Оцените мастера",
     "rateThanks": "Спасибо за отзыв!",
     "toHome": "На главную"
+  },
+  "profile": {
+    "noName": "Без имени",
+    "editName": "Изменить",
+    "save": "Сохранить",
+    "items": {
+      "addresses": "Адреса",
+      "payments": "Способы оплаты",
+      "notifications": "Уведомления",
+      "support": "Поддержка"
+    },
+    "becomeMasterTitle": "Стать мастером",
+    "becomeMasterSubtitle": "Зарабатывайте на своих навыках — верификация за 1–2 дня.",
+    "becomeMasterLink": "Подробнее",
+    "wallet": "Кошелёк",
+    "adminPanel": "Панель оператора",
+    "logout": "Выйти из аккаунта",
+    "blockedUntil": "Доступ к новым заявкам временно ограничен до {{date}}"
   }
 }

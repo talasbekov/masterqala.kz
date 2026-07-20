@@ -6,7 +6,7 @@ import AppShell from './features/client-v2/components/AppShell';
 import HomePage from './features/client-v2/pages/HomePage';
 import NotificationsPage from './features/client-v2/pages/NotificationsPage';
 import CatalogPage from './features/client-v2/pages/CatalogPage';
-import ProfilePage from './pages/ProfilePage';
+import ProfilePage from './features/client-v2/pages/ProfilePage';
 import BecomeMasterPage from './pages/BecomeMasterPage';
 import AdminListPage from './pages/AdminListPage';
 import AdminDetailPage from './pages/AdminDetailPage';
@@ -47,6 +47,7 @@ export default function App() {
               <Route path="/catalog" element={<CatalogPage />} />
               <Route path="/orders" element={<MyOrdersPage />} />
               <Route path="/support" element={<Navigate to="/" replace />} />
+              <Route path="/profile" element={<ProfilePage />} />
             </Route>
             <Route element={<Layout />}>
               <Route path="/order/new" element={<NewOrderPage />} />
@@ -59,7 +60,6 @@ export default function App() {
               <Route path="/work" element={<WorkPage />} />
               <Route path="/lead-credits" element={<LeadCreditsPage />} />
               <Route path="/wallet" element={<WalletPage />} />
-              <Route path="/profile" element={<ProfilePage />} />
             </Route>
             <Route path="/become-master" element={<BecomeMasterPage />} />
             <Route element={<RequireOperator />}>
