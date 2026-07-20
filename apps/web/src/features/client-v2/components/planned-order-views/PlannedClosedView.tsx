@@ -2,9 +2,18 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../../../api';
+import PhotoStrip from '../PhotoStrip';
 import type { PlannedOrderDetail } from '../../pages/PlannedOrderPage';
 
-export default function PlannedClosedView({ order, onChanged }: { order: PlannedOrderDetail; onChanged: () => void }) {
+export default function PlannedClosedView({
+  order,
+  onChanged,
+  photoUrls,
+}: {
+  order: PlannedOrderDetail;
+  onChanged: () => void;
+  photoUrls: string[];
+}) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [rating, setRating] = useState(0);
@@ -44,6 +53,7 @@ export default function PlannedClosedView({ order, onChanged }: { order: Planned
       </div>
       <div className="text-xl font-extrabold text-c2-ink">{title}</div>
       {!isClosed && order.cancelReason && <div className="text-sm text-c2-ink-soft">{order.cancelReason}</div>}
+      <PhotoStrip urls={photoUrls} />
       {isClosed && (
         <div className="w-full rounded-c2-md border border-c2-border bg-c2-surface p-3.5">
           {order.review ? (

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { api } from '../../../api';
+import { api, apiBlobUrl } from '../../../api';
 import { getSocket } from '../../../socket';
 import PwaitView from '../components/planned-order-views/PwaitView';
 import PactiveView from '../components/planned-order-views/PactiveView';
@@ -49,6 +49,7 @@ export interface PlannedOrderDetail {
   confirmDeadline: string | null;
   bids: PlannedBid[];
   review: { rating: number; comment: string | null } | null;
+  photos: { id: string }[];
 }
 
 const ACTIVE_STATUSES = ['MASTER_SELECTED', 'CONFIRMED', 'IN_PROGRESS'];
@@ -59,6 +60,7 @@ export default function PlannedOrderPage() {
   const [order, setOrder] = useState<PlannedOrderDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [photoUrls, setPhotoUrls] = useState<string[]>([]);
 
   const load = () => {
     setError('');
@@ -83,6 +85,32 @@ export default function PlannedOrderPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
+  useEffect(() => {
+    if (!order?.id || !order.photos?.length) {
+      setPhotoUrls([]);
+      return;
+    }
+    let cancelled = false;
+    const urls: string[] = [];
+    Promise.all(
+      order.photos.map((p) =>
+        apiBlobUrl(`/planned-orders/${order.id}/photos/${p.id}`).then((url) => {
+          urls.push(url);
+          return url;
+        }),
+      ),
+    )
+      .then((results) => {
+        if (cancelled) return;
+        setPhotoUrls(results);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+      urls.forEach((u) => URL.revokeObjectURL(u));
+    };
+  }, [order?.id, order?.photos]);
+
   if (loading) return <div className="p-6 text-c2-ink-soft">{t('common.loading')}</div>;
 
   if (error || !order || !id) {
@@ -100,8 +128,9 @@ export default function PlannedOrderPage() {
     );
   }
 
-  if (order.status === 'PUBLISHED') return <PwaitView order={order} orderId={id} onChanged={load} />;
-  if (ACTIVE_STATUSES.includes(order.status)) return <PactiveView order={order} orderId={id} onChanged={load} />;
-  if (order.status === 'DONE') return <PlannedDoneView order={order} orderId={id} onChanged={load} />;
-  return <PlannedClosedView order={order} onChanged={load} />;
+  if (order.status === 'PUBLISHED') return <PwaitView order={order} orderId={id} onChanged={load} photoUrls={photoUrls} />;
+  if (ACTIVE_STATUSES.includes(order.status))
+    return <PactiveView order={order} orderId={id} onChanged={load} photoUrls={photoUrls} />;
+  if (order.status === 'DONE') return <PlannedDoneView order={order} orderId={id} onChanged={load} photoUrls={photoUrls} />;
+  return <PlannedClosedView order={order} onChanged={load} photoUrls={photoUrls} />;
 }

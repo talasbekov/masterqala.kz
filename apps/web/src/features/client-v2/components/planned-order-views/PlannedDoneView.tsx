@@ -2,16 +2,19 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../../../api';
+import PhotoStrip from '../PhotoStrip';
 import type { PlannedOrderDetail } from '../../pages/PlannedOrderPage';
 
 export default function PlannedDoneView({
   order,
   orderId,
   onChanged,
+  photoUrls,
 }: {
   order: PlannedOrderDetail;
   orderId: string;
   onChanged: () => void;
+  photoUrls: string[];
 }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -37,6 +40,7 @@ export default function PlannedDoneView({
           <span>{order.workPrice} ₸</span>
         </div>
       </div>
+      <PhotoStrip urls={photoUrls} />
       <p className="text-xs leading-relaxed text-c2-ink-soft">{t('plannedDetail.doneNote')}</p>
       {error && <p className="text-sm font-semibold text-c2-danger">{error}</p>}
       <div className="mt-auto" />

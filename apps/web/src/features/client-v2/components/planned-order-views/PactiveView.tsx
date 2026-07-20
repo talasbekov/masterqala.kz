@@ -3,16 +3,19 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../../../api';
 import { PLANNED_STATUS_LABELS } from '../../../../orderStatus';
+import PhotoStrip from '../PhotoStrip';
 import type { PlannedOrderDetail } from '../../pages/PlannedOrderPage';
 
 export default function PactiveView({
   order,
   orderId,
   onChanged,
+  photoUrls,
 }: {
   order: PlannedOrderDetail;
   orderId: string;
   onChanged: () => void;
+  photoUrls: string[];
 }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -108,6 +111,7 @@ export default function PactiveView({
       <div className="rounded-c2-md bg-c2-fill px-3.5 py-2.5 text-[12.5px] font-semibold text-c2-ink">
         {order.category?.name} · «{order.description.slice(0, 40)}» · {order.address}
       </div>
+      <PhotoStrip urls={photoUrls} />
       {error && <p className="text-sm font-semibold text-c2-danger">{error}</p>}
       <div className="mt-auto" />
       <button

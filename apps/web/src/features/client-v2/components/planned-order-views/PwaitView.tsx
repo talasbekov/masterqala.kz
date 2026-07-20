@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../../../api';
 import { categoryMeta } from '../../categoryMeta';
+import PhotoStrip from '../PhotoStrip';
 import SelectBidConfirm from './SelectBidConfirm';
 import type { PlannedOrderDetail, PlannedBid } from '../../pages/PlannedOrderPage';
 
@@ -10,10 +11,12 @@ export default function PwaitView({
   order,
   orderId,
   onChanged,
+  photoUrls,
 }: {
   order: PlannedOrderDetail;
   orderId: string;
   onChanged: () => void;
+  photoUrls: string[];
 }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -53,6 +56,7 @@ export default function PwaitView({
         {categoryMeta(order.category?.slug ?? '').icon} {order.category?.name} · {when} · {order.district}
         {order.budget && ` · ~${order.budget} ₸`}
       </div>
+      <PhotoStrip urls={photoUrls} />
       <div className="flex items-baseline justify-between">
         <span className="text-[15px] font-extrabold text-c2-ink">
           {t('plannedDetail.offersCount', { n: order.bids.length })}

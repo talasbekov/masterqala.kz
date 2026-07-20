@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { api } from '../../../api';
+import { api, apiBlobUrl } from '../../../api';
 import { getSocket } from '../../../socket';
 import SearchView from '../components/order-views/SearchView';
 import NoMastersView from '../components/order-views/NoMastersView';
@@ -35,6 +35,7 @@ export interface OrderDetail {
   priceProposedAt: string | null;
   priceDeadline: string | null;
   review: { rating: number; comment: string | null } | null;
+  photos: { id: string }[];
 }
 
 const TRACK_STATUSES = ['ACCEPTED', 'MASTER_ON_WAY', 'INSPECTION'];
@@ -45,6 +46,7 @@ export default function OrderPage() {
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [photoUrls, setPhotoUrls] = useState<string[]>([]);
 
   const load = () => {
     setError('');
@@ -67,6 +69,32 @@ export default function OrderPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
+  useEffect(() => {
+    if (!order?.id || !order.photos?.length) {
+      setPhotoUrls([]);
+      return;
+    }
+    let cancelled = false;
+    const urls: string[] = [];
+    Promise.all(
+      order.photos.map((p) =>
+        apiBlobUrl(`/orders/${order.id}/photos/${p.id}`).then((url) => {
+          urls.push(url);
+          return url;
+        }),
+      ),
+    )
+      .then((results) => {
+        if (cancelled) return;
+        setPhotoUrls(results);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+      urls.forEach((u) => URL.revokeObjectURL(u));
+    };
+  }, [order?.id, order?.photos]);
+
   if (loading) return <div className="p-6 text-c2-ink-soft">{t('common.loading')}</div>;
 
   if (error || !order || !id) {
@@ -84,11 +112,12 @@ export default function OrderPage() {
     );
   }
 
-  if (order.status === 'SEARCHING') return <SearchView order={order} onChanged={load} />;
+  if (order.status === 'SEARCHING') return <SearchView order={order} onChanged={load} photoUrls={photoUrls} />;
   if (order.status === 'NO_MASTERS') return <NoMastersView orderId={id} onChanged={load} />;
-  if (TRACK_STATUSES.includes(order.status)) return <TrackView order={order} orderId={id} />;
-  if (order.status === 'AWAITING_PRICE_CONFIRM') return <PriceView order={order} orderId={id} onChanged={load} />;
-  if (order.status === 'IN_PROGRESS') return <ProgressView order={order} />;
-  if (order.status === 'DONE') return <DoneView order={order} orderId={id} onChanged={load} />;
-  return <ClosedView order={order} onChanged={load} />;
+  if (TRACK_STATUSES.includes(order.status)) return <TrackView order={order} orderId={id} photoUrls={photoUrls} />;
+  if (order.status === 'AWAITING_PRICE_CONFIRM')
+    return <PriceView order={order} orderId={id} onChanged={load} photoUrls={photoUrls} />;
+  if (order.status === 'IN_PROGRESS') return <ProgressView order={order} photoUrls={photoUrls} />;
+  if (order.status === 'DONE') return <DoneView order={order} orderId={id} onChanged={load} photoUrls={photoUrls} />;
+  return <ClosedView order={order} onChanged={load} photoUrls={photoUrls} />;
 }

@@ -1,9 +1,10 @@
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { STEPPER_STEPS } from '../../../../orderStatus';
+import PhotoStrip from '../PhotoStrip';
 import type { OrderDetail } from '../../pages/OrderPage';
 
-export default function ProgressView({ order }: { order: OrderDetail }) {
+export default function ProgressView({ order, photoUrls }: { order: OrderDetail; photoUrls: string[] }) {
   const { t } = useTranslation();
   const currentIdx = STEPPER_STEPS.findIndex((s) => s.status === order.status);
 
@@ -38,6 +39,7 @@ export default function ProgressView({ order }: { order: OrderDetail }) {
       <div className="rounded-c2-md bg-c2-fill p-3.5 text-xs font-semibold leading-relaxed text-c2-ink">
         {t('orderDetail.progressNote', { price: order.calloutPrice + (order.workPrice ?? 0) })}
       </div>
+      <PhotoStrip urls={photoUrls} />
       <div className="mt-auto" />
       <Link
         to="/support"

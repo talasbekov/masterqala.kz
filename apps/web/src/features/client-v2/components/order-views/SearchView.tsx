@@ -3,9 +3,18 @@ import { useTranslation } from 'react-i18next';
 import { api } from '../../../../api';
 import { WAVE_TEXTS } from '../../../../orderStatus';
 import MapView from '../MapView';
+import PhotoStrip from '../PhotoStrip';
 import type { OrderDetail } from '../../pages/OrderPage';
 
-export default function SearchView({ order, onChanged }: { order: OrderDetail; onChanged: () => void }) {
+export default function SearchView({
+  order,
+  onChanged,
+  photoUrls,
+}: {
+  order: OrderDetail;
+  onChanged: () => void;
+  photoUrls: string[];
+}) {
   const { t } = useTranslation();
   const [elapsed, setElapsed] = useState(0);
   const [error, setError] = useState('');
@@ -42,6 +51,11 @@ export default function SearchView({ order, onChanged }: { order: OrderDetail; o
             {mm}:{String(ss).padStart(2, '0')}
           </div>
         </div>
+        {photoUrls.length > 0 && (
+          <div className="mt-3">
+            <PhotoStrip urls={photoUrls} />
+          </div>
+        )}
         {error && <p className="mt-2 text-sm font-semibold text-c2-danger">{error}</p>}
         <button
           type="button"

@@ -5,9 +5,18 @@ import { api } from '../../../../api';
 import { getSocket } from '../../../../socket';
 import { STATUS_LABELS } from '../../../../orderStatus';
 import MapView, { type LatLng } from '../MapView';
+import PhotoStrip from '../PhotoStrip';
 import type { OrderDetail } from '../../pages/OrderPage';
 
-export default function TrackView({ order, orderId }: { order: OrderDetail; orderId: string }) {
+export default function TrackView({
+  order,
+  orderId,
+  photoUrls,
+}: {
+  order: OrderDetail;
+  orderId: string;
+  photoUrls: string[];
+}) {
   const { t } = useTranslation();
   const [masterPos, setMasterPos] = useState<LatLng | null>(null);
   const [eta, setEta] = useState<number | null>(null);
@@ -70,6 +79,11 @@ export default function TrackView({ order, orderId }: { order: OrderDetail; orde
           <div className="mt-2.5 flex items-center justify-between rounded-c2-md bg-c2-fill px-3.5 py-2.5">
             <span className="text-[13px] font-bold text-c2-ink">{t('orderDetail.etaLabel')}</span>
             <span className="text-base font-extrabold text-c2-primary">{t('orderDetail.etaMinutes', { n: eta })}</span>
+          </div>
+        )}
+        {photoUrls.length > 0 && (
+          <div className="mt-2.5">
+            <PhotoStrip urls={photoUrls} />
           </div>
         )}
         {error && <p className="mt-2 text-sm font-semibold text-c2-danger">{error}</p>}

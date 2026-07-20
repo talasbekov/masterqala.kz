@@ -1,9 +1,20 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../../../api';
+import PhotoStrip from '../PhotoStrip';
 import type { OrderDetail } from '../../pages/OrderPage';
 
-export default function PriceView({ order, orderId, onChanged }: { order: OrderDetail; orderId: string; onChanged: () => void }) {
+export default function PriceView({
+  order,
+  orderId,
+  onChanged,
+  photoUrls,
+}: {
+  order: OrderDetail;
+  orderId: string;
+  onChanged: () => void;
+  photoUrls: string[];
+}) {
   const { t } = useTranslation();
   const [remaining, setRemaining] = useState(0);
   const [error, setError] = useState('');
@@ -67,6 +78,7 @@ export default function PriceView({ order, orderId, onChanged }: { order: OrderD
       {order.workComment && (
         <div className="rounded-c2-md bg-c2-fill p-3 text-[13px] leading-relaxed text-c2-ink">«{order.workComment}»</div>
       )}
+      <PhotoStrip urls={photoUrls} />
       <p className="text-xs leading-relaxed text-c2-ink-soft">{t('orderDetail.priceRejectNote')}</p>
       {error && <p className="text-sm font-semibold text-c2-danger">{error}</p>}
       <div className="mt-auto" />
