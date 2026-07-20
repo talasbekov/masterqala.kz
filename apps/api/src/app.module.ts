@@ -22,6 +22,7 @@ import { DisputesModule } from './disputes/disputes.module';
 import { AddressesModule } from './addresses/addresses.module';
 import { ReviewsModule } from './reviews/reviews.module';
 import { AdminUsersModule } from './admin-users/admin-users.module';
+import { AdminMastersModule } from './admin-masters/admin-masters.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { AdminUsersModule } from './admin-users/admin-users.module';
     UploadsModule,
     AdminModule,
     AdminUsersModule,
+    AdminMastersModule,
     PaymentsModule,
     RoutingModule,
     PricingModule,
