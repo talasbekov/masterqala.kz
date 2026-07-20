@@ -26,4 +26,21 @@ describe('AdminMastersService', () => {
       'активен · офлайн',
     ]);
   });
+
+  it('applies district and categorySlug filters to the where clause', async () => {
+    const { service, prisma } = build();
+    prisma.masterProfile.findMany.mockResolvedValue([]);
+
+    await service.list('plumbing', 'Алмалинский');
+
+    expect(prisma.masterProfile.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          status: 'ACTIVE',
+          district: 'Алмалинский',
+          categories: { some: { category: { slug: 'plumbing' } } },
+        }),
+      }),
+    );
+  });
 });
