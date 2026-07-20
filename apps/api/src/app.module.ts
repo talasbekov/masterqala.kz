@@ -23,6 +23,7 @@ import { AddressesModule } from './addresses/addresses.module';
 import { ReviewsModule } from './reviews/reviews.module';
 import { AdminUsersModule } from './admin-users/admin-users.module';
 import { AdminMastersModule } from './admin-masters/admin-masters.module';
+import { AdminOrdersModule } from './admin-orders/admin-orders.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { AdminMastersModule } from './admin-masters/admin-masters.module';
     AdminModule,
     AdminUsersModule,
     AdminMastersModule,
+    AdminOrdersModule,
     PaymentsModule,
     RoutingModule,
     PricingModule,
