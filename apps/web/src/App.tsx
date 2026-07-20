@@ -49,7 +49,6 @@ export default function App() {
               <Route path="/notifications" element={<NotificationsPage />} />
               <Route path="/catalog" element={<CatalogPage />} />
               <Route path="/orders" element={<MyOrdersPage />} />
-              <Route path="/support" element={<SupportPage />} />
               <Route path="/profile" element={<ProfilePage />} />
             </Route>
             <Route element={<Layout />}>
@@ -65,6 +64,7 @@ export default function App() {
               <Route path="/wallet" element={<WalletPage />} />
               <Route path="/profile/addresses" element={<AddressesPage />} />
               <Route path="/profile/payments" element={<PaymentsPage />} />
+              <Route path="/support" element={<SupportPage />} />
             </Route>
             <Route path="/become-master" element={<BecomeMasterPage />} />
             <Route element={<RequireOperator />}>
