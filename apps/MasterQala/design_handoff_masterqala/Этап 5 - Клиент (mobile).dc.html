@@ -1,0 +1,1051 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="_ds/masterqala-design-system-e764316c-0ca9-499e-8a35-b9393de66d34/fonts/fonts.css">
+  <style>
+    body { margin:0; background:#C7DAE3; font-family:'Manrope',ui-sans-serif,system-ui,sans-serif; color:#14303C; }
+    a { color:#166088; } a:hover { color:#134F73; }
+    @keyframes mqPulse { 0%{transform:scale(0.6);opacity:0.7} 100%{transform:scale(1.6);opacity:0} }
+    @keyframes mqUp { from{transform:translateY(14px);opacity:0} to{transform:translateY(0);opacity:1} }
+    @keyframes mqSpin { to{transform:rotate(360deg)} }
+    input::placeholder, textarea::placeholder { color:#8FAAB8; }
+    input, textarea { outline:none; }
+    input:focus-visible, textarea:focus-visible, button:focus-visible { outline:2px solid #166088; outline-offset:2px; }
+  </style>
+</helmet>
+<div style="display:flex;gap:28px;align-items:flex-start;padding:28px 32px;min-height:100vh;box-sizing:border-box">
+  <div style="width:230px;flex:none;background:#FFFFFF;border:1px solid #C0D6DF;border-radius:18px;padding:16px;position:sticky;top:28px">
+    <div style="font-size:11px;font-weight:800;letter-spacing:0.07em;color:#166088;text-transform:uppercase;margin-bottom:2px">MasterQala · Этап 5–6</div>
+    <div style="font-size:15px;font-weight:800;margin-bottom:10px">Клиент · 390×844</div>
+    <div style="font-size:11.5px;color:#5B7B8A;line-height:1.45;margin-bottom:12px">Кликабельный прототип с симуляцией realtime. Панель — для навигации по состояниям.</div>
+    <sc-for list="{{ jumpGroups }}" as="jg" hint-placeholder-count="6">
+      <div style="margin-bottom:10px">
+        <div style="font-size:10.5px;font-weight:800;color:#5B7B8A;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:5px">{{ jg.name }}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:5px">
+          <sc-for list="{{ jg.items }}" as="j" hint-placeholder-count="4">
+            <button onClick="{{ j.onTap }}" style="font-family:inherit;font-size:11px;font-weight:700;border:1px solid {{ j.bc }};background:{{ j.bg }};color:{{ j.fg }};border-radius:999px;padding:4px 10px;cursor:pointer">{{ j.label }}</button>
+          </sc-for>
+        </div>
+      </div>
+    </sc-for>
+    <div style="border-top:1px solid #C0D6DF;padding-top:10px;margin-top:4px">
+      <label style="display:flex;gap:7px;align-items:center;font-size:12px;font-weight:700;cursor:pointer"><input type="checkbox" checked="{{ noMastersDemo }}" onChange="{{ toggleNoMasters }}">Сценарий «нет мастеров»</label>
+    </div>
+  </div>
+
+  <div style="width:390px;height:844px;flex:none;background:#F2F7FA;border-radius:44px;overflow:hidden;box-shadow:0 24px 60px rgba(20,48,60,0.28),0 0 0 10px #14303C;display:flex;flex-direction:column;position:relative">
+    <div style="height:44px;flex:none;display:flex;justify-content:space-between;align-items:center;padding:0 26px;font-size:13.5px;font-weight:800;color:#14303C">
+      <span>9:41</span><span style="letter-spacing:2px">▮▮▮ ᯤ 87%</span>
+    </div>
+
+    <sc-if value="{{ scr.splash }}" hint-placeholder-val="{{ true }}">
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:#166088;margin:-44px 0 0;padding-top:44px" onClick="{{ go.phone }}">
+        <div style="width:88px;height:88px;border-radius:24px;background:#FFFFFF;display:flex;align-items:center;justify-content:center;font-size:40px;color:#166088;font-weight:800">M</div>
+        <div style="color:#FFFFFF;font-size:28px;font-weight:800;letter-spacing:-0.01em">MasterQala</div>
+        <div style="color:#C0D6DF;font-size:14px">Проверенные мастера рядом</div>
+        <div style="width:26px;height:26px;border:3px solid #C0D6DF;border-top-color:#FFFFFF;border-radius:50%;animation:mqSpin 0.9s linear infinite;margin-top:12px"></div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ scr.phone }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:1;display:flex;flex-direction:column;padding:22px 24px;gap:14px">
+        <div style="font-size:26px;font-weight:800;margin-top:26px;line-height:1.2">Вход по номеру телефона</div>
+        <div style="font-size:14px;color:#5B7B8A;line-height:1.5">Отправим SMS с кодом подтверждения</div>
+        <div style="display:flex;gap:8px;align-items:center;background:#FFFFFF;border:1.5px solid #C0D6DF;border-radius:14px;padding:14px 16px;margin-top:8px">
+          <span style="font-weight:800;font-size:17px">+7</span>
+          <input placeholder="707 123 45 67" style="border:none;font-family:inherit;font-size:17px;font-weight:700;flex:1;background:transparent;color:#14303C">
+        </div>
+        <div style="font-size:12px;color:#5B7B8A;line-height:1.5">Продолжая, вы соглашаетесь с <span style="color:#166088;font-weight:700">условиями сервиса</span></div>
+        <div style="margin-top:auto"></div>
+        <button onClick="{{ go.sms }}" style="font-family:inherit;background:#166088;color:#FFFFFF;border:none;border-radius:999px;padding:16px;font-size:16px;font-weight:800;cursor:pointer">Получить код</button>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ scr.sms }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:1;display:flex;flex-direction:column;padding:22px 24px;gap:14px">
+        <button onClick="{{ go.phone }}" style="font-family:inherit;align-self:flex-start;background:none;border:none;color:#166088;font-size:14px;font-weight:800;cursor:pointer;padding:0">← Изменить номер</button>
+        <div style="font-size:26px;font-weight:800;margin-top:10px;line-height:1.2">Код из SMS</div>
+        <div style="font-size:14px;color:#5B7B8A">Отправили на +7 707 123 45 67</div>
+        <div style="display:flex;gap:10px;margin-top:8px">
+          <div style="width:56px;height:64px;background:#FFFFFF;border:1.5px solid #166088;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800">4</div>
+          <div style="width:56px;height:64px;background:#FFFFFF;border:1.5px solid #166088;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800">2</div>
+          <div style="width:56px;height:64px;background:#FFFFFF;border:1.5px solid #C0D6DF;border-radius:14px"></div>
+          <div style="width:56px;height:64px;background:#FFFFFF;border:1.5px solid #C0D6DF;border-radius:14px"></div>
+        </div>
+        <div style="font-size:13px;color:#5B7B8A">Отправить снова через 0:42</div>
+        <div style="margin-top:auto"></div>
+        <button onClick="{{ go.home }}" style="font-family:inherit;background:#166088;color:#FFFFFF;border:none;border-radius:999px;padding:16px;font-size:16px;font-weight:800;cursor:pointer">Войти</button>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ scr.home }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:1;overflow-y:auto;padding:6px 20px 14px;display:flex;flex-direction:column;gap:14px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div style="font-size:12px;font-weight:700;color:#5B7B8A">{{ t.city }} · Сыганак, 12 ▾</div>
+            <div style="font-size:22px;font-weight:800;margin-top:2px">{{ t.greet }}</div>
+          </div>
+          <button onClick="{{ go.support }}" style="font-family:inherit;width:40px;height:40px;border-radius:50%;background:#FFFFFF;border:1px solid #C0D6DF;font-size:16px;cursor:pointer">?</button>
+        </div>
+        <sc-if value="{{ hasActiveUrgent }}" hint-placeholder-val="{{ false }}">
+          <button onClick="{{ go.track }}" style="font-family:inherit;text-align:left;background:#166088;border:none;border-radius:18px;padding:14px 16px;cursor:pointer;display:flex;align-items:center;gap:12px;animation:mqUp 0.3s ease">
+            <div style="width:38px;height:38px;border-radius:50%;background:#C0D6DF;color:#14303C;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;flex:none">ДС</div>
+            <div style="flex:1;min-width:0">
+              <div style="color:#FFFFFF;font-weight:800;font-size:14px">Сантехника · {{ phaseLabel }}</div>
+              <div style="color:#C0D6DF;font-size:12px;font-weight:600">{{ phaseSub }}</div>
+            </div>
+            <span style="color:#C0D6DF;font-size:18px">›</span>
+          </button>
+        </sc-if>
+        <button onClick="{{ act.startUrgent }}" style="font-family:inherit;text-align:left;background:#FFFFFF;border:2px solid #166088;border-radius:18px;padding:16px;cursor:pointer;box-shadow:0 2px 8px rgba(20,48,60,0.06)">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span style="font-size:17px;font-weight:800">⚡ {{ t.now }}</span>
+            <span style="font-size:11.5px;font-weight:800;background:#EAF2F6;color:#166088;border-radius:999px;padding:4px 10px">~15 мин</span>
+          </div>
+          <div style="font-size:12.5px;color:#5B7B8A;line-height:1.45;margin-top:6px">Найдём ближайшего мастера. Сейчас оплачивается только выезд — цену работ подтвердите после осмотра.</div>
+          <div style="margin-top:10px;background:#166088;color:#FFFFFF;border-radius:999px;padding:11px;text-align:center;font-size:14px;font-weight:800">{{ t.callBtn }}</div>
+        </button>
+        <button onClick="{{ act.startPlanned }}" style="font-family:inherit;text-align:left;background:#FFFFFF;border:2px solid #C0D6DF;border-radius:18px;padding:16px;cursor:pointer;box-shadow:0 2px 8px rgba(20,48,60,0.06)">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span style="font-size:17px;font-weight:800">📅 {{ t.plan }}</span>
+            <span style="font-size:11.5px;font-weight:800;background:#EAF2F6;color:#166088;border-radius:999px;padding:4px 10px">до 5 предложений</span>
+          </div>
+          <div style="font-size:12.5px;color:#5B7B8A;line-height:1.45;margin-top:6px">Мастера предложат цену и срок — сравните рейтинг, опыт и стоимость и выберите сами.</div>
+          <div style="margin-top:10px;border:1.5px solid #166088;color:#166088;border-radius:999px;padding:10px;text-align:center;font-size:14px;font-weight:800">{{ t.createBtn }}</div>
+        </button>
+        <div>
+          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px">
+            <span style="font-size:15px;font-weight:800">{{ t.cats }}</span>
+            <button onClick="{{ go.catalog }}" style="font-family:inherit;background:none;border:none;color:#166088;font-size:12.5px;font-weight:800;cursor:pointer">{{ t.all }}</button>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+            <sc-for list="{{ homeCats }}" as="c" hint-placeholder-count="6">
+              <button onClick="{{ c.onTap }}" style="font-family:inherit;background:#FFFFFF;border:1px solid #C0D6DF;border-radius:14px;padding:12px 6px;cursor:pointer;text-align:center">
+                <div style="font-size:20px;margin-bottom:4px">{{ c.icon }}</div>
+                <div style="font-size:11.5px;font-weight:700;color:#14303C">{{ c.name }}</div>
+              </button>
+            </sc-for>
+          </div>
+        </div>
+        <div style="background:#CFE0E8;border-radius:14px;padding:12px 14px;display:flex;gap:10px;align-items:center">
+          <span style="font-size:18px">🛡️</span>
+          <div style="font-size:12px;font-weight:600;color:#14303C;line-height:1.45">Все мастера проходят проверку документов. Оплата защищена, при проблеме — спор и поддержка 24/7.</div>
+        </div>
+      </div>
+      <div style="height:1px"></div>
+    </sc-if>
+
+    <sc-if value="{{ scr.catalog }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:1;overflow-y:auto;padding:6px 20px 14px;display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <button onClick="{{ go.home }}" style="font-family:inherit;background:none;border:none;color:#166088;font-size:20px;cursor:pointer;padding:0">←</button>
+          <span style="font-size:20px;font-weight:800">Все категории</span>
+        </div>
+        <div style="background:#FFFFFF;border:1.5px solid #C0D6DF;border-radius:14px;padding:12px 14px;font-size:14px;color:#8FAAB8">🔍 Поиск услуги…</div>
+        <sc-for list="{{ allCats }}" as="c" hint-placeholder-count="8">
+          <button onClick="{{ c.onTap }}" style="font-family:inherit;background:#FFFFFF;border:1px solid #C0D6DF;border-radius:14px;padding:13px 14px;cursor:pointer;display:flex;align-items:center;gap:12px;text-align:left">
+            <span style="font-size:20px">{{ c.icon }}</span>
+            <div style="flex:1"><div style="font-size:14px;font-weight:800">{{ c.name }}</div><div style="font-size:11.5px;color:#5B7B8A">{{ c.sub }}</div></div>
+            <span style="color:#5B7B8A">›</span>
+          </button>
+        </sc-for>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ scr.uw1 }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:1;display:flex;flex-direction:column;padding:6px 20px 14px;gap:12px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <button onClick="{{ go.home }}" style="font-family:inherit;background:none;border:none;color:#166088;font-size:20px;cursor:pointer;padding:0">←</button>
+          <span style="font-size:18px;font-weight:800;flex:1">Срочный вызов</span>
+          <span style="font-size:12px;font-weight:700;color:#5B7B8A">шаг 1 из 4</span>
+        </div>
+        <div style="display:flex;gap:5px"><div style="flex:1;height:5px;border-radius:3px;background:#166088"></div><div style="flex:1;height:5px;border-radius:3px;background:#C0D6DF"></div><div style="flex:1;height:5px;border-radius:3px;background:#C0D6DF"></div><div style="flex:1;height:5px;border-radius:3px;background:#C0D6DF"></div></div>
+        <div style="font-size:21px;font-weight:800">Что случилось?</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px">
+          <sc-for list="{{ pickCats }}" as="c" hint-placeholder-count="6">
+            <button onClick="{{ c.onTap }}" style="font-family:inherit;background:{{ c.bg }};border:2px solid {{ c.bc }};border-radius:14px;padding:14px 10px;cursor:pointer;text-align:left">
+              <div style="font-size:22px;margin-bottom:6px">{{ c.icon }}</div>
+              <div style="font-size:13.5px;font-weight:800;color:{{ c.fg }}">{{ c.name }}</div>
+            </button>
+          </sc-for>
+        </div>
+        <button style="font-family:inherit;background:none;border:1.5px dashed #C0D6DF;border-radius:14px;padding:12px;font-size:13px;font-weight:700;color:#5B7B8A;cursor:pointer">Не знаю категорию — помогите определить</button>
+        <div style="margin-top:auto"></div>
+        <button onClick="{{ go.uw2 }}" style="font-family:inherit;background:#166088;color:#FFFFFF;border:none;border-radius:999px;padding:15px;font-size:15px;font-weight:800;cursor:pointer">Далее</button>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ scr.uw2 }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:1;display:flex;flex-direction:column;padding:6px 20px 14px;gap:12px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <button onClick="{{ go.uw1 }}" style="font-family:inherit;background:none;border:none;color:#166088;font-size:20px;cursor:pointer;padding:0">←</button>
+          <span style="font-size:18px;font-weight:800;flex:1">Опишите проблему</span>
+          <span style="font-size:12px;font-weight:700;color:#5B7B8A">шаг 2 из 4</span>
+        </div>
+        <div style="display:flex;gap:5px"><div style="flex:1;height:5px;border-radius:3px;background:#166088"></div><div style="flex:1;height:5px;border-radius:3px;background:#166088"></div><div style="flex:1;height:5px;border-radius:3px;background:#C0D6DF"></div><div style="flex:1;height:5px;border-radius:3px;background:#C0D6DF"></div></div>
+        <div style="display:flex;align-items:center;gap:8px;background:#CFE0E8;border-radius:999px;padding:6px 12px;align-self:flex-start"><span style="font-size:15px">🔧</span><span style="font-size:12.5px;font-weight:800">{{ uCat }}</span><button onClick="{{ go.uw1 }}" style="font-family:inherit;background:none;border:none;color:#166088;font-size:11.5px;font-weight:800;cursor:pointer;padding:0">изменить</button></div>
+        <textarea placeholder="Например: «Течёт труба под раковиной на кухне, вода капает постоянно, перекрыл стояк»" style="font-family:inherit;background:#FFFFFF;border:1.5px solid #C0D6DF;border-radius:14px;padding:13px 14px;font-size:14px;min-height:110px;resize:none;color:#14303C;line-height:1.5"></textarea>
+        <div style="font-size:14px;font-weight:800">Фото <span style="font-size:12px;font-weight:600;color:#5B7B8A">(до 5 — мастер точнее оценит работу)</span></div>
+        <div style="display:flex;gap:9px">
+          <div style="width:72px;height:72px;border-radius:12px;background:repeating-linear-gradient(45deg,#C0D6DF 0 8px,#CFE0E8 8px 16px);position:relative"><span style="position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;background:#14303C;color:#FFFFFF;font-size:11px;display:flex;align-items:center;justify-content:center;cursor:pointer">✕</span></div>
+          <div style="width:72px;height:72px;border-radius:12px;background:repeating-linear-gradient(45deg,#C0D6DF 0 8px,#CFE0E8 8px 16px);position:relative"><span style="position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;background:#14303C;color:#FFFFFF;font-size:11px;display:flex;align-items:center;justify-content:center;cursor:pointer">✕</span></div>
+          <button style="font-family:inherit;width:72px;height:72px;border-radius:12px;border:1.5px dashed #166088;background:none;color:#166088;font-size:22px;cursor:pointer">＋</button>
+        </div>
+        <div style="margin-top:auto"></div>
+        <button onClick="{{ go.uw3 }}" style="font-family:inherit;background:#166088;color:#FFFFFF;border:none;border-radius:999px;padding:15px;font-size:15px;font-weight:800;cursor:pointer">Далее — адрес</button>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ scr.uw3 }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:1;display:flex;flex-direction:column;overflow-y:auto">
+        <div style="height:190px;flex:none;position:relative;overflow:hidden;background:#CFE0E8">
+          <div style="position:absolute;left:-60px;top:-120px;width:512px;height:512px">
+            <img src="https://tile.openstreetmap.org/14/11442/5477.png" style="position:absolute;left:0;top:0;width:256px;height:256px" alt="">
+            <img src="https://tile.openstreetmap.org/14/11443/5477.png" style="position:absolute;left:256px;top:0;width:256px;height:256px" alt="">
+            <img src="https://tile.openstreetmap.org/14/11442/5478.png" style="position:absolute;left:0;top:256px;width:256px;height:256px" alt="">
+            <img src="https://tile.openstreetmap.org/14/11443/5478.png" style="position:absolute;left:256px;top:256px;width:256px;height:256px" alt="">
+          </div>
+          <div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-100%)"><div style="width:22px;height:22px;border-radius:50% 50% 50% 0;background:#166088;transform:rotate(-45deg);box-shadow:0 2px 6px rgba(20,48,60,0.4)"></div></div>
+          <button onClick="{{ go.uw2 }}" style="font-family:inherit;position:absolute;left:12px;top:12px;width:36px;height:36px;border-radius:50%;background:#FFFFFF;border:none;font-size:17px;cursor:pointer;box-shadow:0 2px 8px rgba(20,48,60,0.2)">←</button>
+          <button style="font-family:inherit;position:absolute;right:12px;bottom:12px;background:#FFFFFF;border:none;border-radius:999px;padding:8px 12px;font-size:12px;font-weight:800;cursor:pointer;box-shadow:0 2px 8px rgba(20,48,60,0.2)">◎ Моё место</button>
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column;padding:14px 20px;gap:11px">
+          <div style="display:flex;justify-content:space-between"><span style="font-size:17px;font-weight:800">Адрес</span><span style="font-size:12px;font-weight:700;color:#5B7B8A">шаг 3 из 4</span></div>
+          <div style="background:#FFFFFF;border:1.5px solid #166088;border-radius:14px;padding:12px 14px;font-size:14px;font-weight:700">пр. Кабанбай батыра, 42</div>
+          <div style="display:flex;gap:6px">
+            <span style="background:#166088;color:#FFFFFF;border-radius:999px;padding:5px 12px;font-size:12px;font-weight:800">🏠 Дом</span>
+            <span style="border:1.5px solid #C0D6DF;border-radius:999px;padding:5px 12px;font-size:12px;font-weight:700;color:#5B7B8A">Работа</span>
+            <span style="border:1.5px dashed #C0D6DF;border-radius:999px;padding:5px 12px;font-size:12px;font-weight:700;color:#5B7B8A">＋ новый</span>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+            <div style="background:#FFFFFF;border:1.5px solid #C0D6DF;border-radius:12px;padding:10px 12px"><div style="font-size:10px;font-weight:700;color:#5B7B8A">Подъезд</div><div style="font-size:14px;font-weight:800">3</div></div>
+            <div style="background:#FFFFFF;border:1.5px solid #C0D6DF;border-radius:12px;padding:10px 12px"><div style="font-size:10px;font-weight:700;color:#5B7B8A">Этаж</div><div style="font-size:14px;font-weight:800">7</div></div>
+            <div style="background:#FFFFFF;border:1.5px solid #C0D6DF;border-radius:12px;padding:10px 12px"><div style="font-size:10px;font-weight:700;color:#5B7B8A">Квартира</div><div style="font-size:14px;font-weight:800">51</div></div>
+          </div>
+          <input placeholder="Комментарий мастеру: домофон, ориентиры…" style="font-family:inherit;background:#FFFFFF;border:1.5px solid #C0D6DF;border-radius:12px;padding:12px 14px;font-size:13px;color:#14303C">
+          <div style="margin-top:auto"></div>
+          <button onClick="{{ go.uw4 }}" style="font-family:inherit;background:#166088;color:#FFFFFF;border:none;border-radius:999px;padding:15px;font-size:15px;font-weight:800;cursor:pointer">Далее — расчёт</button>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ scr.uw4 }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:1;display:flex;flex-direction:column;padding:6px 20px 14px;gap:12px;overflow-y:auto">
+        <div style="display:flex;align-items:center;gap:10px">
+          <button onClick="{{ go.uw3 }}" style="font-family:inherit;background:none;border:none;color:#166088;font-size:20px;cursor:pointer;padding:0">←</button>
+          <span style="font-size:18px;font-weight:800;flex:1">Проверьте заказ</span>
+          <span style="font-size:12px;font-weight:700;color:#5B7B8A">шаг 4 из 4</span>
+        </div>
+        <div style="background:#CFE0E8;border-radius:14px;padding:12px 14px">
+          <div style="font-size:13.5px;font-weight:800">🔧 {{ uCat }} · «Течёт труба под раковиной…» · 2 фото</div>
+          <div style="font-size:12px;color:#38596A;font-weight:600;margin-top:3px">пр. Кабанбай батыра 42 · под. 3 · эт. 7 · кв. 51</div>
+        </div>
+        <div style="background:#FFFFFF;border:1px solid #C0D6DF;border-radius:16px;padding:14px 16px">
+          <div style="display:flex;justify-content:space-between;font-size:14.5px;font-weight:700"><span>Выезд мастера</span><span style="font-weight:800">3 500 ₸</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:12px;color:#5B7B8A;margin-top:3px"><span>в т.ч. сервисный сбор платформы</span><span>1 400 ₸</span></div>
+          <div style="border-top:1.5px dashed #C0D6DF;margin:10px 0"></div>
+          <div style="font-size:12.5px;color:#38596A;line-height:1.5">Стоимость работ мастер назовёт <b>после осмотра</b> — вы подтвердите или отклоните её отдельно. Скрытых платежей нет.</div>
+        </div>
+        <button onClick="{{ go.payments }}" style="font-family:inherit;background:#FFFFFF;border:1px solid #C0D6DF;border-radius:14px;padding:12px 14px;cursor:pointer;display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:13.5px;font-weight:800">💳 Kaspi Gold ···· 4821</span><span style="font-size:12px;font-weight:800;color:#166088">сменить</span>
+        </button>
+        <div style="font-size:12px;color:#5B7B8A;line-height:1.5">Отмена <b>до принятия мастером — бесплатно</b>. После принятия выезд удерживается. <span style="color:#166088;font-weight:700">Правила отмены</span></div>
+        <div style="margin-top:auto"></div>
+        <button onClick="{{ act.createUrgent }}" style="font-family:inherit;background:#166088;color:#FFFFFF;border:none;border-radius:999px;padding:16px;font-size:15.5px;font-weight:800;cursor:pointer">Найти мастера · 3 500 ₸</button>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ scr.search }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:1;display:flex;flex-direction:column">
+        <div style="flex:1;position:relative;overflow:hidden;background:#CFE0E8">
+          <div style="position:absolute;left:-60px;top:-40px;width:512px;height:512px">
+            <img src="https://tile.openstreetmap.org/14/11442/5477.png" style="position:absolute;left:0;top:0;width:256px;height:256px" alt="">
+            <img src="https://tile.openstreetmap.org/14/11443/5477.png" style="position:absolute;left:256px;top:0;width:256px;height:256px" alt="">
+            <img src="https://tile.openstreetmap.org/14/11442/5478.png" style="position:absolute;left:0;top:256px;width:256px;height:256px" alt="">
+            <img src="https://tile.openstreetmap.org/14/11443/5478.png" style="position:absolute;left:256px;top:256px;width:256px;height:256px" alt="">
+          </div>
+          <div style="position:absolute;left:50%;top:45%;transform:translate(-50%,-50%)">
+            <div style="position:absolute;left:50%;top:50%;width:130px;height:130px;margin:-65px 0 0 -65px;border-radius:50%;background:rgba(22,96,136,0.25);animation:mqPulse 1.8s ease-out infinite"></div>
+            <div style="position:absolute;left:50%;top:50%;width:130px;height:130px;margin:-65px 0 0 -65px;border-radius:50%;background:rgba(22,96,136,0.25);animation:mqPulse 1.8s ease-out 0.6s infinite"></div>
+            <div style="position:relative;width:18px;height:18px;border-radius:50%;background:#166088;border:3px solid #FFFFFF;box-shadow:0 2px 8px rgba(20,48,60,0.4)"></div>
+          </div>
+        </div>
+        <div style="flex:none;background:#FFFFFF;border-radius:22px 22px 0 0;padding:16px 20px 18px;box-shadow:0 -6px 24px rgba(20,48,60,0.12)">
+          <div style="width:38px;height:4px;border-radius:2px;background:#C0D6DF;margin:0 auto 12px"></div>
+          <div style="display:flex;justify-content:space-between;align-items:baseline">
+            <div style="font-size:18px;font-weight:800">{{ waveText }}</div>
+            <div style="font-size:14px;font-weight:800;color:#166088">{{ searchTimeStr }}</div>
+          </div>
+          <div style="font-size:12.5px;color:#5B7B8A;margin-top:4px">{{ waveSub }}</div>
+          <div style="display:flex;gap:5px;margin:12px 0">
+            <div style="flex:1;height:5px;border-radius:3px;background:{{ w1c }}"></div>
+            <div style="flex:1;height:5px;border-radius:3px;background:{{ w2c }}"></div>
+            <div style="flex:1;height:5px;border-radius:3px;background:{{ w3c }}"></div>
+          </div>
+          <button onClick="{{ act.cancelSearch }}" style="font-family:inherit;width:100%;background:none;border:1.5px solid #DC2626;color:#DC2626;border-radius:999px;padding:13px;font-size:14px;font-weight:800;cursor:pointer">Отменить — бесплатно</button>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ scr.nomasters }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:1;display:flex;flex-direction:column;padding:22px 24px;gap:14px;align-items:center;justify-content:center;text-align:center">
+        <div style="font-size:44px">😔</div>
+        <div style="font-size:21px;font-weight:800">Никто не откликнулся</div>
+        <div style="font-size:13.5px;color:#5B7B8A;line-height:1.55;max-width:290px">Сейчас рядом нет свободных мастеров. Оплата за выезд <b>полностью возвращена</b>. Попробуйте ещё раз или запланируйте на удобное время — мастера сами предложат цену.</div>
+        <button onClick="{{ act.retrySearch }}" style="font-family:inherit;width:100%;background:#166088;color:#FFFFFF;border:none;border-radius:999px;padding:15px;font-size:15px;font-weight:800;cursor:pointer;margin-top:8px">Повторить поиск</button>
+        <button onClick="{{ act.startPlanned }}" style="font-family:inherit;width:100%;background:none;border:1.5px solid #166088;color:#166088;border-radius:999px;padding:14px;font-size:14px;font-weight:800;cursor:pointer">Запланировать на время</button>
+        <button onClick="{{ go.home }}" style="font-family:inherit;background:none;border:none;color:#5B7B8A;font-size:13px;font-weight:700;cursor:pointer">На главную</button>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ scr.track }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:1;display:flex;flex-direction:column">
+        <div style="flex:1;position:relative;overflow:hidden;background:#CFE0E8">
+          <div style="position:absolute;left:-60px;top:-40px;width:512px;height:512px">
+            <img src="https://tile.openstreetmap.org/14/11442/5477.png" style="position:absolute;left:0;top:0;width:256px;height:256px" alt="">
+            <img src="https://tile.openstreetmap.org/14/11443/5477.png" style="position:absolute;left:256px;top:0;width:256px;height:256px" alt="">
+            <img src="https://tile.openstreetmap.org/14/11442/5478.png" style="position:absolute;left:0;top:256px;width:256px;height:256px" alt="">
+            <img src="https://tile.openstreetmap.org/14/11443/5478.png" style="position:absolute;left:256px;top:256px;width:256px;height:256px" alt="">
+          </div>
+          <div style="position:absolute;left:62%;top:52%;transform:translate(-50%,-100%)"><div style="width:22px;height:22px;border-radius:50% 50% 50% 0;background:#166088;transform:rotate(-45deg);box-shadow:0 2px 6px rgba(20,48,60,0.4)"></div></div>
+          <div style="position:absolute;left:{{ masterX }}%;top:{{ masterY }}%;transform:translate(-50%,-50%);transition:left 1s linear,top 1s linear"><div style="width:30px;height:30px;border-radius:50%;background:#FFFFFF;border:3px solid #166088;display:flex;align-items:center;justify-content:center;font-size:14px;box-shadow:0 2px 8px rgba(20,48,60,0.3)">🚗</div></div>
+          <div style="position:absolute;left:12px;top:12px;background:#FFFFFF;border-radius:999px;padding:7px 14px;font-size:12.5px;font-weight:800;box-shadow:0 2px 8px rgba(20,48,60,0.2)">Заявка №1042 · <span style="color:#166088">{{ phaseLabel }}</span></div>
+        </div>
+        <div style="flex:none;background:#FFFFFF;border-radius:22px 22px 0 0;padding:14px 20px 16px;box-shadow:0 -6px 24px rgba(20,48,60,0.12)">
+          <div style="width:38px;height:4px;border-radius:2px;background:#C0D6DF;margin:0 auto 10px"></div>
+          <div style="display:flex;gap:12px;align-items:center">
+            <div style="width:46px;height:46px;border-radius:50%;background:#CFE0E8;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;flex:none">ДС</div>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:15px;font-weight:800">Данияр С. <span style="font-size:10.5px;font-weight:800;background:#E5F3EE;color:#059669;border-radius:999px;padding:2px 8px;vertical-align:2px">✓ проверен</span></div>
+              <div style="font-size:12px;color:#5B7B8A;font-weight:600">★ 4.9 · 214 заказов · Сантехник</div>
+            </div>
+            <button style="font-family:inherit;width:44px;height:44px;border-radius:50%;background:#166088;color:#FFFFFF;border:none;font-size:17px;cursor:pointer">📞</button>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;background:#CFE0E8;border-radius:12px;padding:10px 14px;margin-top:10px">
+            <span style="font-size:13px;font-weight:700">{{ etaLabel }}</span><span style="font-size:16px;font-weight:800;color:#166088">{{ etaStr }}</span>
+          </div>
+          <div style="display:flex;gap:14px;margin-top:10px;font-size:12px;font-weight:800;color:#166088">
+            <button onClick="{{ go.support }}" style="font-family:inherit;background:none;border:none;color:#166088;font-weight:800;font-size:12px;cursor:pointer;padding:0">Поддержка</button>
+            <span style="color:#C0D6DF">·</span><span>Правила отмены</span>
+            <button onClick="{{ act.cancelAfterAccept }}" style="font-family:inherit;background:none;border:none;color:#DC2626;font-weight:800;font-size:12px;cursor:pointer;padding:0;margin-left:auto">Отменить</button>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ scr.price }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:1;display:flex;flex-direction:column;padding:6px 20px 14px;gap:12px;overflow-y:auto">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:18px;font-weight:800">Цена работ</span>
+          <span style="font-size:13px;font-weight:800;background:#166088;color:#FFFFFF;border-radius:999px;padding:5px 12px">⏱ {{ priceTimerStr }}</span>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center">
+          <div style="width:40px;height:40px;border-radius:50%;background:#CFE0E8;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px">ДС</div>
+          <div style="font-size:13.5px;font-weight:700;line-height:1.4">Данияр осмотрел проблему и предлагает:</div>
+        </div>
+        <div style="background:#FFFFFF;border:1px solid #C0D6DF;border-radius:16px;padding:14px 16px;animation:mqUp 0.3s ease">
+          <div style="display:flex;justify-content:space-between;font-size:13.5px;color:#5B7B8A;font-weight:600"><span>Выезд (уже оплачен)</span><span>3 500 ₸</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:14.5px;font-weight:800;margin-top:6px"><span>Работы</span><span>15 000 ₸</span></div>
+          <div style="border-top:1.5px dashed #C0D6DF;margin:10px 0"></div>
+          <div style="display:flex;justify-content:space-between;font-size:18px;font-weight:800"><span>Итого</span><span style="color:#166088">18 500 ₸</span></div>
+        </div>
+        <div style="background:#CFE0E8;border-radius:14px;padding:12px 14px;font-size:13px;line-height:1.5;color:#14303C">«Замена сифона и прокладки, детали есть с собой. Займёт около часа.»</div>
+        <div style="font-size:12px;color:#5B7B8A;line-height:1.55">Если отклоните — заявка отменится, оплата за выезд не возвращается (мастер уже приехал). Не согласны с ценой? <button onClick="{{ go.support }}" style="font-family:inherit;background:none;border:none;color:#166088;font-weight:800;font-size:12px;cursor:pointer;padding:0">Напишите в поддержку</button></div>
+        <div style="margin-top:auto"></div>
+        <button onClick="{{ act.confirmPrice }}" style="font-family:inherit;background:#166088;color:#FFFFFF;border:none;border-radius:999px;padding:16px;font-size:15.5px;font-weight:800;cursor:pointer">Подтвердить 15 000 ₸</button>
+        <button onClick="{{ act.rejectPrice }}" style="font-family:inherit;background:none;border:1.5px solid #DC2626;color:#DC2626;border-radius:999px;padding:13px;font-size:14px;font-weight:800;cursor:pointer">Отклонить цену</button>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ scr.progress }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:1;display:flex;flex-direction:column;padding:6px 20px 14px;gap:14px">
+        <div style="font-size:18px;font-weight:800">Заявка №1042</div>
+        <div style="display:flex;flex-direction:column;gap:0">
+          <sc-for list="{{ stepper }}" as="st" hint-placeholder-count="7">
+            <div style="display:flex;gap:12px">
+              <div style="display:flex;flex-direction:column;align-items:center">
+                <div style="width:22px;height:22px;border-radius:50%;background:{{ st.dot }};border:2px solid {{ st.ring }};display:flex;align-items:center;justify-content:center;font-size:11px;color:#FFFFFF;flex:none">{{ st.mark }}</div>
+                <sc-if value="{{ st.line }}" hint-placeholder-val="{{ true }}"><div style="width:2px;flex:1;background:{{ st.lineC }};min-height:18px"></div></sc-if>
+              </div>
+              <div style="padding-bottom:14px">
+                <div style="font-size:13.5px;font-weight:{{ st.w }};color:{{ st.fg }}">{{ st.label }}</div>
+                <sc-if value="{{ st.sub }}" hint-placeholder-val="{{ false }}"><div style="font-size:11.5px;color:#5B7B8A">{{ st.sub }}</div></sc-if>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="background:#CFE0E8;border-radius:14px;padding:12px 14px;font-size:12.5px;font-weight:600;line-height:1.5">Данияр работает. Итог к оплате: <b>18 500 ₸</b> (выезд оплачен, работы — после подтверждения выполнения).</div>
+        <div style="margin-top:auto"></div>
+        <button onClick="{{ go.support }}" style="font-family:inherit;background:none;border:1.5px solid #C0D6DF;color:#14303C;border-radius:999px;padding:13px;font-size:14px;font-weight:800;cursor:pointer">Поддержка</button>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ scr.done }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:1;display:flex;flex-direction:column;padding:6px 20px 14px;gap:14px">
+        <div style="font-size:18px;font-weight:800">Мастер завершил работу</div>
+        <div style="background:#FFFFFF;border:1px solid #C0D6DF;border-radius:16px;padding:14px 16px">
+          <div style="display:flex;gap:10px;align-items:center;margin-bottom:10px">
+            <div style="width:40px;height:40px;border-radius:50%;background:#CFE0E8;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px">ДС</div>
+            <div><div style="font-size:14px;font-weight:800">Данияр С.</div><div style="font-size:11.5px;color:#5B7B8A">Сантехника · заявка №1042</div></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:13.5px;font-weight:600;color:#5B7B8A"><span>Выезд</span><span>3 500 ₸</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:13.5px;font-weight:600;color:#5B7B8A;margin-top:4px"><span>Работы</span><span>15 000 ₸</span></div>
+          <div style="border-top:1.5px dashed #C0D6DF;margin:10px 0"></div>
+          <div style="display:flex;justify-content:space-between;font-size:16px;font-weight:800"><span>Итого</span><span>18 500 ₸</span></div>
+        </div>
+        <div style="font-size:12.5px;color:#5B7B8A;line-height:1.55">Проверьте результат. Если всё в порядке — подтвердите. Если нет — откройте спор, оператор разберётся. Без ответа заявка закроется автоматически через 24 ч.</div>
+        <div style="margin-top:auto"></div>
+        <button onClick="{{ act.confirmDone }}" style="font-family:inherit;background:#059669;color:#FFFFFF;border:none;border-radius:999px;padding:16px;font-size:15.5px;font-weight:800;cursor:pointer">Подтвердить выполнение</button>
+        <button onClick="{{ act.openDispute }}" style="font-family:inherit;background:none;border:1.5px solid #DC2626;color:#DC2626;border-radius:999px;padding:13px;font-size:14px;font-weight:800;cursor:pointer">Открыть спор</button>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ scr.closed }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:1;display:flex;flex-direction:column;padding:22px 24px;gap:14px;align-items:center;justify-content:center;text-align:center">
+        <div style="width:76px;height:76px;border-radius:50%;background:#059669;color:#FFFFFF;display:flex;align-items:center;justify-content:center;font-size:36px;animation:mqUp 0.4s ease">✓</div>
+        <div style="font-size:22px;font-weight:800">Заказ выполнен</div>
+        <div style="font-size:13.5px;color:#5B7B8A;line-height:1.55;max-width:280px">Оплачено 18 500 ₸ · Kaspi Gold ···· 4821. Чек — в истории заявки. Спасибо, что выбрали MasterQala!</div>
+        <div style="background:#FFFFFF;border:1px solid #C0D6DF;border-radius:16px;padding:14px;width:100%">
+          <div style="font-size:13px;font-weight:800;margin-bottom:8px">Оцените Данияра</div>
+          <div style="font-size:26px;letter-spacing:6px;color:#166088">★★★★★</div>
+        </div>
+        <button onClick="{{ go.home }}" style="font-family:inherit;width:100%;background:#166088;color:#FFFFFF;border:none;border-radius:999px;padding:15px;font-size:15px;font-weight:800;cursor:pointer">На главную</button>
+        <button onClick="{{ act.openDispute }}" style="font-family:inherit;background:none;border:none;color:#5B7B8A;font-size:12.5px;font-weight:700;cursor:pointer">Проблема с заказом? Открыть спор (48 ч)</button>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ scr.pw1 }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:1;display:flex;flex-direction:column;padding:6px 20px 14px;gap:12px;overflow-y:auto">
+        <div style="display:flex;align-items:center;gap:10px">
+          <button onClick="{{ go.home }}" style="font-family:inherit;background:none;border:none;color:#166088;font-size:20px;cursor:pointer;padding:0">←</button>
+          <span style="font-size:18px;font-weight:800;flex:1">Запланировать</span>
+          <span style="font-size:12px;font-weight:700;color:#5B7B8A">шаг 1 из 3</span>
+        </div>
+        <div style="display:flex;gap:5px"><div style="flex:1;height:5px;border-radius:3px;background:#166088"></div><div style="flex:1;height:5px;border-radius:3px;background:#C0D6DF"></div><div style="flex:1;height:5px;border-radius:3px;background:#C0D6DF"></div></div>
+        <div style="display:flex;align-items:center;gap:8px;background:#CFE0E8;border-radius:999px;padding:6px 12px;align-self:flex-start"><span style="font-size:15px">⚡</span><span style="font-size:12.5px;font-weight:800">Электрика</span><span style="font-size:11.5px;font-weight:800;color:#166088">изменить</span></div>
+        <textarea placeholder="Опишите задачу: «Заменить 6 розеток и перенести выключатель в спальне»" style="font-family:inherit;background:#FFFFFF;border:1.5px solid #C0D6DF;border-radius:14px;padding:13px 14px;font-size:14px;min-height:90px;resize:none;color:#14303C;line-height:1.5"></textarea>
+        <div style="display:flex;gap:9px">
+          <div style="width:64px;height:64px;border-radius:12px;background:repeating-linear-gradient(45deg,#C0D6DF 0 8px,#CFE0E8 8px 16px)"></div>
+          <button style="font-family:inherit;width:64px;height:64px;border-radius:12px;border:1.5px dashed #166088;background:none;color:#166088;font-size:20px;cursor:pointer">＋</button>
+        </div>
+        <div style="background:#FFFFFF;border:1.5px solid #C0D6DF;border-radius:14px;padding:12px 14px"><div style="font-size:10.5px;font-weight:700;color:#5B7B8A">Адрес и район</div><div style="font-size:13.5px;font-weight:800;margin-top:2px">ул. Сыганак, 18 · Есиль</div><div style="font-size:11px;color:#5B7B8A;margin-top:2px">точный адрес увидит только выбранный мастер</div></div>
+        <div style="margin-top:auto"></div>
+        <button onClick="{{ go.pw2 }}" style="font-family:inherit;background:#166088;color:#FFFFFF;border:none;border-radius:999px;padding:15px;font-size:15px;font-weight:800;cursor:pointer">Далее — дата и время</button>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ scr.pw2 }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:1;display:flex;flex-direction:column;padding:6px 20px 14px;gap:12px;overflow-y:auto">
+        <div style="display:flex;align-items:center;gap:10px">
+          <button onClick="{{ go.pw1 }}" style="font-family:inherit;background:none;border:none;color:#166088;font-size:20px;cursor:pointer;padding:0">←</button>
+          <span style="font-size:18px;font-weight:800;flex:1">Когда удобно?</span>
+          <span style="font-size:12px;font-weight:700;color:#5B7B8A">шаг 2 из 3</span>
+        </div>
+        <div style="display:flex;gap:5px"><div style="flex:1;height:5px;border-radius:3px;background:#166088"></div><div style="flex:1;height:5px;border-radius:3px;background:#166088"></div><div style="flex:1;height:5px;border-radius:3px;background:#C0D6DF"></div></div>
+        <div style="display:flex;gap:7px;overflow-x:auto;padding-bottom:4px">
+          <sc-for list="{{ dates }}" as="d" hint-placeholder-count="5">
+            <div style="flex:none;width:64px;border:2px solid {{ d.bc }};background:{{ d.bg }};border-radius:12px;padding:9px 0;text-align:center">
+              <div style="font-size:10.5px;font-weight:700;color:{{ d.subFg }}">{{ d.dow }}</div>
+              <div style="font-size:16px;font-weight:800;color:{{ d.fg }}">{{ d.day }}</div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="font-size:14px;font-weight:800">Временной интервал</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <div style="border:2px solid #C0D6DF;border-radius:12px;padding:11px;text-align:center;font-size:13px;font-weight:700;color:#5B7B8A">08:00–10:00</div>
+          <div style="border:2px solid #166088;background:#EAF2F6;border-radius:12px;padding:11px;text-align:center;font-size:13px;font-weight:800;color:#166088">10:00–13:00</div>
+          <div style="border:2px solid #C0D6DF;border-radius:12px;padding:11px;text-align:center;font-size:13px;font-weight:700;color:#5B7B8A">13:00–16:00</div>
+          <div style="border:2px solid #C0D6DF;border-radius:12px;padding:11px;text-align:center;font-size:13px;font-weight:700;color:#5B7B8A">16:00–19:00</div>
+        </div>
+        <div style="font-size:14px;font-weight:800">Бюджет <span style="font-size:11.5px;font-weight:600;color:#5B7B8A">(необязательно — ориентир для мастеров)</span></div>
+        <div style="background:#FFFFFF;border:1.5px solid #C0D6DF;border-radius:12px;padding:12px 14px;font-size:14px;font-weight:800">~ 20 000 ₸</div>
+        <div style="margin-top:auto"></div>
+        <button onClick="{{ go.pw3 }}" style="font-family:inherit;background:#166088;color:#FFFFFF;border:none;border-radius:999px;padding:15px;font-size:15px;font-weight:800;cursor:pointer">Далее — предпросмотр</button>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ scr.pw3 }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:1;display:flex;flex-direction:column;padding:6px 20px 14px;gap:12px;overflow-y:auto">
+        <div style="display:flex;align-items:center;gap:10px">
+          <button onClick="{{ go.pw2 }}" style="font-family:inherit;background:none;border:none;color:#166088;font-size:20px;cursor:pointer;padding:0">←</button>
+          <span style="font-size:18px;font-weight:800;flex:1">Предпросмотр</span>
+          <span style="font-size:12px;font-weight:700;color:#5B7B8A">шаг 3 из 3</span>
+        </div>
+        <div style="font-size:12.5px;color:#5B7B8A;line-height:1.5">Так вашу заявку увидят мастера — <b>без точного адреса и телефона</b>:</div>
+        <div style="background:#FFFFFF;border:1px solid #C0D6DF;border-radius:16px;padding:14px 16px;box-shadow:0 2px 8px rgba(20,48,60,0.06)">
+          <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:15px;font-weight:800">⚡ Электрика</span><span style="font-size:11px;font-weight:800;background:#EAF2F6;color:#166088;border-radius:999px;padding:3px 9px">0/5 предложений</span></div>
+          <div style="font-size:12.5px;color:#38596A;line-height:1.5;margin-top:6px">«Заменить 6 розеток и перенести выключатель в спальне» · 1 фото</div>
+          <div style="font-size:12px;color:#5B7B8A;margin-top:6px">📍 Есиль · 🗓 вт, 22 июля · 10:00–13:00 · бюджет ~20 000 ₸</div>
+        </div>
+        <div style="background:#CFE0E8;border-radius:14px;padding:12px 14px;font-size:12px;font-weight:600;line-height:1.5">Заявка активна до даты работ. Вы получите до 5 предложений и выберете мастера сами. Публикация бесплатна.</div>
+        <div style="margin-top:auto"></div>
+        <button onClick="{{ act.publishPlanned }}" style="font-family:inherit;background:#166088;color:#FFFFFF;border:none;border-radius:999px;padding:16px;font-size:15.5px;font-weight:800;cursor:pointer">Опубликовать заявку</button>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ scr.pwait }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:1;display:flex;flex-direction:column;padding:6px 20px 14px;gap:11px;overflow-y:auto">
+        <div style="display:flex;align-items:center;gap:10px">
+          <button onClick="{{ go.home }}" style="font-family:inherit;background:none;border:none;color:#166088;font-size:20px;cursor:pointer;padding:0">←</button>
+          <span style="font-size:17px;font-weight:800;flex:1">Заявка №P-88</span>
+          <span style="font-size:11px;font-weight:800;background:#EAF2F6;color:#166088;border-radius:999px;padding:4px 10px">Опубликована</span>
+        </div>
+        <div style="background:#CFE0E8;border-radius:14px;padding:11px 14px;font-size:12.5px;font-weight:600">⚡ Электрика · вт 22 июля, 10:00–13:00 · Есиль · ~20 000 ₸</div>
+        <div style="display:flex;justify-content:space-between;align-items:baseline">
+          <span style="font-size:15px;font-weight:800">Предложения: {{ bidsCount }} из 5</span>
+          <span style="font-size:11.5px;color:#5B7B8A;font-weight:600">активна до 22.07</span>
+        </div>
+        <sc-if value="{{ noBids }}" hint-placeholder-val="{{ false }}">
+          <div style="background:#FFFFFF;border:1.5px dashed #C0D6DF;border-radius:16px;padding:22px;text-align:center">
+            <div style="width:24px;height:24px;border:3px solid #C0D6DF;border-top-color:#166088;border-radius:50%;animation:mqSpin 0.9s linear infinite;margin:0 auto 10px"></div>
+            <div style="font-size:13px;font-weight:700;color:#5B7B8A;line-height:1.5">Мастера уже видят вашу заявку.<br>Первые предложения — обычно в течение часа.</div>
+          </div>
+        </sc-if>
+        <sc-for list="{{ bids }}" as="b" hint-placeholder-count="0">
+          <div style="background:#FFFFFF;border:1px solid #C0D6DF;border-radius:16px;padding:13px 15px;animation:mqUp 0.35s ease">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start">
+              <div style="display:flex;gap:10px;align-items:center">
+                <div style="width:40px;height:40px;border-radius:50%;background:#CFE0E8;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px">{{ b.init }}</div>
+                <div>
+                  <div style="font-size:14px;font-weight:800">{{ b.name }} <span style="color:#059669;font-size:12px">✓</span></div>
+                  <div style="font-size:11.5px;color:#5B7B8A;font-weight:600">★ {{ b.rating }} · {{ b.orders }} заказов · {{ b.exp }}</div>
+                </div>
+              </div>
+              <div style="text-align:right"><div style="font-size:16px;font-weight:800;color:#166088">{{ b.price }}</div><div style="font-size:11px;color:#5B7B8A;font-weight:600">срок: {{ b.term }}</div></div>
+            </div>
+            <div style="font-size:12.5px;color:#38596A;line-height:1.45;margin:8px 0">«{{ b.comment }}»</div>
+            <div style="display:flex;gap:7px;align-items:center">
+              <span style="font-size:10.5px;font-weight:800;color:{{ b.posFg }};background:{{ b.posBg }};border-radius:999px;padding:3px 9px">{{ b.pos }}</span>
+              <button onClick="{{ b.onSelect }}" style="font-family:inherit;margin-left:auto;background:#166088;color:#FFFFFF;border:none;border-radius:999px;padding:8px 18px;font-size:12.5px;font-weight:800;cursor:pointer">Выбрать</button>
+            </div>
+          </div>
+        </sc-for>
+        <div style="margin-top:auto"></div>
+        <div style="display:flex;gap:8px">
+          <button onClick="{{ go.compare }}" style="font-family:inherit;flex:1;background:none;border:1.5px solid #166088;color:#166088;border-radius:999px;padding:13px;font-size:13.5px;font-weight:800;cursor:pointer">Сравнить ({{ bidsCount }})</button>
+          <button onClick="{{ act.cancelPlanned }}" style="font-family:inherit;flex:1;background:none;border:1.5px solid #DC2626;color:#DC2626;border-radius:999px;padding:13px;font-size:13.5px;font-weight:800;cursor:pointer">Отменить</button>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ scr.compare }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:1;display:flex;flex-direction:column;padding:6px 20px 14px;gap:11px;overflow-y:auto">
+        <div style="display:flex;align-items:center;gap:10px">
+          <button onClick="{{ go.pwait }}" style="font-family:inherit;background:none;border:none;color:#166088;font-size:20px;cursor:pointer;padding:0">←</button>
+          <span style="font-size:18px;font-weight:800">Сравнение мастеров</span>
+        </div>
+        <div style="display:grid;grid-template-columns:88px 1fr 1fr;gap:0;background:#FFFFFF;border:1px solid #C0D6DF;border-radius:16px;overflow:hidden;font-size:12.5px">
+          <div style="padding:12px 10px;background:#EAF2F6"></div>
+          <div style="padding:12px 8px;text-align:center;background:#EAF2F6;border-left:1px solid #C0D6DF"><div style="width:36px;height:36px;border-radius:50%;background:#CFE0E8;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;margin:0 auto 4px">АЖ</div><b>Арман Ж.</b></div>
+          <div style="padding:12px 8px;text-align:center;background:#EAF2F6;border-left:1px solid #C0D6DF"><div style="width:36px;height:36px;border-radius:50%;background:#CFE0E8;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;margin:0 auto 4px">ЕК</div><b>Ерлан К.</b></div>
+          <div style="padding:10px;font-weight:700;color:#5B7B8A;border-top:1px solid #C0D6DF">Цена</div>
+          <div style="padding:10px;text-align:center;border-top:1px solid #C0D6DF;border-left:1px solid #C0D6DF;font-weight:800;color:#059669">18 000 ₸ ↓</div>
+          <div style="padding:10px;text-align:center;border-top:1px solid #C0D6DF;border-left:1px solid #C0D6DF;font-weight:800">22 000 ₸</div>
+          <div style="padding:10px;font-weight:700;color:#5B7B8A;border-top:1px solid #C0D6DF">Рейтинг</div>
+          <div style="padding:10px;text-align:center;border-top:1px solid #C0D6DF;border-left:1px solid #C0D6DF;font-weight:800">★ 4.8</div>
+          <div style="padding:10px;text-align:center;border-top:1px solid #C0D6DF;border-left:1px solid #C0D6DF;font-weight:800">★ 4.6</div>
+          <div style="padding:10px;font-weight:700;color:#5B7B8A;border-top:1px solid #C0D6DF">Заказов</div>
+          <div style="padding:10px;text-align:center;border-top:1px solid #C0D6DF;border-left:1px solid #C0D6DF">96</div>
+          <div style="padding:10px;text-align:center;border-top:1px solid #C0D6DF;border-left:1px solid #C0D6DF">41</div>
+          <div style="padding:10px;font-weight:700;color:#5B7B8A;border-top:1px solid #C0D6DF">Опыт</div>
+          <div style="padding:10px;text-align:center;border-top:1px solid #C0D6DF;border-left:1px solid #C0D6DF">7 лет</div>
+          <div style="padding:10px;text-align:center;border-top:1px solid #C0D6DF;border-left:1px solid #C0D6DF">4 года</div>
+          <div style="padding:10px;font-weight:700;color:#5B7B8A;border-top:1px solid #C0D6DF">Срок</div>
+          <div style="padding:10px;text-align:center;border-top:1px solid #C0D6DF;border-left:1px solid #C0D6DF">2 ч</div>
+          <div style="padding:10px;text-align:center;border-top:1px solid #C0D6DF;border-left:1px solid #C0D6DF">3 ч</div>
+          <div style="padding:10px;font-weight:700;color:#5B7B8A;border-top:1px solid #C0D6DF">Комментарий</div>
+          <div style="padding:10px;text-align:center;border-top:1px solid #C0D6DF;border-left:1px solid #C0D6DF;color:#5B7B8A;font-size:11.5px;line-height:1.4">«во вторник до обеда»</div>
+          <div style="padding:10px;text-align:center;border-top:1px solid #C0D6DF;border-left:1px solid #C0D6DF;color:#5B7B8A;font-size:11.5px;line-height:1.4">«могу сегодня вечером»</div>
+        </div>
+        <div style="font-size:11.5px;color:#5B7B8A;text-align:center">Цена — не единственный критерий: смотрите на рейтинг и число заказов</div>
+        <div style="margin-top:auto"></div>
+        <div style="display:flex;gap:8px">
+          <button onClick="{{ act.selectBid1 }}" style="font-family:inherit;flex:1;background:#166088;color:#FFFFFF;border:none;border-radius:999px;padding:14px;font-size:13.5px;font-weight:800;cursor:pointer">Выбрать Армана</button>
+          <button onClick="{{ act.selectBid2 }}" style="font-family:inherit;flex:1;background:none;border:1.5px solid #166088;color:#166088;border-radius:999px;padding:14px;font-size:13.5px;font-weight:800;cursor:pointer">Выбрать Ерлана</button>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ scr.pconfirm }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:1;display:flex;flex-direction:column;padding:22px 24px;gap:14px;justify-content:center">
+        <div style="font-size:21px;font-weight:800;text-align:center">Подтвердите выбор</div>
+        <div style="background:#FFFFFF;border:1px solid #C0D6DF;border-radius:16px;padding:16px;text-align:center">
+          <div style="width:56px;height:56px;border-radius:50%;background:#CFE0E8;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:17px;margin:0 auto 8px">{{ selInit }}</div>
+          <div style="font-size:16px;font-weight:800">{{ selName }} <span style="color:#059669">✓</span></div>
+          <div style="font-size:12px;color:#5B7B8A;font-weight:600;margin-top:2px">{{ selMeta }}</div>
+          <div style="font-size:22px;font-weight:800;color:#166088;margin-top:10px">{{ selPrice }}</div>
+        </div>
+        <div style="background:#CFE0E8;border-radius:14px;padding:12px 14px;font-size:12.5px;font-weight:600;line-height:1.55">После подтверждения мастер получит ваш <b>точный адрес и телефон</b> и должен подтвердить заказ в течение 2 часов. Остальные предложения будут закрыты.</div>
+        <button onClick="{{ act.confirmChoice }}" style="font-family:inherit;background:#166088;color:#FFFFFF;border:none;border-radius:999px;padding:16px;font-size:15px;font-weight:800;cursor:pointer">Подтвердить выбор</button>
+        <button onClick="{{ go.pwait }}" style="font-family:inherit;background:none;border:none;color:#5B7B8A;font-size:13.5px;font-weight:700;cursor:pointer">Назад к предложениям</button>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ scr.pactive }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:1;display:flex;flex-direction:column;padding:6px 20px 14px;gap:12px;overflow-y:auto">
+        <div style="display:flex;align-items:center;gap:10px">
+          <button onClick="{{ go.home }}" style="font-family:inherit;background:none;border:none;color:#166088;font-size:20px;cursor:pointer;padding:0">←</button>
+          <span style="font-size:17px;font-weight:800;flex:1">Заявка №P-88</span>
+          <span style="font-size:11px;font-weight:800;background:{{ pStatusBg }};color:{{ pStatusFg }};border-radius:999px;padding:4px 10px">{{ pStatusLabel }}</span>
+        </div>
+        <sc-if value="{{ pWaitingConfirm }}" hint-placeholder-val="{{ false }}">
+          <div style="background:#FFFFFF;border:1.5px dashed #C0D6DF;border-radius:16px;padding:18px;text-align:center">
+            <div style="width:24px;height:24px;border:3px solid #C0D6DF;border-top-color:#166088;border-radius:50%;animation:mqSpin 0.9s linear infinite;margin:0 auto 10px"></div>
+            <div style="font-size:13.5px;font-weight:700;line-height:1.5">Ждём подтверждения от {{ selName }}<br><span style="font-size:12px;color:#5B7B8A;font-weight:600">обычно отвечают за 10–20 минут · максимум 2 часа</span></div>
+          </div>
+        </sc-if>
+        <sc-if value="{{ pConfirmed }}" hint-placeholder-val="{{ false }}">
+          <div style="background:#E5F3EE;border-radius:14px;padding:12px 14px;font-size:13px;font-weight:700;color:#065F46;animation:mqUp 0.3s ease">✓ {{ selName }} подтвердил заказ — контакты открыты</div>
+          <div style="background:#FFFFFF;border:1px solid #C0D6DF;border-radius:16px;padding:14px 16px">
+            <div style="display:flex;gap:10px;align-items:center">
+              <div style="width:44px;height:44px;border-radius:50%;background:#CFE0E8;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px">{{ selInit }}</div>
+              <div style="flex:1"><div style="font-size:14.5px;font-weight:800">{{ selName }} <span style="color:#059669;font-size:12px">✓</span></div><div style="font-size:12px;color:#5B7B8A;font-weight:600">{{ selMeta }}</div></div>
+              <button style="font-family:inherit;width:42px;height:42px;border-radius:50%;background:#166088;color:#FFFFFF;border:none;font-size:16px;cursor:pointer">📞</button>
+            </div>
+            <div style="border-top:1px solid #EAF2F6;margin:10px 0"></div>
+            <div style="display:flex;justify-content:space-between;font-size:13px;font-weight:700"><span style="color:#5B7B8A">Работы</span><span>{{ selPrice }}</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:13px;font-weight:700;margin-top:4px"><span style="color:#5B7B8A">Когда</span><span>вт, 22 июля · 10:00–13:00</span></div>
+          </div>
+        </sc-if>
+        <div style="background:#CFE0E8;border-radius:14px;padding:11px 14px;font-size:12.5px;font-weight:600">⚡ Электрика · «Заменить 6 розеток…» · ул. Сыганак, 18</div>
+        <div style="margin-top:auto"></div>
+        <button onClick="{{ act.cancelPlanned }}" style="font-family:inherit;background:none;border:1.5px solid #DC2626;color:#DC2626;border-radius:999px;padding:13px;font-size:14px;font-weight:800;cursor:pointer">Отменить заявку</button>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ scr.orders }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:1;overflow-y:auto;padding:6px 20px 14px;display:flex;flex-direction:column;gap:11px">
+        <div style="font-size:22px;font-weight:800">{{ t.orders }}</div>
+        <div style="display:flex;background:#CFE0E8;border-radius:999px;padding:3px">
+          <div style="flex:1;background:#FFFFFF;border-radius:999px;padding:8px;text-align:center;font-size:13px;font-weight:800;box-shadow:0 1px 4px rgba(20,48,60,0.1)">Активные</div>
+          <div style="flex:1;padding:8px;text-align:center;font-size:13px;font-weight:700;color:#5B7B8A">История</div>
+        </div>
+        <sc-if value="{{ hasActiveUrgent }}" hint-placeholder-val="{{ false }}">
+          <button onClick="{{ go.track }}" style="font-family:inherit;text-align:left;background:#FFFFFF;border:1px solid #C0D6DF;border-radius:16px;padding:13px 15px;cursor:pointer">
+            <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:14px;font-weight:800">⚡ Сантехника · №1042</span><span style="font-size:10.5px;font-weight:800;background:#EAF2F6;color:#166088;border-radius:999px;padding:3px 9px">{{ phaseLabel }}</span></div>
+            <div style="font-size:12px;color:#5B7B8A;margin-top:4px">пр. Кабанбай батыра, 42 · сегодня</div>
+          </button>
+        </sc-if>
+        <sc-if value="{{ hasActivePlanned }}" hint-placeholder-val="{{ false }}">
+          <button onClick="{{ go.pwait }}" style="font-family:inherit;text-align:left;background:#FFFFFF;border:1px solid #C0D6DF;border-radius:16px;padding:13px 15px;cursor:pointer">
+            <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:14px;font-weight:800">📅 Электрика · №P-88</span><span style="font-size:10.5px;font-weight:800;background:#EAF2F6;color:#166088;border-radius:999px;padding:3px 9px">{{ bidsCount }}/5 предложений</span></div>
+            <div style="font-size:12px;color:#5B7B8A;margin-top:4px">Есиль · вт, 22 июля · 10:00–13:00</div>
+          </button>
+        </sc-if>
+        <div style="font-size:13px;font-weight:800;color:#5B7B8A;margin-top:6px">Ранее</div>
+        <button onClick="{{ go.detail }}" style="font-family:inherit;text-align:left;background:#FFFFFF;border:1px solid #C0D6DF;border-radius:16px;padding:13px 15px;cursor:pointer">
+          <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:14px;font-weight:800">⚡ Замки · №1031</span><span style="font-size:10.5px;font-weight:800;background:#E5F3EE;color:#059669;border-radius:999px;padding:3px 9px">Закрыта</span></div>
+          <div style="font-size:12px;color:#5B7B8A;margin-top:4px">12 июля · 9 500 ₸ · мастер Ерлан К.</div>
+        </button>
+        <div style="text-align:left;background:#FFFFFF;border:1px solid #C0D6DF;border-radius:16px;padding:13px 15px">
+          <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:14px;font-weight:800">📅 Ремонт техники · №P-71</span><span style="font-size:10.5px;font-weight:800;background:#FBECEC;color:#DC2626;border-radius:999px;padding:3px 9px">Истекла</span></div>
+          <div style="font-size:12px;color:#5B7B8A;margin-top:4px">4 июля · предложений не поступило</div>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ scr.detail }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:1;overflow-y:auto;padding:6px 20px 14px;display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <button onClick="{{ go.orders }}" style="font-family:inherit;background:none;border:none;color:#166088;font-size:20px;cursor:pointer;padding:0">←</button>
+          <span style="font-size:17px;font-weight:800;flex:1">Заявка №1031</span>
+          <span style="font-size:11px;font-weight:800;background:#E5F3EE;color:#059669;border-radius:999px;padding:4px 10px">Закрыта</span>
+        </div>
+        <div style="background:#FFFFFF;border:1px solid #C0D6DF;border-radius:16px;padding:14px 16px">
+          <div style="font-size:14px;font-weight:800">🔐 Замки и двери</div>
+          <div style="font-size:12.5px;color:#38596A;margin-top:4px;line-height:1.5">«Заклинил замок входной двери, ключ не поворачивается»</div>
+          <div style="font-size:12px;color:#5B7B8A;margin-top:6px">📍 пр. Мәңгілік Ел, 55 · 12 июля, 14:20</div>
+        </div>
+        <div style="background:#FFFFFF;border:1px solid #C0D6DF;border-radius:16px;padding:14px 16px">
+          <div style="display:flex;gap:10px;align-items:center">
+            <div style="width:40px;height:40px;border-radius:50%;background:#CFE0E8;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px">ЕК</div>
+            <div><div style="font-size:13.5px;font-weight:800">Ерлан К. <span style="color:#059669;font-size:11px">✓</span></div><div style="font-size:11.5px;color:#5B7B8A">★ 4.6 · Замки и двери</div></div>
+            <div style="margin-left:auto;font-size:15px;color:#166088">★★★★★</div>
+          </div>
+        </div>
+        <div style="background:#FFFFFF;border:1px solid #C0D6DF;border-radius:16px;padding:14px 16px">
+          <div style="display:flex;justify-content:space-between;font-size:13px;font-weight:600;color:#5B7B8A"><span>Выезд</span><span>2 500 ₸</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:13px;font-weight:600;color:#5B7B8A;margin-top:4px"><span>Работы</span><span>7 000 ₸</span></div>
+          <div style="border-top:1.5px dashed #C0D6DF;margin:8px 0"></div>
+          <div style="display:flex;justify-content:space-between;font-size:15px;font-weight:800"><span>Итого</span><span>9 500 ₸</span></div>
+          <div style="font-size:11.5px;color:#5B7B8A;margin-top:4px">Kaspi Gold ···· 4821 · чек отправлен</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:7px;background:#FFFFFF;border:1px solid #C0D6DF;border-radius:16px;padding:14px 16px;font-size:12px;color:#5B7B8A">
+          <div style="font-size:13px;font-weight:800;color:#14303C">История</div>
+          <div>14:20 — заявка создана, выезд 2 500 ₸</div>
+          <div>14:24 — принял Ерлан К.</div>
+          <div>14:51 — на месте, цена 7 000 ₸ подтверждена</div>
+          <div>15:40 — выполнено, закрыта клиентом</div>
+        </div>
+        <button onClick="{{ act.openDispute }}" style="font-family:inherit;background:none;border:1.5px solid #C0D6DF;color:#5B7B8A;border-radius:999px;padding:12px;font-size:13px;font-weight:800;cursor:pointer">Открыть спор — окно истекло (48 ч)</button>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ scr.dispute }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:1;overflow-y:auto;padding:6px 20px 14px;display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <button onClick="{{ go.orders }}" style="font-family:inherit;background:none;border:none;color:#166088;font-size:20px;cursor:pointer;padding:0">←</button>
+          <span style="font-size:17px;font-weight:800;flex:1">Спор по заявке №1042</span>
+          <sc-if value="{{ disputeSent }}" hint-placeholder-val="{{ false }}"><span style="font-size:11px;font-weight:800;background:#FFF1E8;color:#B4530A;border-radius:999px;padding:4px 10px">Открыт</span></sc-if>
+        </div>
+        <sc-if value="{{ disputeForm }}" hint-placeholder-val="{{ true }}">
+          <div style="font-size:14px;font-weight:800">Причина</div>
+          <div style="display:flex;flex-wrap:wrap;gap:7px">
+            <span style="background:#166088;color:#FFFFFF;border-radius:999px;padding:7px 14px;font-size:12.5px;font-weight:800">Качество работ</span>
+            <span style="border:1.5px solid #C0D6DF;border-radius:999px;padding:7px 14px;font-size:12.5px;font-weight:700;color:#5B7B8A">Не та цена</span>
+            <span style="border:1.5px solid #C0D6DF;border-radius:999px;padding:7px 14px;font-size:12.5px;font-weight:700;color:#5B7B8A">Поведение</span>
+            <span style="border:1.5px solid #C0D6DF;border-radius:999px;padding:7px 14px;font-size:12.5px;font-weight:700;color:#5B7B8A">Другое</span>
+          </div>
+          <textarea placeholder="Опишите подробно: что не так, когда заметили, что уже обсудили с мастером" style="font-family:inherit;background:#FFFFFF;border:1.5px solid #C0D6DF;border-radius:14px;padding:13px 14px;font-size:13.5px;min-height:96px;resize:none;color:#14303C;line-height:1.5"></textarea>
+          <div style="font-size:14px;font-weight:800">Доказательства <span style="font-size:11.5px;font-weight:600;color:#5B7B8A">(фото)</span></div>
+          <div style="display:flex;gap:9px">
+            <div style="width:64px;height:64px;border-radius:12px;background:repeating-linear-gradient(45deg,#C0D6DF 0 8px,#CFE0E8 8px 16px)"></div>
+            <button style="font-family:inherit;width:64px;height:64px;border-radius:12px;border:1.5px dashed #166088;background:none;color:#166088;font-size:20px;cursor:pointer">＋</button>
+          </div>
+          <div style="background:#CFE0E8;border-radius:14px;padding:11px 14px;font-size:12px;font-weight:600;line-height:1.5">Мастер сможет дать пояснение. Решение примет оператор — обычно в течение 24 часов. Возможен возврат сервисного сбора.</div>
+          <div style="margin-top:auto"></div>
+          <button onClick="{{ act.sendDispute }}" style="font-family:inherit;background:#166088;color:#FFFFFF;border:none;border-radius:999px;padding:15px;font-size:15px;font-weight:800;cursor:pointer">Отправить спор</button>
+        </sc-if>
+        <sc-if value="{{ disputeSent }}" hint-placeholder-val="{{ false }}">
+          <div style="background:#FFFFFF;border:1px solid #C0D6DF;border-radius:16px;padding:14px 16px">
+            <div style="font-size:13px;font-weight:800">Качество работ</div>
+            <div style="font-size:12.5px;color:#38596A;line-height:1.5;margin-top:4px">«Через час после ремонта труба снова потекла» · 1 фото</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px;font-size:12.5px">
+            <div style="display:flex;gap:9px;align-items:center"><span style="width:9px;height:9px;border-radius:50%;background:#059669"></span><span style="font-weight:700">Спор отправлен · сегодня 17:05</span></div>
+            <div style="display:flex;gap:9px;align-items:center"><span style="width:9px;height:9px;border-radius:50%;background:#166088;animation:mqPulse 1.6s ease-out infinite"></span><span style="font-weight:700">Ждём пояснение мастера</span></div>
+            <div style="display:flex;gap:9px;align-items:center"><span style="width:9px;height:9px;border-radius:50%;background:#C0D6DF"></span><span style="color:#5B7B8A;font-weight:600">Решение оператора — до 24 ч</span></div>
+          </div>
+          <div style="background:#CFE0E8;border-radius:14px;padding:11px 14px;font-size:12px;font-weight:600;line-height:1.5">Пока спор открыт, автозакрытие заявки приостановлено. Мы напишем вам о каждом изменении.</div>
+        </sc-if>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ scr.support }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:1;overflow-y:auto;padding:6px 20px 14px;display:flex;flex-direction:column;gap:11px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <button onClick="{{ go.home }}" style="font-family:inherit;background:none;border:none;color:#166088;font-size:20px;cursor:pointer;padding:0">←</button>
+          <span style="font-size:20px;font-weight:800">Поддержка</span>
+        </div>
+        <button style="font-family:inherit;background:#166088;color:#FFFFFF;border:none;border-radius:16px;padding:15px;font-size:14.5px;font-weight:800;cursor:pointer;text-align:left;display:flex;justify-content:space-between;align-items:center">📞 Позвонить: 7666 (бесплатно) <span>›</span></button>
+        <div style="font-size:13.5px;font-weight:800;margin-top:4px">Частые вопросы</div>
+        <sc-for list="{{ faq }}" as="q" hint-placeholder-count="4">
+          <div style="background:#FFFFFF;border:1px solid #C0D6DF;border-radius:14px;padding:13px 15px;display:flex;justify-content:space-between;align-items:center"><span style="font-size:13px;font-weight:700;line-height:1.4">{{ q }}</span><span style="color:#5B7B8A">›</span></div>
+        </sc-for>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ scr.notifications }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:1;overflow-y:auto;padding:6px 20px 14px;display:flex;flex-direction:column;gap:10px">
+        <div style="font-size:22px;font-weight:800">{{ t.notif }}</div>
+        <div style="background:#FFFFFF;border:1px solid #166088;border-radius:14px;padding:13px 15px">
+          <div style="font-size:13px;font-weight:800">💰 Новое предложение по заявке №P-88</div>
+          <div style="font-size:12px;color:#5B7B8A;margin-top:3px">Арман Ж. предложил 18 000 ₸ · 5 мин назад</div>
+        </div>
+        <div style="background:#FFFFFF;border:1px solid #C0D6DF;border-radius:14px;padding:13px 15px">
+          <div style="font-size:13px;font-weight:700">✓ Заявка №1031 закрыта</div>
+          <div style="font-size:12px;color:#5B7B8A;margin-top:3px">Оплачено 9 500 ₸ · 12 июля</div>
+        </div>
+        <div style="background:#FFFFFF;border:1px solid #C0D6DF;border-radius:14px;padding:13px 15px">
+          <div style="font-size:13px;font-weight:700">🛡 Мастер Ерлан К. прошёл проверку</div>
+          <div style="font-size:12px;color:#5B7B8A;margin-top:3px">по вашей заявке №1031 · 12 июля</div>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ scr.profile }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:1;overflow-y:auto;padding:6px 20px 14px;display:flex;flex-direction:column;gap:11px">
+        <div style="display:flex;gap:12px;align-items:center">
+          <div style="width:56px;height:56px;border-radius:50%;background:#166088;color:#FFFFFF;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:19px">А</div>
+          <div><div style="font-size:18px;font-weight:800">Айгерім</div><div style="font-size:12.5px;color:#5B7B8A;font-weight:600">+7 707 123 45 67</div></div>
+        </div>
+        <div style="display:flex;gap:6px">
+          <button onClick="{{ setRu }}" style="font-family:inherit;border-radius:999px;padding:6px 14px;font-size:12px;font-weight:800;cursor:pointer;border:1.5px solid {{ ruBc }};background:{{ ruBg }};color:{{ ruFg }}">Рус</button>
+          <button onClick="{{ setKk }}" style="font-family:inherit;border-radius:999px;padding:6px 14px;font-size:12px;font-weight:800;cursor:pointer;border:1.5px solid {{ kkBc }};background:{{ kkBg }};color:{{ kkFg }}">Қаз</button>
+          <button onClick="{{ setEn }}" style="font-family:inherit;border-radius:999px;padding:6px 14px;font-size:12px;font-weight:800;cursor:pointer;border:1.5px solid {{ enBc }};background:{{ enBg }};color:{{ enFg }}">Eng</button>
+        </div>
+        <sc-for list="{{ profileItems }}" as="pi" hint-placeholder-count="5">
+          <button onClick="{{ pi.onTap }}" style="font-family:inherit;background:#FFFFFF;border:1px solid #C0D6DF;border-radius:14px;padding:14px 15px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;text-align:left">
+            <span style="font-size:14px;font-weight:800">{{ pi.icon }} {{ pi.label }}</span><span style="color:#5B7B8A">›</span>
+          </button>
+        </sc-for>
+        <div style="background:#CFE0E8;border-radius:16px;padding:14px 16px">
+          <div style="font-size:14px;font-weight:800">🔧 Стать мастером</div>
+          <div style="font-size:12px;color:#38596A;font-weight:600;line-height:1.5;margin-top:4px">Зарабатывайте на своих навыках — верификация за 1–2 дня. Прототип мастера — отдельный файл этапа 5.</div>
+        </div>
+        <button style="font-family:inherit;background:none;border:none;color:#DC2626;font-size:13.5px;font-weight:800;cursor:pointer;padding:8px">Выйти из аккаунта</button>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ scr.addresses }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:1;overflow-y:auto;padding:6px 20px 14px;display:flex;flex-direction:column;gap:11px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <button onClick="{{ go.profile }}" style="font-family:inherit;background:none;border:none;color:#166088;font-size:20px;cursor:pointer;padding:0">←</button>
+          <span style="font-size:20px;font-weight:800">Адреса</span>
+        </div>
+        <div style="background:#FFFFFF;border:1px solid #C0D6DF;border-radius:14px;padding:13px 15px">
+          <div style="display:flex;justify-content:space-between"><span style="font-size:14px;font-weight:800">🏠 Дом</span><span style="font-size:12px;font-weight:800;color:#166088">изменить</span></div>
+          <div style="font-size:12.5px;color:#5B7B8A;margin-top:3px">пр. Кабанбай батыра, 42 · под. 3, эт. 7, кв. 51</div>
+        </div>
+        <div style="background:#FFFFFF;border:1px solid #C0D6DF;border-radius:14px;padding:13px 15px">
+          <div style="display:flex;justify-content:space-between"><span style="font-size:14px;font-weight:800">💼 Работа</span><span style="font-size:12px;font-weight:800;color:#166088">изменить</span></div>
+          <div style="font-size:12.5px;color:#5B7B8A;margin-top:3px">пр. Мәңгілік Ел, 55, офис 310</div>
+        </div>
+        <button style="font-family:inherit;background:none;border:1.5px dashed #166088;color:#166088;border-radius:14px;padding:14px;font-size:14px;font-weight:800;cursor:pointer">＋ Добавить адрес</button>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ scr.payments }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:1;overflow-y:auto;padding:6px 20px 14px;display:flex;flex-direction:column;gap:11px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <button onClick="{{ go.profile }}" style="font-family:inherit;background:none;border:none;color:#166088;font-size:20px;cursor:pointer;padding:0">←</button>
+          <span style="font-size:20px;font-weight:800">Способы оплаты</span>
+        </div>
+        <div style="background:#FFFFFF;border:2px solid #166088;border-radius:14px;padding:13px 15px">
+          <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:14px;font-weight:800">💳 Kaspi Gold ···· 4821</span><span style="font-size:10.5px;font-weight:800;background:#EAF2F6;color:#166088;border-radius:999px;padding:3px 9px">основная</span></div>
+        </div>
+        <div style="background:#FFFFFF;border:1px solid #C0D6DF;border-radius:14px;padding:13px 15px">
+          <span style="font-size:14px;font-weight:800">💳 Halyk ···· 0193</span>
+        </div>
+        <button style="font-family:inherit;background:none;border:1.5px dashed #166088;color:#166088;border-radius:14px;padding:14px;font-size:14px;font-weight:800;cursor:pointer">＋ Добавить карту</button>
+        <div style="background:#CFE0E8;border-radius:14px;padding:11px 14px;font-size:12px;font-weight:600;line-height:1.5">🛡 Выезд резервируется при создании заявки и списывается только после принятия мастером. Работы оплачиваются после вашего подтверждения.</div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ showTabbar }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:none;display:flex;align-items:flex-end;background:#FFFFFF;border-top:1px solid #C0D6DF;padding:6px 6px calc(10px + 8px)">
+        <button onClick="{{ go.home }}" style="font-family:inherit;flex:1;background:none;border:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;color:{{ tabHomeC }};font-size:10px;font-weight:800"><span style="font-size:19px">⌂</span>{{ t.home }}</button>
+        <button onClick="{{ go.orders }}" style="font-family:inherit;flex:1;background:none;border:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;color:{{ tabOrdersC }};font-size:10px;font-weight:800"><span style="font-size:19px">☰</span>{{ t.orders }}</button>
+        <div style="flex:1;display:flex;justify-content:center">
+          <button onClick="{{ act.startUrgent }}" style="font-family:inherit;width:52px;height:52px;border-radius:50%;background:#166088;color:#FFFFFF;border:none;font-size:24px;cursor:pointer;margin-top:-22px;box-shadow:0 6px 16px rgba(22,96,136,0.4)">＋</button>
+        </div>
+        <button onClick="{{ go.notifications }}" style="font-family:inherit;flex:1;background:none;border:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;color:{{ tabNotifC }};font-size:10px;font-weight:800;position:relative"><span style="font-size:19px">🔔</span>{{ t.notif }}<span style="position:absolute;top:2px;right:26%;width:16px;height:16px;border-radius:50%;background:#DC2626;color:#FFFFFF;font-size:9.5px;display:flex;align-items:center;justify-content:center">2</span></button>
+        <button onClick="{{ go.profile }}" style="font-family:inherit;flex:1;background:none;border:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;color:{{ tabProfileC }};font-size:10px;font-weight:800"><span style="font-size:19px">◉</span>{{ t.profile }}</button>
+      </div>
+    </sc-if>
+    <div style="position:absolute;left:50%;bottom:7px;transform:translateX(-50%);width:130px;height:5px;border-radius:3px;background:#14303C;opacity:0.35"></div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = {
+    screen: 'splash', lang: 'ru',
+    uCat: 'Сантехника',
+    phase: 'none', t: 0, eta: 720, onsiteT: 0, foundT: 0, workT: 0, priceLeft: 900,
+    noMastersDemo: false,
+    pPhase: 'none', pT: 0, pSelT: 0, bidsN: 0, selected: null,
+    disputeSent: false,
+  };
+  componentDidMount() {
+    this.timer = setInterval(() => this.tick(), 1000);
+    this.splashT = setTimeout(() => { if (this.state.screen === 'splash') this.setState({ screen: 'phone' }); }, 1600);
+  }
+  componentWillUnmount() { clearInterval(this.timer); clearTimeout(this.splashT); }
+  tick() {
+    const s = this.state;
+    const flowScreens = ['search','track','price','progress','done'];
+    const onFlow = flowScreens.includes(s.screen);
+    if (s.phase === 'searching') {
+      const t = s.t + 1;
+      if (t >= 18) {
+        if (s.noMastersDemo) this.setState({ phase: 'nomasters', t, screen: onFlow ? 'nomasters' : s.screen });
+        else this.setState({ phase: 'found', t, foundT: 0, screen: onFlow ? 'track' : s.screen });
+      } else this.setState({ t });
+    } else if (s.phase === 'found') {
+      const f = s.foundT + 1;
+      if (f >= 2) this.setState({ phase: 'onway', foundT: f, eta: 720 });
+      else this.setState({ foundT: f });
+    } else if (s.phase === 'onway') {
+      const eta = s.eta - 60;
+      if (eta <= 0) this.setState({ phase: 'onsite', eta: 0, onsiteT: 0 });
+      else this.setState({ eta });
+    } else if (s.phase === 'onsite') {
+      const o = s.onsiteT + 1;
+      if (o >= 4) this.setState({ phase: 'price', onsiteT: o, priceLeft: 900, screen: onFlow ? 'price' : s.screen });
+      else this.setState({ onsiteT: o });
+    } else if (s.phase === 'price') {
+      this.setState({ priceLeft: Math.max(0, s.priceLeft - 1) });
+    } else if (s.phase === 'inprogress') {
+      const w = s.workT + 1;
+      if (w >= 8) this.setState({ phase: 'done', workT: w, screen: onFlow ? 'done' : s.screen });
+      else this.setState({ workT: w });
+    }
+    if (s.pPhase === 'waiting') {
+      const pT = s.pT + 1;
+      let bidsN = s.bidsN;
+      if (pT === 3) bidsN = 1;
+      if (pT === 8) bidsN = 2;
+      if (pT === 15) bidsN = 3;
+      this.setState({ pT, bidsN });
+    } else if (s.pPhase === 'selected') {
+      const p = s.pSelT + 1;
+      if (p >= 5) this.setState({ pPhase: 'confirmed', pSelT: p });
+      else this.setState({ pSelT: p });
+    }
+  }
+  renderVals() {
+    const s = this.state;
+    const set = (patch) => () => this.setState(patch);
+    const screens = ['splash','phone','sms','home','catalog','uw1','uw2','uw3','uw4','search','nomasters','track','price','progress','done','closed','pw1','pw2','pw3','pwait','compare','pconfirm','pactive','orders','detail','dispute','support','notifications','profile','addresses','payments'];
+    const scr = {}; screens.forEach(n => scr[n] = s.screen === n);
+    const go = {}; screens.forEach(n => go[n] = set({ screen: n }));
+
+    const dicts = {
+      ru: { city:'Астана', greet:'Что случилось, Айгерім?', now:'Вызвать сейчас', plan:'Запланировать', cats:'Категории услуг', all:'все', callBtn:'Вызвать мастера', createBtn:'Создать заявку', home:'Главная', orders:'Заявки', notif:'Уведомл.', profile:'Профиль' },
+      kk: { city:'Астана', greet:'Не болды, Айгерім?', now:'Қазір шақыру', plan:'Жоспарлау', cats:'Қызмет санаттары', all:'барлығы', callBtn:'Шебер шақыру', createBtn:'Өтінім жасау', home:'Басты бет', orders:'Өтінімдер', notif:'Хабарлама', profile:'Профиль' },
+      en: { city:'Astana', greet:'What happened, Aigerim?', now:'Call now', plan:'Schedule', cats:'Service categories', all:'all', callBtn:'Call a master', createBtn:'Create request', home:'Home', orders:'Orders', notif:'Alerts', profile:'Profile' },
+    };
+    const t = dicts[s.lang];
+
+    const catData = [
+      { icon:'🔧', name:'Сантехника', sub:'течи, засоры, смесители' },
+      { icon:'⚡', name:'Электрика', sub:'розетки, проводка, свет' },
+      { icon:'🧊', name:'Бытовая техника', sub:'стиральные, холодильники' },
+      { icon:'🔐', name:'Замки и двери', sub:'вскрытие, замена, установка' },
+      { icon:'🔨', name:'Мелкий ремонт', sub:'полки, карнизы, мебель' },
+      { icon:'🧹', name:'Другие услуги', sub:'уборка, сборка, прочее' },
+    ];
+    const startCat = (name) => set({ screen:'uw1', uCat:name });
+    const homeCats = catData.map(c => ({ ...c, onTap: startCat(c.name) }));
+    const allCats = catData.map(c => ({ ...c, onTap: startCat(c.name) }));
+    const pickCats = catData.map(c => ({
+      ...c, onTap: set({ uCat: c.name }),
+      bg: s.uCat === c.name ? '#EAF2F6' : '#FFFFFF',
+      bc: s.uCat === c.name ? '#166088' : '#C0D6DF',
+      fg: s.uCat === c.name ? '#166088' : '#14303C',
+    }));
+
+    const phaseLabels = { searching:'Поиск', found:'Мастер найден', onway:'Мастер в пути', onsite:'Мастер на месте', price:'Согласование цены', inprogress:'В работе', done:'Выполнена', closed:'Закрыта', nomasters:'Мастера не найдены' };
+    const phaseSubs = { searching:'ищем ближайшего свободного', found:'Данияр С. принял заявку', onway:'приедет через ~' + Math.max(1, Math.round(s.eta/60)) + ' мин', onsite:'осматривает проблему', price:'предложена цена — нужно ваше решение', inprogress:'Данияр работает', done:'подтвердите выполнение', closed:'', nomasters:'' };
+
+    const mm = Math.floor(s.t / 60), ss = s.t % 60;
+    const wave = s.t < 8 ? 1 : s.t < 14 ? 2 : 3;
+    const waveTexts = { 1:'Ищем мастера в радиусе 3 км…', 2:'Расширяем поиск до 6 км…', 3:'Расширяем поиск до 10 км…' };
+    const waveSubs = { 1:'Отправили заявку 4 мастерам · волна 1 из 3', 2:'Ещё 6 мастеров получили заявку · волна 2 из 3', 3:'Финальная волна — ждём ответа · волна 3 из 3' };
+
+    const etaMin = Math.max(0, Math.round(s.eta / 60));
+    const frac = 1 - s.eta / 720;
+    const masterX = 24 + frac * 34, masterY = 22 + frac * 26;
+
+    const stepsDef = [
+      ['Принята','14:05 · Данияр С.'], ['Мастер в пути','ETA ~12 мин'], ['На месте и осмотр','14:38'],
+      ['Цена согласована','15 000 ₸'], ['В работе','идёт сейчас'], ['Выполнена',''], ['Закрыта',''],
+    ];
+    const phaseIdx = { found:0, onway:1, onsite:2, price:3, inprogress:4, done:5, closed:6 }[s.phase] ?? 4;
+    const stepper = stepsDef.map(([label, sub], i) => ({
+      label, sub: i <= phaseIdx ? sub : '',
+      mark: i < phaseIdx ? '✓' : '', line: i < stepsDef.length - 1,
+      dot: i < phaseIdx ? '#059669' : i === phaseIdx ? '#166088' : '#FFFFFF',
+      ring: i < phaseIdx ? '#059669' : i === phaseIdx ? '#166088' : '#C0D6DF',
+      lineC: i < phaseIdx ? '#059669' : '#C0D6DF',
+      fg: i <= phaseIdx ? '#14303C' : '#8FAAB8', w: i === phaseIdx ? 800 : 700,
+    }));
+
+    const pm = Math.floor(s.priceLeft / 60), ps = s.priceLeft % 60;
+
+    const bidData = [
+      { init:'АЖ', name:'Арман Ж.', rating:'4.8', orders:96, exp:'7 лет', price:'18 000 ₸', term:'2 ч', comment:'Сделаю во вторник до обеда, материалы посчитаны в цене', pos:'ниже средней', posFg:'#059669', posBg:'#E5F3EE', meta:'★ 4.8 · 96 заказов · 7 лет опыта' },
+      { init:'ЕК', name:'Ерлан К.', rating:'4.6', orders:41, exp:'4 года', price:'22 000 ₸', term:'3 ч', comment:'Могу сегодня вечером, гарантия на работу 3 месяца', pos:'средняя цена', posFg:'#166088', posBg:'#EAF2F6', meta:'★ 4.6 · 41 заказ · 4 года опыта' },
+      { init:'АТ', name:'Айбек Т.', rating:'4.9', orders:210, exp:'9 лет', price:'24 500 ₸', term:'2 ч', comment:'С гарантией 6 месяцев, свой материал премиум', pos:'выше средней', posFg:'#B4530A', posBg:'#FFF1E8', meta:'★ 4.9 · 210 заказов · 9 лет опыта' },
+    ];
+    const bids = bidData.slice(0, s.bidsN).map((b, i) => ({ ...b, onSelect: set({ screen:'pconfirm', selected: i }) }));
+    const sel = bidData[s.selected ?? 0];
+
+    const pStatus = s.pPhase === 'confirmed'
+      ? { label:'Подтверждена', bg:'#E5F3EE', fg:'#059669' }
+      : { label:'Мастер выбран', bg:'#EAF2F6', fg:'#166088' };
+
+    const langBtn = (l) => ({
+      bc: s.lang === l ? '#166088' : '#C0D6DF',
+      bg: s.lang === l ? '#166088' : '#FFFFFF',
+      fg: s.lang === l ? '#FFFFFF' : '#5B7B8A',
+    });
+    const ru = langBtn('ru'), kk = langBtn('kk'), en = langBtn('en');
+
+    const act = {
+      startUrgent: set({ screen:'uw1' }),
+      startPlanned: set({ screen:'pw1' }),
+      createUrgent: set({ screen:'search', phase:'searching', t:0 }),
+      cancelSearch: set({ screen:'home', phase:'none', t:0 }),
+      retrySearch: set({ screen:'search', phase:'searching', t:0, noMastersDemo:false }),
+      cancelAfterAccept: set({ screen:'home', phase:'none' }),
+      confirmPrice: set({ screen:'progress', phase:'inprogress', workT:0 }),
+      rejectPrice: set({ screen:'home', phase:'none' }),
+      confirmDone: set({ screen:'closed', phase:'closed' }),
+      openDispute: set({ screen:'dispute', disputeSent:false }),
+      sendDispute: set({ disputeSent:true }),
+      publishPlanned: set({ screen:'pwait', pPhase:'waiting', pT:0, bidsN:0 }),
+      cancelPlanned: set({ screen:'home', pPhase:'none', bidsN:0 }),
+      selectBid1: set({ screen:'pconfirm', selected:0 }),
+      selectBid2: set({ screen:'pconfirm', selected:1 }),
+      confirmChoice: set({ screen:'pactive', pPhase:'selected', pSelT:0 }),
+    };
+
+    const J = (label, patch, hot) => ({
+      label, onTap: set(patch),
+      bg: hot ? '#166088' : '#EAF2F6', fg: hot ? '#FFFFFF' : '#166088', bc: hot ? '#166088' : '#C0D6DF',
+    });
+    const jumpGroups = [
+      { name:'Вход', items:[ J('Splash',{screen:'splash'}), J('Телефон',{screen:'phone'}), J('SMS',{screen:'sms'}) ] },
+      { name:'Главная', items:[ J('Главная',{screen:'home'},true), J('Каталог',{screen:'catalog'}) ] },
+      { name:'Срочный заказ', items:[ J('Шаг 1',{screen:'uw1'}), J('Шаг 2',{screen:'uw2'}), J('Шаг 3',{screen:'uw3'}), J('Шаг 4',{screen:'uw4'}), J('Поиск ▶',{screen:'search',phase:'searching',t:0},true), J('Едет',{screen:'track',phase:'onway',eta:600}), J('Цена ⏱',{screen:'price',phase:'price',priceLeft:872}), J('В работе',{screen:'progress',phase:'inprogress',workT:0}), J('Выполнено',{screen:'done',phase:'done'}), J('Закрыт',{screen:'closed',phase:'closed'}), J('Нет мастеров',{screen:'nomasters',phase:'nomasters'}) ] },
+      { name:'Плановый заказ', items:[ J('Шаг 1',{screen:'pw1'}), J('Дата',{screen:'pw2'}), J('Предпросмотр',{screen:'pw3'}), J('Ставки ▶',{screen:'pwait',pPhase:'waiting',pT:0,bidsN:0},true), J('Сравнение',{screen:'compare',bidsN:2}), J('Выбор',{screen:'pconfirm',selected:0}), J('Активная',{screen:'pactive',pPhase:'confirmed'}) ] },
+      { name:'Разделы', items:[ J('Заявки',{screen:'orders'}), J('Деталь',{screen:'detail'}), J('Спор',{screen:'dispute',disputeSent:false}), J('Спор открыт',{screen:'dispute',disputeSent:true}), J('Поддержка',{screen:'support'}), J('Уведомления',{screen:'notifications'}), J('Профиль',{screen:'profile'}), J('Адреса',{screen:'addresses'}), J('Оплата',{screen:'payments'}) ] },
+    ];
+
+    const dowNames = ['вс','пн','вт','ср','чт','пт','сб'];
+    const dates = [20,21,22,23,24].map((day, i) => {
+      const selD = day === 22;
+      return { day: String(day), dow: dowNames[(0 + i) % 7], bc: selD ? '#166088' : '#C0D6DF', bg: selD ? '#EAF2F6' : '#FFFFFF', fg: selD ? '#166088' : '#14303C', subFg: selD ? '#166088' : '#5B7B8A' };
+    });
+
+    return {
+      scr, go, act, t, jumpGroups, homeCats, allCats, pickCats, dates,
+      uCat: s.uCat,
+      noMastersDemo: s.noMastersDemo,
+      toggleNoMasters: () => this.setState({ noMastersDemo: !s.noMastersDemo }),
+      hasActiveUrgent: !['none','closed','nomasters'].includes(s.phase),
+      hasActivePlanned: s.pPhase !== 'none',
+      phaseLabel: phaseLabels[s.phase] ?? '',
+      phaseSub: phaseSubs[s.phase] ?? '',
+      searchTimeStr: mm + ':' + String(ss).padStart(2,'0'),
+      waveText: waveTexts[wave], waveSub: waveSubs[wave],
+      w1c: '#166088', w2c: wave >= 2 ? '#166088' : '#C0D6DF', w3c: wave >= 3 ? '#166088' : '#C0D6DF',
+      etaLabel: s.phase === 'onsite' || s.phase === 'price' ? 'Мастер на месте' : 'Приедет через',
+      etaStr: s.phase === 'onway' ? '~' + Math.max(1, etaMin) + ' мин' : '✓',
+      masterX, masterY,
+      stepper,
+      priceTimerStr: pm + ':' + String(ps).padStart(2,'0'),
+      bids, bidsCount: s.bidsN, noBids: s.bidsN === 0,
+      selInit: sel.init, selName: sel.name, selMeta: sel.meta, selPrice: sel.price,
+      pWaitingConfirm: s.pPhase === 'selected', pConfirmed: s.pPhase === 'confirmed',
+      pStatusLabel: pStatus.label, pStatusBg: pStatus.bg, pStatusFg: pStatus.fg,
+      disputeForm: !s.disputeSent, disputeSent: s.disputeSent,
+      faq: ['Из чего складывается цена срочного вызова?','Что будет, если я отклоню цену мастера?','Как работает выбор мастера в плановой заявке?','Как открыть спор и что он даёт?'],
+      profileItems: [
+        { icon:'📍', label:'Адреса', onTap: go.addresses },
+        { icon:'💳', label:'Способы оплаты', onTap: go.payments },
+        { icon:'🔔', label:'Уведомления', onTap: go.notifications },
+        { icon:'🛟', label:'Поддержка', onTap: go.support },
+      ],
+      setRu: set({ lang:'ru' }), setKk: set({ lang:'kk' }), setEn: set({ lang:'en' }),
+      ruBc: ru.bc, ruBg: ru.bg, ruFg: ru.fg, kkBc: kk.bc, kkBg: kk.bg, kkFg: kk.fg, enBc: en.bc, enBg: en.bg, enFg: en.fg,
+      showTabbar: ['home','orders','notifications','profile','catalog'].includes(s.screen),
+      tabHomeC: s.screen === 'home' ? '#166088' : '#8FAAB8',
+      tabOrdersC: s.screen === 'orders' ? '#166088' : '#8FAAB8',
+      tabNotifC: s.screen === 'notifications' ? '#166088' : '#8FAAB8',
+      tabProfileC: s.screen === 'profile' ? '#166088' : '#8FAAB8',
+    };
+  }
+}
+</script>
+</body>
+</html>

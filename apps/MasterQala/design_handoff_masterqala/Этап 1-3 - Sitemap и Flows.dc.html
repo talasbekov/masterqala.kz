@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <meta name="design_doc_mode" content="canvas">
+  <link rel="stylesheet" href="_ds/masterqala-design-system-e764316c-0ca9-499e-8a35-b9393de66d34/fonts/fonts.css">
+  <style>
+    body { margin:0; background:#EDF0F5; font-family:'Manrope',ui-sans-serif,system-ui,sans-serif; color:#1B1B1F; }
+    a { color:#1E40AF; } a:hover { color:#3B82F6; }
+  </style>
+</helmet>
+<div style="padding:48px 56px;min-width:1900px">
+  <div style="display:flex;align-items:baseline;gap:16px;margin-bottom:8px">
+    <div style="font-size:13px;font-weight:800;letter-spacing:0.08em;color:#EA580C;text-transform:uppercase">MasterQala.kz · Этапы 1–3</div>
+    <div style="font-size:13px;color:#8A8A8F">интерактивный холст — панорамирование и зум</div>
+  </div>
+  <h1 style="font-size:34px;font-weight:800;margin:0 0 28px">Sitemap и user flows</h1>
+
+  <div style="display:flex;gap:18px;align-items:center;margin-bottom:32px;font-size:12.5px;font-weight:700">
+    <span style="display:inline-flex;align-items:center;gap:7px"><span style="width:26px;height:16px;background:#FFFFFF;border:1.5px solid #F0EAE0;border-radius:5px;display:inline-block"></span>экран</span>
+    <span style="display:inline-flex;align-items:center;gap:7px"><span style="width:26px;height:16px;background:#EFF4FF;border:1.5px solid #3B82F6;border-radius:5px;display:inline-block"></span>действие пользователя</span>
+    <span style="display:inline-flex;align-items:center;gap:7px"><span style="width:26px;height:16px;background:#FFF3EA;border:1.5px dashed #EA580C;border-radius:5px;display:inline-block"></span>система / realtime</span>
+    <span style="display:inline-flex;align-items:center;gap:7px"><span style="width:26px;height:16px;background:#EAF7F1;border:1.5px solid #059669;border-radius:5px;display:inline-block"></span>успешный исход</span>
+    <span style="display:inline-flex;align-items:center;gap:7px"><span style="width:26px;height:16px;background:#FDEEEE;border:1.5px solid #DC2626;border-radius:5px;display:inline-block"></span>ветка отказа / отмены</span>
+  </div>
+
+  <h2 style="font-size:22px;font-weight:800;margin:0 0 18px;color:#1E40AF">1 · Sitemap</h2>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:24px;margin-bottom:56px">
+    <sc-for list="{{ sitemap }}" as="col" hint-placeholder-count="3">
+      <div style="background:#FFFFFF;border:1px solid #F0EAE0;border-radius:18px;padding:22px 24px;box-shadow:0 2px 8px rgba(20,20,30,0.06)">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+          <span style="font-size:18px;font-weight:800">{{ col.title }}</span>
+          <span style="font-size:11px;font-weight:800;color:#FFFFFF;background:{{ col.badgeBg }};border-radius:999px;padding:3px 10px">{{ col.badge }}</span>
+        </div>
+        <div style="font-size:12px;color:#8A8A8F;margin-bottom:16px">{{ col.nav }}</div>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <sc-for list="{{ col.groups }}" as="g" hint-placeholder-count="4">
+            <div style="border:1px solid #F0EAE0;border-radius:10px;padding:10px 12px;background:#FFFCF5">
+              <div style="font-size:12.5px;font-weight:800;color:#1E40AF;margin-bottom:6px">{{ g.name }}</div>
+              <div style="display:flex;flex-wrap:wrap;gap:6px">
+                <sc-for list="{{ g.items }}" as="it" hint-placeholder-count="5">
+                  <span style="font-size:11.5px;font-weight:700;background:#FFFFFF;border:1px solid #F0EAE0;border-radius:999px;padding:4px 10px;white-space:nowrap">{{ it }}</span>
+                </sc-for>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+
+  <h2 style="font-size:22px;font-weight:800;margin:0 0 18px;color:#1E40AF">2 · User flows (13)</h2>
+  <div style="display:flex;flex-direction:column;gap:20px">
+    <sc-for list="{{ flows }}" as="f" hint-placeholder-count="13">
+      <div style="background:#FFFFFF;border:1px solid #F0EAE0;border-radius:18px;padding:20px 24px;box-shadow:0 2px 8px rgba(20,20,30,0.06)">
+        <div style="display:flex;align-items:baseline;gap:12px;margin-bottom:4px">
+          <span style="font-size:13px;font-weight:800;color:#EA580C">{{ f.num }}</span>
+          <span style="font-size:17px;font-weight:800">{{ f.title }}</span>
+          <span style="font-size:12px;color:#8A8A8F">{{ f.actor }}</span>
+        </div>
+        <sc-if value="{{ f.note }}" hint-placeholder-val="{{ false }}">
+          <div style="font-size:12px;color:#8A8A8F;margin-bottom:10px">{{ f.note }}</div>
+        </sc-if>
+        <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;row-gap:12px;margin-top:8px">
+          <sc-for list="{{ f.nodes }}" as="n" hint-placeholder-count="8">
+            <sc-if value="{{ n.arrow }}" hint-placeholder-val="{{ false }}">
+              <span style="color:#8A8A8F;font-size:15px;font-weight:800">{{ n.arrow }}</span>
+            </sc-if>
+            <sc-if value="{{ n.label }}" hint-placeholder-val="{{ true }}">
+              <span style="font-size:12.5px;font-weight:700;background:{{ n.bg }};border:1.5px {{ n.bs }} {{ n.bc }};color:{{ n.fg }};border-radius:10px;padding:8px 12px;max-width:230px;line-height:1.35">{{ n.label }}</span>
+            </sc-if>
+          </sc-for>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const T = {
+      s: { bg:'#FFFFFF', bc:'#F0EAE0', fg:'#1B1B1F', bs:'solid' },
+      a: { bg:'#EFF4FF', bc:'#3B82F6', fg:'#1E40AF', bs:'solid' },
+      x: { bg:'#FFF3EA', bc:'#EA580C', fg:'#9A3412', bs:'dashed' },
+      g: { bg:'#EAF7F1', bc:'#059669', fg:'#065F46', bs:'solid' },
+      b: { bg:'#FDEEEE', bc:'#DC2626', fg:'#991B1B', bs:'solid' },
+    };
+    const N = (t, label) => ({ label, ...T[t] });
+    const AR = { arrow:'→' };
+    const BR = { arrow:'⤷' };
+    const seq = (...nodes) => {
+      const out = [];
+      nodes.forEach((n, i) => { if (i > 0 && !n.arrow) out.push(AR); out.push(n); });
+      return out;
+    };
+
+    const sitemap = [
+      { title:'Клиент', badge:'mobile · PWA', badgeBg:'#EA580C',
+        nav:'Нижние табы: Главная · Заявки · [＋ Создать] · Уведомления · Профиль',
+        groups:[
+          { name:'Вход', items:['Splash','Телефон','SMS-код'] },
+          { name:'Главная', items:['Город/адрес','Карточка «Вызвать сейчас»','Карточка «Запланировать»','Категории','Активная заявка','Доверие и оплата','Поддержка'] },
+          { name:'Срочная заявка', items:['Шаг 1 · Категория','Шаг 2 · Проблема + фото','Шаг 3 · Адрес (карта)','Шаг 4 · Расчёт','Поиск (9 состояний)','Мастер едет (карта, ETA)','Подтверждение цены','Выполнение','Закрытие','Нет мастеров'] },
+          { name:'Плановая заявка', items:['Wizard (7 шагов)','Ожидание предложений','Список ставок (до 5)','Сравнение мастеров','Подтверждение выбора','Активная заявка'] },
+          { name:'Заявки', items:['Активные','История','Детальная карточка','Спор'] },
+          { name:'Профиль', items:['Данные','Адреса','Способы оплаты','Уведомления','Поддержка','Язык RU/KK/EN','Стать мастером'] },
+        ]},
+      { title:'Мастер', badge:'mobile · PWA', badgeBg:'#1E40AF',
+        nav:'Нижние табы: Работа · Плановые · [Активный заказ] · Кошелёк · Профиль',
+        groups:[
+          { name:'Онбординг', items:['Телефон + SMS','ФИО','ИИН','Опыт','Категории','Геозона','Удостоверение','Квалификация','Проверка данных','Статус (6 состояний)'] },
+          { name:'Работа', items:['Тумблер «На линии»','Гео + соединение','Статистика дня','Заработок','Входящий оффер (fullscreen)','Активный заказ','Навигация к клиенту','Предложение цены','Статусы: Еду→На месте→Работаю→Выполнено'] },
+          { name:'Плановые', items:['Лента (обезличенная)','Карточка заявки','Форма ставки','Баланс кредитов','Проигрыш / возврат'] },
+          { name:'Деньги', items:['Lead-кредиты','Покупка пакетов','Кошелёк ₸','Вывод средств','История операций'] },
+          { name:'Профиль', items:['Документы и категории','Споры','Блокировка / штрафы','Язык'] },
+        ]},
+      { title:'Оператор', badge:'desktop · 1440', badgeBg:'#059669',
+        nav:'Левая навигация + верхняя панель; master-detail списки',
+        groups:[
+          { name:'Обзор', items:['Активные срочные','Поиск без мастера','Просроченные действия','Открытые споры','Очередь верификации','Заявки на вывод','Метрики'] },
+          { name:'Верификация', items:['Очередь','Карточка мастера','Документы (просмотр)','Запрос данных','Одобрить / Отклонить'] },
+          { name:'Реестры', items:['Пользователи','Мастера','Блокировка','Заказы (срочные + плановые)','Детали заказа + timeline','Ручной матчинг'] },
+          { name:'Споры', items:['Список','Деталь: заявления сторон','Доказательства','Решение (2 чекбокса + комментарий)'] },
+          { name:'Финансы и журнал', items:['Вывод средств','Журнал действий'] },
+        ]},
+    ];
+
+    const flows = [
+      { num:'F1', title:'Регистрация клиента', actor:'клиент',
+        nodes: seq(N('s','Splash'), N('a','Ввод телефона +7'), N('x','SMS-код'), N('a','Ввод кода'), N('s','Имя (опц.)'), N('g','Главная')) },
+      { num:'F2', title:'Регистрация мастера', actor:'мастер · 6 статусов верификации',
+        nodes: [...seq(N('a','«Стать мастером»'), N('s','ФИО · ИИН · опыт'), N('s','Категории'), N('s','Геозона'), N('a','Удостоверение + квалификация'), N('s','Проверка данных'), N('a','Отправить'), N('x','PENDING_REVIEW')),
+          AR, N('g','ACTIVE — «Вы мастер»'), BR, N('b','NEEDS_INFO → дозагрузка → снова на проверку'), BR, N('b','REJECTED → причина + «Подать заново»')] },
+      { num:'F3', title:'Срочный заказ', actor:'клиент · 4 шага, оплата выезда hold→capture',
+        nodes: [...seq(N('a','Категория'), N('a','Проблема + фото'), N('a','Адрес (карта, подъезд/этаж)'), N('s','Расчёт: выезд N ₸ + сбор'), N('a','«Найти мастера» = hold'), N('x','Волны 3→6→10 км'), N('x','Мастер принял = capture'), N('s','Едет → На месте (карта, ETA)'), N('s','Цена работ'), N('a','Подтвердить'), N('s','В работе → Выполнено'), N('a','Подтвердить выполнение'), N('g','CLOSED · начисление мастеру')),
+          BR, N('b','NO_MASTERS → void холда → «Повторить» или «Запланировать»')] },
+      { num:'F4', title:'Плановый заказ', actor:'клиент',
+        nodes: [...seq(N('a','Категория'), N('a','Описание + фото'), N('a','Адрес + район'), N('a','Дата + слот'), N('a','Бюджет (опц.)'), N('s','Предпросмотр'), N('a','Опубликовать'), N('x','Ставки мастеров (до 5)'), N('a','Выбор мастера'), N('x','Мастер подтверждает ≤ 2 ч'), N('s','Контакты открыты'), N('s','Выполнение'), N('g','CLOSED')),
+          BR, N('b','Нет ставок к дате → EXPIRED'), BR, N('b','Таймаут 2 ч → снова PUBLISHED, ставки сохранены')] },
+      { num:'F5', title:'Ставка мастера', actor:'мастер · 1 lead-кредит за отклик',
+        nodes: [...seq(N('s','Лента (без адреса и контакта)'), N('a','Открыть заявку'), N('s','Форма: цена · срок · комментарий'), N('s','Баланс · «спишется 1 кредит»'), N('a','Подтвердить отклик'), N('x','Атомарное списание'), N('g','Ставка отправлена · 3/5')),
+          BR, N('b','Недостаточно кредитов → покупка пакета → возврат в форму'), BR, N('b','Лимит 5/5 → «заявка заполнена»')] },
+      { num:'F6', title:'Выбор мастера', actor:'клиент · сравнение, не только цена',
+        nodes: seq(N('x','bid:new — карточки прилетают live'), N('s','Список: цена · рейтинг · заказы · опыт · срок'), N('a','Сравнить 2–3'), N('s','Позиция цены: ниже/средняя/выше'), N('a','Выбрать мастера'), N('s','Подтверждение выбора'), N('x','bid:selected / bid:closed остальным'), N('g','Ожидание подтверждения мастером')) },
+      { num:'F7', title:'Подтверждение цены', actor:'клиент · таймер 15 мин',
+        nodes: [...seq(N('x','Мастер осмотрел → цена + комментарий'), N('s','Разбивка: выезд + работа = итого'), N('s','Таймер 15:00'), N('a','Подтвердить'), N('g','IN_PROGRESS')),
+          BR, N('b','Отклонить → отмена, выезд удержан (сказано заранее)'), BR, N('b','Таймаут → авто-отмена + компенсация мастеру')] },
+      { num:'F8', title:'Выполнение и закрытие', actor:'обе стороны',
+        nodes: [...seq(N('a','Мастер: «Выполнено»'), N('s','Клиент: карточка итога'), N('a','Подтвердить выполнение'), N('g','CLOSED · выплата мастеру = выезд − сбор')),
+          BR, N('x','Нет ответа 24 ч → авто-закрытие (заморожено, если открыт спор)')] },
+      { num:'F9', title:'Отмена', actor:'обе стороны · последствия показываются до подтверждения',
+        nodes: [N('a','Кнопка «Отменить»'), AR, N('s','Последствия для текущего статуса'), AR, N('a','Причина → подтвердить'), AR,
+          N('b','Клиент до принятия: бесплатно, void холда'), BR, N('b','Клиент после принятия: сбор удержан'), BR, N('b','Мастер после принятия: −2 кредита, штраф 24 ч, заявка → снова в поиск'), BR, N('b','3-я отмена за 30 дней → блокировка 7 дней')] },
+      { num:'F10', title:'Спор', actor:'клиент / мастер / оператор · окно 48 ч после закрытия',
+        nodes: seq(N('a','«Открыть спор»'), N('a','Причина + описание'), N('a','Фото-доказательства'), N('x','Вторая сторона: пояснение (1 раунд)'), N('s','Оператор: timeline + платежи + файлы'), N('a','Решение: возврат сбора ☐ · санкция ☐ + комментарий'), N('a','Подтверждение критического решения'), N('g','RESOLVED · заявка закрывается')) },
+      { num:'F11', title:'Покупка lead-кредитов', actor:'мастер · кредиты ≠ деньги',
+        nodes: seq(N('s','Баланс + история'), N('a','Пакет: 1/500 ₸ · 10/5 000 · 25/11 000 · 60/24 000'), N('x','Оплата (charge)'), N('g','Баланс пополнен · PURCHASE в истории')) },
+      { num:'F12', title:'Вывод средств', actor:'мастер · минимум 5 000 ₸',
+        nodes: [...seq(N('s','Кошелёк: доступно · ожидается'), N('a','Сумма ≥ 5 000 ₸'), N('x','Списание сразу · PENDING'), N('x','payout()'), N('g','PAID · реквизиты маскированы')),
+          BR, N('b','FAILED → сумма вернулась на баланс (видно в истории)')] },
+      { num:'F13', title:'Верификация оператором', actor:'оператор',
+        nodes: [...seq(N('s','Очередь PENDING_REVIEW'), N('s','Анкета + документы (просмотр)'), N('a','Решение'), N('g','Одобрить → ACTIVE')),
+          BR, N('b','Запросить данные → NEEDS_INFO + комментарий'), BR, N('b','Отклонить → причина обязательна'), AR, N('x','Запись в журнал действий')] },
+    ];
+
+    return { sitemap, flows };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <meta name="design_doc_mode" content="canvas">
+  <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap" rel="stylesheet">
+  <style>
+    body{margin:0;background:#DBE9EE;font-family:'Patrick Hand',system-ui,sans-serif;color:#333}
+    a{color:#166088} a:hover{color:#134F73}
+    .dv-turn{padding:40px 44px 32px;scroll-margin-top:16px}
+    .dv-thd{display:flex;align-items:baseline;gap:10px;margin:0 0 6px}
+    .dv-tid{font:600 10px ui-monospace,Menlo,monospace;padding:3px 7px;background:#1a1a1a;color:#fff;border-radius:4px;text-decoration:none}
+    .dv-tname{font:600 16px/1.2 system-ui,sans-serif;color:#1a1a1a}
+    .dv-group{font:600 13px system-ui,sans-serif;color:#1a1a1a;margin:30px 0 14px;display:flex;gap:8px;align-items:center}
+    .dv-group span{font:400 11px system-ui,sans-serif;color:rgba(0,0,0,.5)}
+    .dv-opts{display:flex;flex-wrap:wrap;gap:26px;align-items:flex-start}
+    .dv-opt{flex:none;display:flex;flex-direction:column;gap:8px;scroll-margin-top:16px}
+    .dv-oid{font:600 10.5px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(0,0,0,.08);color:#1a1a1a;border-radius:5px;text-decoration:none}
+    .dv-olabel{display:flex;align-items:baseline;gap:8px;font:400 11.5px/1.3 system-ui,sans-serif;color:rgba(0,0,0,.6);max-width:300px}
+    .dv-opt:target .dv-oid{background:#2a78d6;color:#fff}
+    .dv-next{margin:26px 0 0;font:12px/1.5 system-ui,sans-serif;color:rgba(0,0,0,.5)}
+    .wf{background:#fff;border:1.5px solid rgba(0,0,0,.18);border-radius:14px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+    .m{width:300px;min-height:600px}
+    .d{width:860px;min-height:540px}
+    .pad{padding:12px 14px;display:flex;flex-direction:column;gap:10px;flex:1}
+    .bar{display:flex;justify-content:space-between;align-items:center;padding:8px 14px;border-bottom:1.5px dashed #A9C4D1;font-size:13px}
+    .tabs{display:flex;border-top:1.5px dashed #A9C4D1;margin-top:auto}
+    .tabs div{flex:1;text-align:center;padding:9px 0 11px;font-size:11px;color:#6E93A6}
+    .tabs .on{color:#1a1a1a;font-weight:bold}
+    .tabs .fab{margin-top:-14px}
+    .fab-c{width:40px;height:40px;border-radius:50%;background:#166088;color:#fff;display:flex;align-items:center;justify-content:center;margin:0 auto;font-size:20px}
+    .box{border:1.5px solid #6E93A6;border-radius:10px;padding:10px 12px;background:#fff}
+    .gb{background:#CFE0E8;border:1.5px solid #C0D6DF;border-radius:10px;padding:10px 12px}
+    .ln{height:7px;border-radius:4px;background:#C0D6DF;margin:5px 0}
+    .ln.w60{width:60%}.ln.w40{width:40%}.ln.w80{width:80%}
+    .btn{border-radius:999px;background:#166088;color:#fff;text-align:center;font-size:14px;padding:9px;border:none}
+    .btn.acc{background:#166088}
+    .btn.sec{background:#fff;border:1.5px solid #166088;color:#166088}
+    .btn.dng{background:#fff;border:1.5px solid #c33;color:#c33}
+    .ph{background:repeating-linear-gradient(45deg,#E6EFF4 0 8px,#D3E3EB 8px 16px);border:1.5px solid #A9C4D1;border-radius:8px;position:relative;display:flex;align-items:center;justify-content:center;color:#6E93A6}
+    .map{background:repeating-linear-gradient(0deg,#EAF2F6 0 22px,#C9DCE6 22px 23px),repeating-linear-gradient(90deg,#EAF2F6 0 22px,#C9DCE6 22px 23px);border-bottom:1.5px dashed #A9C4D1;position:relative}
+    .pin{position:absolute;width:16px;height:16px;border-radius:50% 50% 50% 0;background:#166088;transform:rotate(-45deg)}
+    .pin.b{background:#166088}
+    .pill{display:inline-block;border:1.5px solid #6E93A6;border-radius:999px;padding:2px 10px;font-size:11.5px}
+    .pill.on{background:#166088;color:#fff;border-color:#166088}
+    .pill.blue{border-color:#166088;color:#166088}
+    .pill.orange{border-color:#166088;color:#166088}
+    .pill.green{border-color:#0a7d55;color:#0a7d55}
+    .row{display:flex;gap:8px;align-items:center}
+    .sb{display:flex;justify-content:space-between;align-items:center}
+    .av{width:34px;height:34px;border-radius:50%;border:1.5px solid #6E93A6;display:flex;align-items:center;justify-content:center;font-size:12px;flex:none}
+    .steps{display:flex;gap:5px}
+    .steps i{flex:1;height:5px;border-radius:3px;background:#C0D6DF}
+    .steps i.on{background:#166088}
+    .note{font-size:11px;color:#6E93A6;line-height:1.3}
+    .big{font-size:17px;font-weight:bold;line-height:1.15}
+    .t{font-size:13px;line-height:1.3}
+    .sheet{border:1.5px solid #6E93A6;border-bottom:none;border-radius:16px 16px 0 0;padding:12px 14px;display:flex;flex-direction:column;gap:8px;background:#fff;margin-top:-14px;position:relative}
+    .grab{width:36px;height:4px;border-radius:2px;background:#A9C4D1;margin:0 auto 4px}
+    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+    .cat{border:1.5px solid #6E93A6;border-radius:10px;padding:12px 6px;text-align:center;font-size:11.5px}
+    .cat i{display:block;width:22px;height:22px;border:1.5px solid #6E93A6;border-radius:6px;margin:0 auto 5px}
+    .kpi{border:1.5px solid #6E93A6;border-radius:10px;padding:8px 10px;flex:1}
+    .kpi b{font-size:16px;display:block}
+    .kpi span{font-size:10.5px;color:#6E93A6}
+    .side{width:150px;border-right:1.5px dashed #A9C4D1;padding:12px;display:flex;flex-direction:column;gap:7px;font-size:12.5px}
+    .side div{padding:5px 8px;border-radius:7px}
+    .side .on{background:#1a1a1a;color:#fff}
+    .th{display:grid;gap:8px;font-size:11px;color:#6E93A6;border-bottom:1.5px solid #C0D6DF;padding:6px 4px}
+    .tr{display:grid;gap:8px;font-size:12px;border-bottom:1px solid #DBE9EE;padding:7px 4px;align-items:center}
+    .tr.sel{background:#D3E4EC;outline:1.5px solid #166088;border-radius:6px}
+    .tl{display:flex;flex-direction:column;gap:6px;font-size:11.5px}
+    .tl div{display:flex;gap:8px;align-items:baseline}
+    .tl i{width:8px;height:8px;border-radius:50%;background:#6E93A6;flex:none}
+  </style>
+</helmet>
+<section class="dv-turn" id="t1">
+  <div class="dv-thd"><a class="dv-tid" href="#t1">1</a><span class="dv-tname">Этап 4 · Low-fi wireframes ключевых экранов</span></div>
+  <div class="note" style="font-family:system-ui;font-size:12px">Каркасы, не визуал: серый = структура, оранжевый = главный CTA, синий = вторичное/инфо. Мобильные 390-эквивалент, оператор — 1440-эквивалент.</div>
+
+  <div class="dv-group">Клиент · срочный заказ <span>главная → wizard 4 шага → поиск → цена</span></div>
+  <div class="dv-opts">
+    <div class="dv-opt" id="1a"><div class="dv-olabel"><a class="dv-oid" href="#1a">1a</a>Главная: два режима — две равные крупные карточки</div>
+      <div class="wf m"><div class="bar"><span>Астана · Сыганак 12 ▾</span><span>🔔</span></div>
+        <div class="pad">
+          <div class="big">Что случилось, Айгерім?</div>
+          <div class="box" style="border-color:#166088;border-width:2px"><div class="sb"><b class="t">⚡ Вызвать сейчас</b><span class="pill orange">~15 мин</span></div><div class="note">Ближайший мастер. Сначала — только выезд, работа после осмотра</div><div class="btn acc" style="margin-top:6px">Вызвать мастера</div></div>
+          <div class="box" style="border-color:#166088;border-width:2px"><div class="sb"><b class="t">📅 Запланировать</b><span class="pill blue">до 5 предложений</span></div><div class="note">Мастера предложат цену и срок — выберете сами</div><div class="btn sec" style="margin-top:6px">Создать заявку</div></div>
+          <div class="gb"><div class="sb"><span class="t">Активная заявка: Сантехник</span><span class="pill blue">Мастер в пути</span></div></div>
+          <div class="t" style="margin-top:2px">Категории</div>
+          <div class="grid3"><div class="cat"><i></i>Сантехника</div><div class="cat"><i></i>Электрика</div><div class="cat"><i></i>Техника</div><div class="cat"><i></i>Замки</div><div class="cat"><i></i>Ремонт</div><div class="cat"><i></i>Ещё…</div></div>
+          <div class="note">✓ мастера проверены · оплата защищена · поддержка 24/7</div>
+        </div>
+        <div class="tabs"><div class="on">Главная</div><div>Заявки</div><div class="fab"><div class="fab-c">＋</div></div><div>Уведомл.</div><div>Профиль</div></div>
+      </div>
+    </div>
+    <div class="dv-opt" id="1b"><div class="dv-olabel"><a class="dv-oid" href="#1b">1b</a>Wizard шаг 1–2: категория → проблема + фото</div>
+      <div class="wf m"><div class="bar"><span>← Срочный вызов</span><span>шаг 2 из 4</span></div>
+        <div class="pad"><div class="steps"><i class="on"></i><i class="on"></i><i></i><i></i></div>
+          <div class="gb sb"><span class="t">Категория: Сантехника</span><span style="font-size:11px;color:#166088">изменить</span></div>
+          <div class="t"><b>Опишите проблему</b></div>
+          <div class="box" style="min-height:70px"><span class="note">Например: «Течёт труба под раковиной на кухне, вода капает постоянно»</span></div>
+          <div class="t"><b>Фото</b> <span class="note">(до 5, помогает мастеру оценить)</span></div>
+          <div class="row"><div class="ph" style="width:64px;height:64px">✕</div><div class="ph" style="width:64px;height:64px;opacity:.6">⟳ 40%</div><div class="box" style="width:64px;height:64px;display:flex;align-items:center;justify-content:center;border-style:dashed">＋</div></div>
+          <div style="margin-top:auto"></div>
+          <div class="btn acc">Далее — адрес</div>
+        </div>
+      </div>
+    </div>
+    <div class="dv-opt" id="1c"><div class="dv-olabel"><a class="dv-oid" href="#1c">1c</a>Шаг 3: адрес — карта + сохранённые + детали</div>
+      <div class="wf m"><div class="bar"><span>← Адрес</span><span>шаг 3 из 4</span></div>
+        <div class="map" style="height:180px"><div class="pin" style="left:48%;top:45%"></div><div class="box" style="position:absolute;right:8px;bottom:8px;padding:4px 8px;font-size:11px">◎ моё место</div></div>
+        <div class="pad">
+          <div class="box t">🔍 пр. Кабанбай батыра, 42</div>
+          <div class="row"><span class="pill on">Дом</span><span class="pill">Работа</span><span class="pill">＋ новый</span></div>
+          <div class="grid3"><div class="box t">подъезд 3</div><div class="box t">этаж 7</div><div class="box t">кв. 51</div></div>
+          <div class="box note">Комментарий мастеру: домофон 51В</div>
+          <div style="margin-top:auto"></div>
+          <div class="btn acc">Далее — расчёт</div>
+        </div>
+      </div>
+    </div>
+    <div class="dv-opt" id="1d"><div class="dv-olabel"><a class="dv-oid" href="#1d">1d</a>Шаг 4: расчёт — честная структура цены</div>
+      <div class="wf m"><div class="bar"><span>← Проверьте заказ</span><span>шаг 4 из 4</span></div>
+        <div class="pad">
+          <div class="gb"><div class="t">Сантехника · «Течёт труба…» · 2 фото</div><div class="note">пр. Кабанбай батыра 42, под. 3, эт. 7, кв. 51</div></div>
+          <div class="box"><div class="sb t"><span>Выезд мастера</span><b>3 500 ₸</b></div><div class="sb note"><span>в т.ч. сервисный сбор</span><span>1 400 ₸</span></div><hr style="border:none;border-top:1.5px dashed #C0D6DF"><div class="note">Стоимость работ мастер назовёт <b>после осмотра</b> — вы подтверждаете её отдельно</div></div>
+          <div class="box sb t"><span>💳 Kaspi Gold ····4821</span><span style="color:#166088;font-size:11px">сменить</span></div>
+          <div class="note">Отмена до принятия мастером — бесплатно</div>
+          <div style="margin-top:auto"></div>
+          <div class="btn acc">Найти мастера · 3 500 ₸</div>
+        </div>
+      </div>
+    </div>
+    <div class="dv-opt" id="1e"><div class="dv-olabel"><a class="dv-oid" href="#1e">1e</a>Поиск: карта + шторка волн (9 состояний по F3)</div>
+      <div class="wf m"><div class="bar"><span>Поиск мастера</span><span>01:24</span></div>
+        <div class="map" style="height:260px"><div class="pin" style="left:48%;top:50%"></div><div style="position:absolute;left:30%;top:30%;width:110px;height:110px;border:1.5px dashed #166088;border-radius:50%"></div></div>
+        <div class="sheet" style="flex:1"><div class="grab"></div>
+          <div class="big">Ищем мастера в радиусе 3 км…</div>
+          <div class="note">Отправили заявку 4 мастерам · волна 1 из 3</div>
+          <div class="ln w80"></div><div class="ln w60"></div>
+          <div style="margin-top:auto"></div>
+          <div class="btn dng">Отменить — бесплатно</div>
+        </div>
+      </div>
+    </div>
+    <div class="dv-opt" id="1f"><div class="dv-olabel"><a class="dv-oid" href="#1f">1f</a>Мастер найден / едет: карта, ETA, контакт</div>
+      <div class="wf m"><div class="bar"><span>Заявка №1042</span><span class="pill blue">В пути</span></div>
+        <div class="map" style="height:210px"><div class="pin" style="left:60%;top:60%"></div><div class="pin b" style="left:30%;top:30%"></div><div style="position:absolute;left:33%;top:34%;width:80px;height:1.5px;background:#166088;transform:rotate(38deg);transform-origin:0 0"></div></div>
+        <div class="sheet" style="flex:1"><div class="grab"></div>
+          <div class="row"><div class="av">ДС</div><div style="flex:1"><div class="t"><b>Данияр С.</b> <span class="pill green">✓ проверен</span></div><div class="note">★ 4.9 · 214 заказов · Сантехник</div></div><div class="box" style="padding:6px 10px">📞</div></div>
+          <div class="gb sb"><span class="t">Приедет через</span><b class="t">~12 мин</b></div>
+          <div class="row" style="font-size:11px;color:#166088"><span>Поддержка</span><span>·</span><span>Правила отмены</span></div>
+          <div class="btn dng">Отменить (выезд будет удержан)</div>
+        </div>
+      </div>
+    </div>
+    <div class="dv-opt" id="1g"><div class="dv-olabel"><a class="dv-oid" href="#1g">1g</a>Подтверждение цены: разбивка + таймер 15 мин</div>
+      <div class="wf m"><div class="bar"><span>Цена работ</span><span class="pill orange">⏱ 14:32</span></div>
+        <div class="pad">
+          <div class="row"><div class="av">ДС</div><div class="t">Данияр осмотрел и предлагает:</div></div>
+          <div class="box"><div class="sb t"><span>Выезд (оплачен)</span><span>3 500 ₸</span></div><div class="sb t"><span>Работы</span><b>15 000 ₸</b></div><hr style="border:none;border-top:1.5px dashed #C0D6DF"><div class="sb big"><span>Итого</span><span>18 500 ₸</span></div></div>
+          <div class="gb note">«Замена сифона и прокладки, детали есть с собой. Займёт ~1 час»</div>
+          <div class="note">Отклоните — заявка отменится, выезд не возвращается. Вопросы? <span style="color:#166088">Поддержка</span></div>
+          <div style="margin-top:auto"></div>
+          <div class="btn acc">Подтвердить 15 000 ₸</div>
+          <div class="btn dng">Отклонить</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="dv-group">Клиент · плановый режим <span>ожидание → ставки → сравнение</span></div>
+  <div class="dv-opts">
+    <div class="dv-opt" id="1h"><div class="dv-olabel"><a class="dv-oid" href="#1h">1h</a>Ожидание предложений: счётчик, live-ставки</div>
+      <div class="wf m"><div class="bar"><span>← Заявка №P-88</span><span class="pill blue">Опубликована</span></div>
+        <div class="pad">
+          <div class="gb"><div class="t">Электрика · вт 22 июля, 10:00–13:00</div><div class="note">Есентай · бюджет ~20 000 ₸</div></div>
+          <div class="sb"><b class="t">Предложения: 2 из 5</b><span class="note">активна до 22.07</span></div>
+          <div class="box"><div class="sb"><div class="row"><div class="av">АЖ</div><div><div class="t"><b>Арман Ж.</b> ✓</div><div class="note">★ 4.8 · 96 заказов · 7 лет</div></div></div><b class="t">18 000 ₸</b></div><div class="note">«Сделаю во вторник до обеда» · срок: 2 ч</div><div class="row"><span class="pill green">ниже средней</span><span class="pill">подробнее</span><span class="pill on">Выбрать</span></div></div>
+          <div class="box" style="opacity:.75"><div class="sb"><div class="row"><div class="av">ЕК</div><div class="t"><b>Ерлан К.</b> · ★ 4.6 · 41</div></div><b class="t">22 000 ₸</b></div></div>
+          <div class="gb note" style="text-align:center">новая ставка появится здесь ↓</div>
+          <div style="margin-top:auto"></div>
+          <div class="row"><div class="btn sec" style="flex:1">Сравнить (2)</div><div class="btn dng" style="flex:1">Отменить</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="dv-opt" id="1i"><div class="dv-olabel"><a class="dv-oid" href="#1i">1i</a>Сравнение: построчно, без таблицы-простыни</div>
+      <div class="wf m"><div class="bar"><span>← Сравнение</span><span>2 мастера</span></div>
+        <div class="pad">
+          <div class="grid2"><div class="box" style="text-align:center"><div class="av" style="margin:0 auto">АЖ</div><b class="t">Арман Ж.</b></div><div class="box" style="text-align:center"><div class="av" style="margin:0 auto">ЕК</div><b class="t">Ерлан К.</b></div></div>
+          <div class="th" style="grid-template-columns:1fr 1fr">Цена</div>
+          <div class="grid2 t"><b>18 000 ₸ 🟢</b><span>22 000 ₸</span></div>
+          <div class="th" style="grid-template-columns:1fr 1fr">Рейтинг · заказы</div>
+          <div class="grid2 t"><span>★ 4.8 · 96</span><b>★ 4.6 · 41</b></div>
+          <div class="th" style="grid-template-columns:1fr 1fr">Опыт · срок</div>
+          <div class="grid2 t"><span>7 лет · 2 ч</span><span>4 года · 3 ч</span></div>
+          <div class="th" style="grid-template-columns:1fr 1fr">Комментарий</div>
+          <div class="grid2 note"><span>«во вторник до обеда»</span><span>«могу сегодня вечером»</span></div>
+          <div style="margin-top:auto"></div>
+          <div class="grid2"><div class="btn acc">Выбрать Армана</div><div class="btn sec">Выбрать Ерлана</div></div>
+          <div class="note" style="text-align:center">выбор подтверждается отдельным шагом</div>
+        </div>
+      </div>
+    </div>
+    <div class="dv-opt" id="1j"><div class="dv-olabel"><a class="dv-oid" href="#1j">1j</a>Спор: причина → доказательства → статус</div>
+      <div class="wf m"><div class="bar"><span>← Спор по заявке №1042</span><span class="pill orange">Открыт</span></div>
+        <div class="pad">
+          <div class="t"><b>Причина</b></div>
+          <div class="row"><span class="pill on">Качество работ</span><span class="pill">Цена</span><span class="pill">Другое</span></div>
+          <div class="box" style="min-height:56px"><span class="note">Опишите подробно, что пошло не так…</span></div>
+          <div class="t"><b>Доказательства</b></div>
+          <div class="row"><div class="ph" style="width:56px;height:56px">✕</div><div class="box" style="width:56px;height:56px;display:flex;align-items:center;justify-content:center;border-style:dashed">＋</div></div>
+          <div class="gb"><div class="note"><b>Ответ мастера:</b> ожидается…</div><div class="note"><b>Оператор ответит:</b> до 24 ч</div></div>
+          <div style="margin-top:auto"></div>
+          <div class="btn">Отправить спор</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="dv-group">Мастер <span>работа → оффер → активный заказ → цена → деньги</span></div>
+  <div class="dv-opts">
+    <div class="dv-opt" id="1k"><div class="dv-olabel"><a class="dv-oid" href="#1k">1k</a>«Работа»: тумблер, гео/связь, статистика дня</div>
+      <div class="wf m"><div class="bar"><span>Работа</span><span class="pill green">● соединение</span></div>
+        <div class="pad">
+          <div class="box sb" style="border-width:2px"><div><b class="t">На линии</b><div class="note">гео активна · Есентай</div></div><div class="pill on" style="padding:6px 16px">ВКЛ</div></div>
+          <div class="row"><div class="kpi"><b>4</b><span>заказа сегодня</span></div><div class="kpi"><b>26 400 ₸</b><span>заработано</span></div><div class="kpi"><b>★ 4.9</b><span>рейтинг</span></div></div>
+          <div class="t"><b>Активный заказ</b></div>
+          <div class="gb sb"><span class="t">Сантехника · Кабанбай батыра</span><span class="pill blue">На месте</span></div>
+          <div class="t"><b>Категории:</b> <span class="pill">Сантехника</span> <span class="pill">Замки</span></div>
+          <div class="note">Ждём заявки рядом с вами…</div>
+        </div>
+        <div class="tabs"><div class="on">Работа</div><div>Плановые</div><div class="fab"><div class="fab-c">⚡</div></div><div>Кошелёк</div><div>Профиль</div></div>
+      </div>
+    </div>
+    <div class="dv-opt" id="1l"><div class="dv-olabel"><a class="dv-oid" href="#1l">1l</a>Входящий оффер: fullscreen, район без адреса, таймер</div>
+      <div class="wf m" style="background:#2b2f36;color:#fff"><div class="bar" style="border-color:#4a4f57"><span>НОВАЯ ЗАЯВКА</span><span class="pill orange" style="background:#166088;color:#fff;border-color:#166088">⏱ 0:47</span></div>
+        <div class="pad">
+          <div class="big" style="font-size:20px">Сантехника</div>
+          <div class="t">Есентай · 2.3 км · ~8 мин в пути</div>
+          <div class="box" style="background:#3a3f47;border-color:#5a5f67;color:#ddd"><div class="note" style="color:#bbb">«Течёт труба под раковиной, вода капает постоянно»</div></div>
+          <div class="row"><div class="ph" style="width:56px;height:56px">✕</div><div class="ph" style="width:56px;height:56px">✕</div></div>
+          <div class="gb" style="background:#3a3f47;border-color:#5a5f67"><div class="sb t" style="color:#fff"><span>Вам за выезд</span><b>2 100 ₸</b></div><div class="note" style="color:#6E93A6">точный адрес — после принятия</div></div>
+          <div style="margin-top:auto"></div>
+          <div class="btn acc" style="font-size:16px;padding:13px">Принять (47 с)</div>
+          <div class="btn" style="background:transparent;border:1.5px solid #5a5f67">Пропустить</div>
+        </div>
+      </div>
+    </div>
+    <div class="dv-opt" id="1m"><div class="dv-olabel"><a class="dv-oid" href="#1m">1m</a>Активный заказ: адрес открыт, статусы с подтверждением</div>
+      <div class="wf m"><div class="bar"><span>Заказ №1042</span><span class="pill blue">Еду</span></div>
+        <div class="map" style="height:150px"><div class="pin" style="left:55%;top:45%"></div></div>
+        <div class="pad">
+          <div class="box"><div class="t"><b>пр. Кабанбай батыра 42</b> · под. 3, эт. 7, кв. 51</div><div class="note">домофон 51В · <span style="color:#166088">📞 клиент</span> · <span style="color:#166088">навигатор ↗</span></div></div>
+          <div class="gb note">«Течёт труба под раковиной…» + 2 фото</div>
+          <div class="steps"><i class="on"></i><i class="on"></i><i></i><i></i><i></i></div>
+          <div class="note">Принял → <b>Еду</b> → На месте → Цена → Работа → Выполнено</div>
+          <div style="margin-top:auto"></div>
+          <div class="btn">Я на месте</div>
+          <div class="note" style="text-align:center">смена статуса — с подтверждением, случайно не нажать</div>
+          <div class="btn dng">Отменить (−2 кредита, штраф)</div>
+        </div>
+      </div>
+    </div>
+    <div class="dv-opt" id="1n"><div class="dv-olabel"><a class="dv-oid" href="#1n">1n</a>Предложение цены: сумма + работы + длительность</div>
+      <div class="wf m"><div class="bar"><span>← Стоимость работ</span><span class="pill blue">Осмотр</span></div>
+        <div class="pad">
+          <div class="box big" style="text-align:center">15 000 ₸</div>
+          <div class="t"><b>Что входит</b> <span class="note">(видит клиент)</span></div>
+          <div class="box note">Замена сифона и прокладки, детали с собой</div>
+          <div class="row"><span class="t">Длительность:</span><span class="pill on">~1 ч</span><span class="pill">2 ч</span><span class="pill">полдня</span></div>
+          <div class="gb note">Клиент увидит: выезд 3 500 + работы 15 000 = <b>18 500 ₸</b>. На подтверждение — 15 мин.</div>
+          <div style="margin-top:auto"></div>
+          <div class="btn acc">Отправить клиенту</div>
+        </div>
+      </div>
+    </div>
+    <div class="dv-opt" id="1o"><div class="dv-olabel"><a class="dv-oid" href="#1o">1o</a>Плановая лента + форма ставки со списанием кредита</div>
+      <div class="wf m"><div class="bar"><span>Плановые</span><span class="pill">⬡ 12 кредитов</span></div>
+        <div class="pad">
+          <div class="box"><div class="sb t"><b>Электрика · Есентай</b><span class="note">2/5 ставок</span></div><div class="note">вт 22 июля 10:00–13:00 · «Заменить розетки…»</div><div class="sb"><span class="pill orange">отклик: 1 кредит</span><span class="pill on">Предложить</span></div></div>
+          <div class="box" style="border-width:2px"><div class="t"><b>Ваше предложение</b></div>
+            <div class="grid2"><div class="box t">цена: 18 000 ₸</div><div class="box t">срок: 2 ч</div></div>
+            <div class="box note">Комментарий: сделаю во вторник до обеда</div>
+            <div class="gb sb note"><span>Спишется 1 кредит · останется 11</span></div>
+            <div class="btn acc">Откликнуться − 1 ⬡</div>
+          </div>
+          <div class="gb note">Кредитов 0? → покупка пакета прямо из формы</div>
+        </div>
+        <div class="tabs"><div>Работа</div><div class="on">Плановые</div><div class="fab"><div class="fab-c">⚡</div></div><div>Кошелёк</div><div>Профиль</div></div>
+      </div>
+    </div>
+    <div class="dv-opt" id="1p"><div class="dv-olabel"><a class="dv-oid" href="#1p">1p</a>Деньги: кошелёк ₸ и кредиты ⬡ — визуально разделены</div>
+      <div class="wf m"><div class="bar"><span>Кошелёк</span><span></span></div>
+        <div class="pad">
+          <div class="row"><span class="pill on">₸ Деньги</span><span class="pill">⬡ Lead-кредиты</span></div>
+          <div class="box" style="border-width:2px"><div class="note">доступно</div><div class="big">64 300 ₸</div><div class="note">ожидает начисления: 2 100 ₸</div></div>
+          <div class="btn">Вывести (мин. 5 000 ₸)</div>
+          <div class="t"><b>История</b></div>
+          <div class="box sb note"><span>Заказ №1042 · выезд − сбор</span><b>+2 100 ₸</b></div>
+          <div class="box sb note"><span>Вывод на ····0142</span><span class="pill green">выплачено</span></div>
+          <div class="box sb note"><span>Вывод 12 000 ₸</span><span class="pill orange">в обработке</span></div>
+          <div class="box sb note"><span>Вывод — отклонён, возврат</span><span class="pill" style="border-color:#c33;color:#c33">FAILED</span></div>
+        </div>
+        <div class="tabs"><div>Работа</div><div>Плановые</div><div class="fab"><div class="fab-c">⚡</div></div><div class="on">Кошелёк</div><div>Профиль</div></div>
+      </div>
+    </div>
+    <div class="dv-opt" id="1q"><div class="dv-olabel"><a class="dv-oid" href="#1q">1q</a>Онбординг мастера: wizard + статус проверки</div>
+      <div class="wf m"><div class="bar"><span>← Стать мастером</span><span>шаг 5 из 8</span></div>
+        <div class="pad"><div class="steps"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i><i></i></div>
+          <div class="big">Загрузите удостоверение</div>
+          <div class="note">Фото обеих сторон. Данные видит только оператор.</div>
+          <div class="grid2"><div class="ph" style="height:80px">лицевая</div><div class="ph" style="height:80px;border-style:dashed;background:#fff">＋ обратная</div></div>
+          <div class="gb"><div class="t"><b>Статусы после отправки:</b></div><div class="note">на проверке → нужны данные (что именно + кнопка дозагрузки) → одобрен / отклонён (причина + «подать заново»)</div></div>
+          <div style="margin-top:auto"></div>
+          <div class="btn acc">Далее</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="dv-group">Оператор · desktop 1440 <span>dashboard → master-detail</span></div>
+  <div class="dv-opts">
+    <div class="dv-opt" id="1r"><div class="dv-olabel"><a class="dv-oid" href="#1r">1r</a>Dashboard: «горящее» сверху, метрики ниже</div>
+      <div class="wf d"><div class="bar"><span><b>MasterQala · Оператор</b></span><span>RU ▾ · Айдана О.</span></div>
+        <div style="display:flex;flex:1">
+          <div class="side"><div class="on">Обзор</div><div>Верификация <b>· 6</b></div><div>Пользователи</div><div>Мастера</div><div>Заказы</div><div>Споры <b>· 3</b></div><div>Вывод средств <b>· 2</b></div><div>Журнал</div></div>
+          <div class="pad">
+            <div class="t"><b>Требует внимания</b></div>
+            <div class="row"><div class="kpi" style="border-color:#c33"><b>2</b><span>поиск без мастера &gt; 5 мин</span></div><div class="kpi" style="border-color:#166088"><b>3</b><span>открытые споры</span></div><div class="kpi" style="border-color:#166088"><b>6</b><span>верификация в очереди</span></div><div class="kpi"><b>2</b><span>заявки на вывод</span></div></div>
+            <div class="row"><div class="kpi"><b>38</b><span>активных срочных</span></div><div class="kpi"><b>12</b><span>плановых опубликовано</span></div><div class="kpi"><b>91%</b><span>заказов с мастером</span></div><div class="kpi"><b>4:10</b><span>медиана поиска</span></div></div>
+            <div class="t"><b>Поиск без мастера</b></div>
+            <div class="th" style="grid-template-columns:70px 1fr 1fr 90px 110px">ID · Категория · Адрес · Волна · Действие</div>
+            <div class="tr" style="grid-template-columns:70px 1fr 1fr 90px 110px"><span>#1044</span><span>Электрика</span><span>Мәңгілік Ел 55</span><span>3 из 3</span><span class="pill blue">матчинг вручную</span></div>
+            <div class="tr" style="grid-template-columns:70px 1fr 1fr 90px 110px"><span>#1047</span><span>Замки</span><span>Сыганак 18</span><span>2 из 3</span><span class="pill blue">матчинг вручную</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="dv-opt" id="1s"><div class="dv-olabel"><a class="dv-oid" href="#1s">1s</a>Верификация: очередь слева, деталь справа — без переходов</div>
+      <div class="wf d"><div class="bar"><span><b>Верификация мастеров</b></span><span>фильтр: на проверке ▾</span></div>
+        <div style="display:flex;flex:1">
+          <div class="side" style="width:230px">
+            <div class="box" style="padding:7px"><div class="sb t"><b>Арман Ж.</b><span class="pill orange">2 дня</span></div><div class="note">Сантехника · Есентай</div></div>
+            <div class="box sel" style="padding:7px;border-color:#166088;border-width:2px"><div class="sb t"><b>Ерлан К.</b><span class="pill orange">5 ч</span></div><div class="note">Электрика · Алматы р-н</div></div>
+            <div class="box" style="padding:7px"><div class="t"><b>Айбек Т.</b></div><div class="note">нужны данные · ждёт 1 день</div></div>
+          </div>
+          <div class="pad">
+            <div class="sb"><div class="big">Ерлан К. · ИИН 900···1234</div><span class="pill orange">На проверке</span></div>
+            <div class="row"><div class="kpi"><b>4 года</b><span>опыт</span></div><div class="kpi"><b>Электрика</b><span>категории</span></div><div class="kpi"><b>Алматы р-н</b><span>геозона</span></div></div>
+            <div class="t"><b>Документы</b></div>
+            <div class="row"><div class="ph" style="width:120px;height:76px">удостоверение ✕</div><div class="ph" style="width:120px;height:76px">квалификация ✕</div></div>
+            <div class="box note">Комментарий оператора (обязателен при отказе/запросе)…</div>
+            <div class="row"><div class="btn" style="background:#0a7d55;padding:8px 18px">Одобрить</div><div class="btn sec" style="padding:8px 18px">Запросить данные</div><div class="btn dng" style="padding:8px 18px">Отклонить</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="dv-opt" id="1t"><div class="dv-olabel"><a class="dv-oid" href="#1t">1t</a>Деталь спора: timeline + два независимых решения</div>
+      <div class="wf d"><div class="bar"><span><b>Спор #D-17 · заказ №1042</b></span><span class="pill orange">Открыт · 6 ч</span></div>
+        <div style="display:flex;flex:1">
+          <div class="pad" style="border-right:1.5px dashed #A9C4D1;max-width:46%">
+            <div class="t"><b>Timeline заказа</b></div>
+            <div class="tl"><div><i></i>14:02 создана · выезд 3 500 ₸ (HOLD)</div><div><i></i>14:05 принял Данияр С. (CAPTURE)</div><div><i></i>14:38 на месте → цена 15 000 ₸</div><div><i></i>14:41 клиент подтвердил</div><div><i style="background:#166088"></i>16:20 выполнено → клиент открыл спор</div></div>
+            <div class="t"><b>Платежи</b></div>
+            <div class="box sb note"><span>HOLD 3 500 → CAPTURE</span><span class="pill green">SUCCEEDED</span></div>
+            <div class="t"><b>Отмены/контакты</b></div><div class="ln w60"></div>
+          </div>
+          <div class="pad">
+            <div class="t"><b>Клиент (открыл):</b></div><div class="gb note">«После ремонта труба снова потекла через час» + 2 фото</div>
+            <div class="row"><div class="ph" style="width:70px;height:50px">✕</div><div class="ph" style="width:70px;height:50px">✕</div></div>
+            <div class="t"><b>Мастер (пояснение):</b></div><div class="gb note">«Прокладка новая, течь в другом месте — показал клиенту»</div>
+            <div class="box"><label class="t">☑ Вернуть сервисный сбор (1 400 ₸)</label><br><label class="t">☐ Санкция мастеру (−2 ⬡, приоритет −24 ч)</label><div class="box note" style="margin-top:6px">Комментарий решения (обязателен)…</div></div>
+            <div class="btn" style="align-self:flex-start;padding:8px 18px">Решить спор → подтверждение</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="dv-opt" id="1u"><div class="dv-olabel"><a class="dv-oid" href="#1u">1u</a>Заказы: фильтры + таблица + contextual sidebar</div>
+      <div class="wf d"><div class="bar"><span><b>Заказы</b></span><span>поиск 🔍 · тип ▾ · статус ▾ · период ▾</span></div>
+        <div style="display:flex;flex:1">
+          <div class="pad" style="flex:1.4">
+            <div class="th" style="grid-template-columns:64px 70px 1fr 1fr 1fr 100px">ID · Тип · Клиент · Мастер · Категория · Статус</div>
+            <div class="tr" style="grid-template-columns:64px 70px 1fr 1fr 1fr 100px"><span>#1042</span><span>⚡</span><span>Айгерім</span><span>Данияр С.</span><span>Сантехника</span><span class="pill orange">Спор</span></div>
+            <div class="tr sel" style="grid-template-columns:64px 70px 1fr 1fr 1fr 100px"><span>#1044</span><span>⚡</span><span>Арман</span><span>—</span><span>Электрика</span><span class="pill blue">Поиск</span></div>
+            <div class="tr" style="grid-template-columns:64px 70px 1fr 1fr 1fr 100px"><span>#P-88</span><span>📅</span><span>Ерлан</span><span>Арман Ж.</span><span>Электрика</span><span class="pill green">Закрыта</span></div>
+            <div class="note" style="text-align:center">‹ 1 2 3 … 12 ›</div>
+          </div>
+          <div class="pad" style="border-left:1.5px dashed #A9C4D1;max-width:36%">
+            <div class="sb"><b class="t">#1044 · Электрика</b><span class="pill blue">Поиск · волна 3</span></div>
+            <div class="note">Мәңгілік Ел 55 · создана 13:58 · выезд 4 200 ₸ HOLD</div>
+            <div class="tl"><div><i></i>13:58 создана</div><div><i></i>13:59 волна 1 — 0 откликов</div><div><i style="background:#166088"></i>14:03 волна 3 — идёт</div></div>
+            <div class="btn sec" style="padding:7px">Назначить мастера вручную</div>
+            <div class="box note">Внутренний комментарий…</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <p class="dv-next">Дальше: «утверждаю каркасы — делай hi-fi клиента» · «переработай <a class="dv-oid" href="#1e">1e</a>/<a class="dv-oid" href="#1i">1i</a>…» · «добавь каркас экрана …»</p>
+</section>
+</x-dc>
+</body>
+</html>

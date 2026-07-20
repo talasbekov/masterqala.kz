@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="_ds/masterqala-design-system-e764316c-0ca9-499e-8a35-b9393de66d34/fonts/fonts.css">
+  <style>
+    body { margin:0; background:#C7DAE3; font-family:'Manrope',ui-sans-serif,system-ui,sans-serif; color:#14303C; }
+    a { color:#166088; } a:hover { color:#134F73; }
+    @keyframes mqPulse { 0%{transform:scale(0.6);opacity:0.7} 100%{transform:scale(1.6);opacity:0} }
+    @keyframes mqUp { from{transform:translateY(14px);opacity:0} to{transform:translateY(0);opacity:1} }
+    @keyframes mqSpin { to{transform:rotate(360deg)} }
+    @keyframes mqRing { 0%,100%{transform:rotate(0)} 20%{transform:rotate(-12deg)} 40%{transform:rotate(10deg)} 60%{transform:rotate(-8deg)} 80%{transform:rotate(6deg)} }
+    input::placeholder, textarea::placeholder { color:#8FAAB8; }
+    input, textarea { outline:none; }
+    input:focus-visible, textarea:focus-visible, button:focus-visible { outline:2px solid #166088; outline-offset:2px; }
+  </style>
+</helmet>
+<div style="display:flex;gap:28px;align-items:flex-start;padding:28px 32px;min-height:100vh;box-sizing:border-box">
+  <div style="width:230px;flex:none;background:#FFFFFF;border:1px solid #C0D6DF;border-radius:18px;padding:16px;position:sticky;top:28px">
+    <div style="font-size:11px;font-weight:800;letter-spacing:0.07em;color:#166088;text-transform:uppercase;margin-bottom:2px">MasterQala · Этап 5–6</div>
+    <div style="font-size:15px;font-weight:800;margin-bottom:10px">Мастер · 390×844</div>
+    <div style="font-size:11.5px;color:#5B7B8A;line-height:1.45;margin-bottom:12px">Выйдите «на линию» — через несколько секунд прилетит оффер с таймером. Панель — прыжки по состояниям.</div>
+    <sc-for list="{{ jumpGroups }}" as="jg" hint-placeholder-count="5">
+      <div style="margin-bottom:10px">
+        <div style="font-size:10.5px;font-weight:800;color:#5B7B8A;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:5px">{{ jg.name }}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:5px">
+          <sc-for list="{{ jg.items }}" as="j" hint-placeholder-count="4">
+            <button onClick="{{ j.onTap }}" style="font-family:inherit;font-size:11px;font-weight:700;border:1px solid {{ j.bc }};background:{{ j.bg }};color:{{ j.fg }};border-radius:999px;padding:4px 10px;cursor:pointer">{{ j.label }}</button>
+          </sc-for>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+
+  <div style="width:390px;height:844px;flex:none;background:#F2F7FA;border-radius:44px;overflow:hidden;box-shadow:0 24px 60px rgba(20,48,60,0.28),0 0 0 10px #14303C;display:flex;flex-direction:column;position:relative">
+    <div style="height:44px;flex:none;display:flex;justify-content:space-between;align-items:center;padding:0 26px;font-size:13.5px;font-weight:800;color:#14303C">
+      <span>9:41</span><span style="letter-spacing:2px">▮▮▮ ᯤ 87%</span>
+    </div>
+
+    <sc-if value="{{ scr.ob1 }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:1;display:flex;flex-direction:column;padding:6px 20px 14px;gap:12px;overflow-y:auto">
+        <div style="display:flex;align-items:center;gap:10px"><span style="font-size:18px;font-weight:800;flex:1">Стать мастером</span><span style="font-size:12px;font-weight:700;color:#5B7B8A">шаг 1 из 4</span></div>
+        <div style="display:flex;gap:5px"><div style="flex:1;height:5px;border-radius:3px;background:#166088"></div><div style="flex:1;height:5px;border-radius:3px;background:#C0D6DF"></div><div style="flex:1;height:5px;border-radius:3px;background:#C0D6DF"></div><div style="flex:1;height:5px;border-radius:3px;background:#C0D6DF"></div></div>
+        <div style="font-size:21px;font-weight:800">Анкета</div>
+        <div style="background:#FFFFFF;border:1.5px solid #C0D6DF;border-radius:14px;padding:12px 14px"><div style="font-size:10.5px;font-weight:700;color:#5B7B8A">ФИО полностью</div><div style="font-size:14px;font-weight:800;margin-top:2px">Данияр Серикұлы Ахметов</div></div>
+        <div style="background:#FFFFFF;border:1.5px solid #C0D6DF;border-radius:14px;padding:12px 14px"><div style="font-size:10.5px;font-weight:700;color:#5B7B8A">ИИН (12 цифр)</div><div style="font-size:14px;font-weight:800;margin-top:2px;letter-spacing:1px">900215 300 123</div></div>
+        <div style="background:#FFFFFF;border:1.5px solid #C0D6DF;border-radius:14px;padding:12px 14px"><div style="font-size:10.5px;font-weight:700;color:#5B7B8A">Опыт работы</div><div style="font-size:14px;font-weight:800;margin-top:2px">8 лет</div></div>
+        <div style="font-size:12px;color:#5B7B8A;line-height:1.5">🔒 Данные видит только оператор при проверке. Клиенты видят имя, рейтинг и категории.</div>
+        <div style="margin-top:auto"></div>
+        <button onClick="{{ go.ob2 }}" style="font-family:inherit;background:#166088;color:#FFFFFF;border:none;border-radius:999px;padding:15px;font-size:15px;font-weight:800;cursor:pointer">Далее — категории</button>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ scr.ob2 }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:1;display:flex;flex-direction:column;padding:6px 20px 14px;gap:12px;overflow-y:auto">
+        <div style="display:flex;align-items:center;gap:10px"><button onClick="{{ go.ob1 }}" style="font-family:inherit;background:none;border:none;color:#166088;font-size:20px;cursor:pointer;padding:0">←</button><span style="font-size:18px;font-weight:800;flex:1">Категории и район</span><span style="font-size:12px;font-weight:700;color:#5B7B8A">шаг 2 из 4</span></div>
+        <div style="display:flex;gap:5px"><div style="flex:1;height:5px;border-radius:3px;background:#166088"></div><div style="flex:1;height:5px;border-radius:3px;background:#166088"></div><div style="flex:1;height:5px;border-radius:3px;background:#C0D6DF"></div><div style="flex:1;height:5px;border-radius:3px;background:#C0D6DF"></div></div>
+        <div style="font-size:14px;font-weight:800">Чем занимаетесь?</div>
+        <div style="display:flex;flex-wrap:wrap;gap:7px">
+          <span style="background:#166088;color:#FFFFFF;border-radius:999px;padding:8px 15px;font-size:13px;font-weight:800">🔧 Сантехника</span>
+          <span style="background:#166088;color:#FFFFFF;border-radius:999px;padding:8px 15px;font-size:13px;font-weight:800">🔐 Замки и двери</span>
+          <span style="border:1.5px solid #C0D6DF;border-radius:999px;padding:8px 15px;font-size:13px;font-weight:700;color:#5B7B8A">⚡ Электрика</span>
+          <span style="border:1.5px solid #C0D6DF;border-radius:999px;padding:8px 15px;font-size:13px;font-weight:700;color:#5B7B8A">🧊 Бытовая техника</span>
+          <span style="border:1.5px solid #C0D6DF;border-radius:999px;padding:8px 15px;font-size:13px;font-weight:700;color:#5B7B8A">🔨 Мелкий ремонт</span>
+        </div>
+        <div style="font-size:14px;font-weight:800;margin-top:4px">Район работы</div>
+        <div style="height:150px;position:relative;overflow:hidden;border-radius:14px;background:#CFE0E8">
+          <div style="position:absolute;left:-60px;top:-100px;width:512px;height:512px">
+            <img src="https://tile.openstreetmap.org/14/11442/5477.png" style="position:absolute;left:0;top:0;width:256px;height:256px" alt="">
+            <img src="https://tile.openstreetmap.org/14/11443/5477.png" style="position:absolute;left:256px;top:0;width:256px;height:256px" alt="">
+            <img src="https://tile.openstreetmap.org/14/11442/5478.png" style="position:absolute;left:0;top:256px;width:256px;height:256px" alt="">
+            <img src="https://tile.openstreetmap.org/14/11443/5478.png" style="position:absolute;left:256px;top:256px;width:256px;height:256px" alt="">
+          </div>
+          <div style="position:absolute;left:50%;top:50%;width:120px;height:120px;margin:-60px 0 0 -60px;border-radius:50%;background:rgba(22,96,136,0.18);border:2px dashed #166088"></div>
+        </div>
+        <div style="background:#FFFFFF;border:1.5px solid #C0D6DF;border-radius:14px;padding:12px 14px;font-size:13.5px;font-weight:800">📍 Есиль, Астана · радиус 10 км</div>
+        <div style="margin-top:auto"></div>
+        <button onClick="{{ go.ob3 }}" style="font-family:inherit;background:#166088;color:#FFFFFF;border:none;border-radius:999px;padding:15px;font-size:15px;font-weight:800;cursor:pointer">Далее — документы</button>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ scr.ob3 }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:1;display:flex;flex-direction:column;padding:6px 20px 14px;gap:12px;overflow-y:auto">
+        <div style="display:flex;align-items:center;gap:10px"><button onClick="{{ go.ob2 }}" style="font-family:inherit;background:none;border:none;color:#166088;font-size:20px;cursor:pointer;padding:0">←</button><span style="font-size:18px;font-weight:800;flex:1">Документы</span><span style="font-size:12px;font-weight:700;color:#5B7B8A">шаг 3 из 4</span></div>
+        <div style="display:flex;gap:5px"><div style="flex:1;height:5px;border-radius:3px;background:#166088"></div><div style="flex:1;height:5px;border-radius:3px;background:#166088"></div><div style="flex:1;height:5px;border-radius:3px;background:#166088"></div><div style="flex:1;height:5px;border-radius:3px;background:#C0D6DF"></div></div>
+        <div style="font-size:14px;font-weight:800">Удостоверение личности</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px">
+          <div style="height:84px;border-radius:12px;background:repeating-linear-gradient(45deg,#C0D6DF 0 8px,#CFE0E8 8px 16px);display:flex;align-items:flex-end;padding:6px"><span style="font-size:10.5px;font-weight:800;background:#059669;color:#FFFFFF;border-radius:999px;padding:2px 8px">✓ лицевая</span></div>
+          <div style="height:84px;border-radius:12px;border:1.5px dashed #166088;display:flex;align-items:center;justify-content:center;color:#166088;font-size:12.5px;font-weight:800">＋ обратная</div>
+        </div>
+        <div style="font-size:14px;font-weight:800">Квалификация <span style="font-size:11.5px;font-weight:600;color:#5B7B8A">(сертификаты, дипломы)</span></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px">
+          <div style="height:84px;border-radius:12px;background:repeating-linear-gradient(45deg,#C0D6DF 0 8px,#CFE0E8 8px 16px);display:flex;align-items:flex-end;padding:6px"><span style="font-size:10.5px;font-weight:800;background:#059669;color:#FFFFFF;border-radius:999px;padding:2px 8px">✓ сертификат</span></div>
+          <div style="height:84px;border-radius:12px;border:1.5px dashed #C0D6DF;display:flex;align-items:center;justify-content:center;color:#5B7B8A;font-size:12.5px;font-weight:700">＋ ещё</div>
+        </div>
+        <div style="background:#FBECEC;border-radius:12px;padding:10px 13px;font-size:12px;font-weight:700;color:#991B1B">⚠ Файл «diplom.pdf» не загрузился — слабая сеть. <span style="text-decoration:underline;cursor:pointer">Повторить</span></div>
+        <div style="margin-top:auto"></div>
+        <button onClick="{{ go.ob4 }}" style="font-family:inherit;background:#166088;color:#FFFFFF;border:none;border-radius:999px;padding:15px;font-size:15px;font-weight:800;cursor:pointer">Далее — проверка</button>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ scr.ob4 }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:1;display:flex;flex-direction:column;padding:6px 20px 14px;gap:12px;overflow-y:auto">
+        <div style="display:flex;align-items:center;gap:10px"><button onClick="{{ go.ob3 }}" style="font-family:inherit;background:none;border:none;color:#166088;font-size:20px;cursor:pointer;padding:0">←</button><span style="font-size:18px;font-weight:800;flex:1">Проверьте данные</span><span style="font-size:12px;font-weight:700;color:#5B7B8A">шаг 4 из 4</span></div>
+        <div style="background:#FFFFFF;border:1px solid #C0D6DF;border-radius:16px;padding:14px 16px;display:flex;flex-direction:column;gap:8px;font-size:13px">
+          <div style="display:flex;justify-content:space-between"><span style="color:#5B7B8A;font-weight:600">ФИО</span><b>Данияр С. Ахметов</b></div>
+          <div style="display:flex;justify-content:space-between"><span style="color:#5B7B8A;font-weight:600">ИИН</span><b>900215 300 123</b></div>
+          <div style="display:flex;justify-content:space-between"><span style="color:#5B7B8A;font-weight:600">Опыт</span><b>8 лет</b></div>
+          <div style="display:flex;justify-content:space-between"><span style="color:#5B7B8A;font-weight:600">Категории</span><b>Сантехника, Замки</b></div>
+          <div style="display:flex;justify-content:space-between"><span style="color:#5B7B8A;font-weight:600">Район</span><b>Есиль · 10 км</b></div>
+          <div style="display:flex;justify-content:space-between"><span style="color:#5B7B8A;font-weight:600">Документы</span><b>3 файла ✓</b></div>
+        </div>
+        <div style="background:#CFE0E8;border-radius:14px;padding:12px 14px;font-size:12.5px;font-weight:600;line-height:1.5">Проверка занимает 1–2 рабочих дня. Мы напишем о результате. Если данных не хватит — попросим дозагрузить, ничего заполнять заново не придётся.</div>
+        <div style="margin-top:auto"></div>
+        <button onClick="{{ go.obPending }}" style="font-family:inherit;background:#166088;color:#FFFFFF;border:none;border-radius:999px;padding:16px;font-size:15px;font-weight:800;cursor:pointer">Отправить на проверку</button>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ scr.obPending }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:1;display:flex;flex-direction:column;padding:22px 24px;gap:14px;align-items:center;justify-content:center;text-align:center">
+        <div style="width:72px;height:72px;border-radius:50%;background:#EAF2F6;display:flex;align-items:center;justify-content:center;font-size:32px">⏳</div>
+        <div style="font-size:21px;font-weight:800">Анкета на проверке</div>
+        <div style="font-size:13.5px;color:#5B7B8A;line-height:1.55;max-width:280px">Обычно это 1–2 рабочих дня. Статус придёт в уведомлении — приложение можно закрыть.</div>
+        <div style="background:#FFFFFF;border:1px solid #C0D6DF;border-radius:14px;padding:12px 16px;font-size:12.5px;font-weight:700;color:#5B7B8A">Отправлено сегодня, 11:24</div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ scr.obNeeds }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:1;display:flex;flex-direction:column;padding:22px 24px;gap:14px;justify-content:center">
+        <div style="width:72px;height:72px;border-radius:50%;background:#FFF1E8;display:flex;align-items:center;justify-content:center;font-size:32px;align-self:center">📎</div>
+        <div style="font-size:21px;font-weight:800;text-align:center">Нужны дополнительные данные</div>
+        <div style="background:#FFF1E8;border-radius:14px;padding:13px 15px;font-size:13px;font-weight:700;color:#9A3412;line-height:1.5">Оператор: «Фото обратной стороны удостоверения нечитаемо. Загрузите, пожалуйста, заново при хорошем освещении.»</div>
+        <div style="font-size:12.5px;color:#5B7B8A;text-align:center">Анкета сохранена — нужно только дозагрузить файл</div>
+        <button onClick="{{ go.ob3 }}" style="font-family:inherit;background:#166088;color:#FFFFFF;border:none;border-radius:999px;padding:15px;font-size:15px;font-weight:800;cursor:pointer">Дозагрузить документ</button>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ scr.obApproved }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:1;display:flex;flex-direction:column;padding:22px 24px;gap:14px;align-items:center;justify-content:center;text-align:center">
+        <div style="width:76px;height:76px;border-radius:50%;background:#059669;color:#FFFFFF;display:flex;align-items:center;justify-content:center;font-size:36px;animation:mqUp 0.4s ease">✓</div>
+        <div style="font-size:22px;font-weight:800">Вы — мастер MasterQala!</div>
+        <div style="font-size:13.5px;color:#5B7B8A;line-height:1.55;max-width:290px">Верификация пройдена. Выходите «на линию» — срочные заявки рядом будут приходить прямо на телефон.</div>
+        <button onClick="{{ go.work }}" style="font-family:inherit;width:100%;background:#166088;color:#FFFFFF;border:none;border-radius:999px;padding:16px;font-size:15px;font-weight:800;cursor:pointer">К работе</button>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ scr.obRejected }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:1;display:flex;flex-direction:column;padding:22px 24px;gap:14px;justify-content:center">
+        <div style="width:72px;height:72px;border-radius:50%;background:#FBECEC;display:flex;align-items:center;justify-content:center;font-size:32px;align-self:center">✕</div>
+        <div style="font-size:21px;font-weight:800;text-align:center">Заявка отклонена</div>
+        <div style="background:#FBECEC;border-radius:14px;padding:13px 15px;font-size:13px;font-weight:700;color:#991B1B;line-height:1.5">Причина: указанный ИИН не совпадает с данными удостоверения. Проверьте номер и подайте заявку заново.</div>
+        <button onClick="{{ go.ob1 }}" style="font-family:inherit;background:#166088;color:#FFFFFF;border:none;border-radius:999px;padding:15px;font-size:15px;font-weight:800;cursor:pointer">Подать заново</button>
+        <button style="font-family:inherit;background:none;border:none;color:#5B7B8A;font-size:13px;font-weight:700;cursor:pointer">Написать в поддержку</button>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ scr.work }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:1;overflow-y:auto;padding:6px 20px 14px;display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div style="font-size:22px;font-weight:800">Работа</div>
+          <span style="font-size:11px;font-weight:800;border-radius:999px;padding:4px 10px;background:{{ connBg }};color:{{ connFg }}">{{ connLabel }}</span>
+        </div>
+        <div style="background:#FFFFFF;border:2px solid {{ onlineBc }};border-radius:18px;padding:14px 16px;display:flex;align-items:center;gap:12px">
+          <div style="flex:1">
+            <div style="font-size:16px;font-weight:800">{{ onlineLabel }}</div>
+            <div style="font-size:12px;color:#5B7B8A;font-weight:600;margin-top:2px">{{ onlineSub }}</div>
+          </div>
+          <button onClick="{{ act.toggleOnline }}" style="font-family:inherit;width:58px;height:32px;border-radius:999px;border:none;cursor:pointer;background:{{ swBg }};position:relative;transition:background 0.2s"><span style="position:absolute;top:3px;left:{{ swKnob }}px;width:26px;height:26px;border-radius:50%;background:#FFFFFF;box-shadow:0 1px 4px rgba(20,48,60,0.3);transition:left 0.2s"></span></button>
+        </div>
+        <sc-if value="{{ geoDenied }}" hint-placeholder-val="{{ false }}">
+          <div style="background:#FFF1E8;border-radius:14px;padding:12px 14px;font-size:12.5px;font-weight:700;color:#9A3412;line-height:1.5">📍 Без доступа к геолокации заявки не приходят. Разрешите доступ в настройках и попробуйте снова.</div>
+        </sc-if>
+        <sc-if value="{{ offerNote }}" hint-placeholder-val="{{ false }}">
+          <div style="background:#CFE0E8;border-radius:14px;padding:12px 14px;font-size:12.5px;font-weight:700;color:#38596A">{{ offerNote }}</div>
+        </sc-if>
+        <div style="display:flex;gap:8px">
+          <div style="flex:1;background:#FFFFFF;border:1px solid #C0D6DF;border-radius:14px;padding:11px 12px"><div style="font-size:17px;font-weight:800">4</div><div style="font-size:10.5px;color:#5B7B8A;font-weight:700">заказа сегодня</div></div>
+          <div style="flex:1;background:#FFFFFF;border:1px solid #C0D6DF;border-radius:14px;padding:11px 12px"><div style="font-size:17px;font-weight:800">26 400 ₸</div><div style="font-size:10.5px;color:#5B7B8A;font-weight:700">заработано</div></div>
+          <div style="flex:1;background:#FFFFFF;border:1px solid #C0D6DF;border-radius:14px;padding:11px 12px"><div style="font-size:17px;font-weight:800">★ 4.9</div><div style="font-size:10.5px;color:#5B7B8A;font-weight:700">рейтинг</div></div>
+        </div>
+        <sc-if value="{{ hasOrder }}" hint-placeholder-val="{{ false }}">
+          <button onClick="{{ go.order }}" style="font-family:inherit;text-align:left;background:#166088;border:none;border-radius:18px;padding:14px 16px;cursor:pointer;display:flex;align-items:center;gap:12px;animation:mqUp 0.3s ease">
+            <div style="flex:1"><div style="color:#FFFFFF;font-weight:800;font-size:14px">Сантехника · №1042 · {{ mPhaseLabel }}</div><div style="color:#C0D6DF;font-size:12px;font-weight:600">пр. Кабанбай батыра, 42 · 2.3 км</div></div>
+            <span style="color:#C0D6DF;font-size:18px">›</span>
+          </button>
+        </sc-if>
+        <div style="font-size:13.5px;font-weight:800">Ваши категории</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <span style="background:#CFE0E8;border-radius:999px;padding:6px 13px;font-size:12px;font-weight:800">🔧 Сантехника</span>
+          <span style="background:#CFE0E8;border-radius:999px;padding:6px 13px;font-size:12px;font-weight:800">🔐 Замки и двери</span>
+        </div>
+        <sc-if value="{{ waitingHint }}" hint-placeholder-val="{{ false }}">
+          <div style="text-align:center;padding:14px 0;color:#5B7B8A;font-size:13px;font-weight:700">
+            <div style="width:22px;height:22px;border:3px solid #C0D6DF;border-top-color:#166088;border-radius:50%;animation:mqSpin 0.9s linear infinite;margin:0 auto 8px"></div>
+            Ждём заявки рядом с вами…
+          </div>
+        </sc-if>
+      </div>
+      <sc-if value="{{ tabbarM }}" hint-placeholder-val="{{ false }}"><div></div></sc-if>
+    </sc-if>
+
+    <sc-if value="{{ scr.offer }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:1;display:flex;flex-direction:column;background:#123B52;margin-top:-44px;padding:56px 22px 18px;gap:12px;color:#FFFFFF">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:12px;font-weight:800;letter-spacing:0.08em;color:#9FC2D4;text-transform:uppercase">⚡ Новая заявка</span>
+          <span style="font-size:15px;font-weight:800;background:#DC2626;border-radius:999px;padding:5px 14px;animation:mqRing 1s ease infinite">⏱ 0:{{ offerLeftStr }}</span>
+        </div>
+        <div style="font-size:26px;font-weight:800;line-height:1.15">Сантехника</div>
+        <div style="font-size:14px;font-weight:700;color:#C0D6DF">Есиль · 2.3 км · ~8 мин в пути</div>
+        <div style="background:rgba(255,255,255,0.09);border:1px solid rgba(192,214,223,0.35);border-radius:14px;padding:13px 15px;font-size:13.5px;line-height:1.5;color:#E7F0F5">«Течёт труба под раковиной на кухне, вода капает постоянно, перекрыл стояк»</div>
+        <div style="display:flex;gap:9px">
+          <div style="width:66px;height:66px;border-radius:12px;background:repeating-linear-gradient(45deg,rgba(192,214,223,0.35) 0 8px,rgba(192,214,223,0.18) 8px 16px)"></div>
+          <div style="width:66px;height:66px;border-radius:12px;background:repeating-linear-gradient(45deg,rgba(192,214,223,0.35) 0 8px,rgba(192,214,223,0.18) 8px 16px)"></div>
+        </div>
+        <div style="background:rgba(255,255,255,0.09);border:1px solid rgba(192,214,223,0.35);border-radius:14px;padding:13px 15px">
+          <div style="display:flex;justify-content:space-between;font-size:15px;font-weight:800"><span>Вам за выезд</span><span>2 100 ₸</span></div>
+          <div style="font-size:11.5px;color:#9FC2D4;font-weight:600;margin-top:3px">точный адрес и телефон клиента — после принятия</div>
+        </div>
+        <div style="margin-top:auto"></div>
+        <button onClick="{{ act.acceptOffer }}" style="font-family:inherit;background:#FFFFFF;color:#123B52;border:none;border-radius:999px;padding:17px;font-size:17px;font-weight:800;cursor:pointer">Принять · 0:{{ offerLeftStr }}</button>
+        <button onClick="{{ act.skipOffer }}" style="font-family:inherit;background:none;border:1.5px solid rgba(192,214,223,0.5);color:#C0D6DF;border-radius:999px;padding:13px;font-size:14px;font-weight:800;cursor:pointer">Пропустить</button>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ scr.order }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:1;display:flex;flex-direction:column;overflow-y:auto">
+        <div style="height:150px;flex:none;position:relative;overflow:hidden;background:#CFE0E8">
+          <div style="position:absolute;left:-60px;top:-100px;width:512px;height:512px">
+            <img src="https://tile.openstreetmap.org/14/11442/5477.png" style="position:absolute;left:0;top:0;width:256px;height:256px" alt="">
+            <img src="https://tile.openstreetmap.org/14/11443/5477.png" style="position:absolute;left:256px;top:0;width:256px;height:256px" alt="">
+            <img src="https://tile.openstreetmap.org/14/11442/5478.png" style="position:absolute;left:0;top:256px;width:256px;height:256px" alt="">
+            <img src="https://tile.openstreetmap.org/14/11443/5478.png" style="position:absolute;left:256px;top:256px;width:256px;height:256px" alt="">
+          </div>
+          <div style="position:absolute;left:56%;top:48%;transform:translate(-50%,-100%)"><div style="width:22px;height:22px;border-radius:50% 50% 50% 0;background:#166088;transform:rotate(-45deg);box-shadow:0 2px 6px rgba(20,48,60,0.4)"></div></div>
+          <div style="position:absolute;left:12px;top:12px;background:#FFFFFF;border-radius:999px;padding:6px 13px;font-size:12px;font-weight:800;box-shadow:0 2px 8px rgba(20,48,60,0.2)">№1042 · <span style="color:#166088">{{ mPhaseLabel }}</span></div>
+          <button style="font-family:inherit;position:absolute;right:12px;bottom:12px;background:#166088;color:#FFFFFF;border:none;border-radius:999px;padding:8px 14px;font-size:12px;font-weight:800;cursor:pointer;box-shadow:0 2px 8px rgba(20,48,60,0.3)">Навигатор ↗</button>
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column;padding:14px 20px;gap:11px">
+          <div style="background:#FFFFFF;border:1px solid #C0D6DF;border-radius:16px;padding:13px 15px">
+            <div style="font-size:14.5px;font-weight:800">пр. Кабанбай батыра, 42</div>
+            <div style="font-size:12.5px;color:#5B7B8A;font-weight:600;margin-top:2px">подъезд 3 · этаж 7 · кв. 51 · домофон 51В</div>
+            <div style="border-top:1px solid #EAF2F6;margin:9px 0"></div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="width:36px;height:36px;border-radius:50%;background:#CFE0E8;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px">А</div>
+              <div style="flex:1"><div style="font-size:13px;font-weight:800">Айгерім</div><div style="font-size:11.5px;color:#5B7B8A">клиент</div></div>
+              <button style="font-family:inherit;width:40px;height:40px;border-radius:50%;background:#166088;color:#FFFFFF;border:none;font-size:15px;cursor:pointer">📞</button>
+            </div>
+          </div>
+          <div style="background:#CFE0E8;border-radius:14px;padding:11px 14px;font-size:12.5px;font-weight:600;line-height:1.5">«Течёт труба под раковиной, перекрыл стояк» · 2 фото · Вам за выезд: <b>2 100 ₸</b></div>
+          <sc-if value="{{ mAccepted }}" hint-placeholder-val="{{ false }}">
+            <button onClick="{{ act.askOnway }}" style="font-family:inherit;background:#166088;color:#FFFFFF;border:none;border-radius:999px;padding:15px;font-size:15px;font-weight:800;cursor:pointer">Еду к клиенту</button>
+          </sc-if>
+          <sc-if value="{{ mOnway }}" hint-placeholder-val="{{ false }}">
+            <button onClick="{{ act.askOnsite }}" style="font-family:inherit;background:#166088;color:#FFFFFF;border:none;border-radius:999px;padding:15px;font-size:15px;font-weight:800;cursor:pointer">Я на месте</button>
+          </sc-if>
+          <sc-if value="{{ mOnsite }}" hint-placeholder-val="{{ false }}">
+            <button onClick="{{ go.priceForm }}" style="font-family:inherit;background:#166088;color:#FFFFFF;border:none;border-radius:999px;padding:15px;font-size:15px;font-weight:800;cursor:pointer">Осмотрел — предложить цену</button>
+          </sc-if>
+          <sc-if value="{{ mPriceWait }}" hint-placeholder-val="{{ false }}">
+            <div style="background:#FFFFFF;border:1.5px dashed #C0D6DF;border-radius:16px;padding:16px;text-align:center">
+              <div style="width:22px;height:22px;border:3px solid #C0D6DF;border-top-color:#166088;border-radius:50%;animation:mqSpin 0.9s linear infinite;margin:0 auto 8px"></div>
+              <div style="font-size:13px;font-weight:700;color:#5B7B8A">Клиент рассматривает цену 15 000 ₸ · до 15 мин</div>
+            </div>
+          </sc-if>
+          <sc-if value="{{ mInprogress }}" hint-placeholder-val="{{ false }}">
+            <div style="background:#E5F3EE;border-radius:14px;padding:11px 14px;font-size:13px;font-weight:700;color:#065F46">✓ Цена подтверждена — 15 000 ₸. Можно начинать.</div>
+            <button onClick="{{ act.askComplete }}" style="font-family:inherit;background:#059669;color:#FFFFFF;border:none;border-radius:999px;padding:15px;font-size:15px;font-weight:800;cursor:pointer">Работа выполнена</button>
+          </sc-if>
+          <sc-if value="{{ mDone }}" hint-placeholder-val="{{ false }}">
+            <div style="background:#FFFFFF;border:1.5px dashed #C0D6DF;border-radius:16px;padding:16px;text-align:center">
+              <div style="font-size:13px;font-weight:700;color:#5B7B8A;line-height:1.5">Ждём подтверждения клиента.<br>Без ответа заявка закроется автоматически через 24 ч.</div>
+            </div>
+          </sc-if>
+          <sc-if value="{{ mClosed }}" hint-placeholder-val="{{ false }}">
+            <div style="background:#E5F3EE;border-radius:16px;padding:16px;text-align:center;animation:mqUp 0.35s ease">
+              <div style="font-size:15px;font-weight:800;color:#065F46">Заказ закрыт · +2 100 ₸ в кошелёк</div>
+              <button onClick="{{ go.wallet }}" style="font-family:inherit;background:none;border:none;color:#166088;font-size:13px;font-weight:800;cursor:pointer;margin-top:6px">Открыть кошелёк →</button>
+            </div>
+          </sc-if>
+          <div style="margin-top:auto"></div>
+          <sc-if value="{{ mCancelable }}" hint-placeholder-val="{{ false }}">
+            <button onClick="{{ act.askCancel }}" style="font-family:inherit;background:none;border:1.5px solid #DC2626;color:#DC2626;border-radius:999px;padding:12px;font-size:13.5px;font-weight:800;cursor:pointer">Отменить заказ</button>
+          </sc-if>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ scr.priceForm }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:1;display:flex;flex-direction:column;padding:6px 20px 14px;gap:12px;overflow-y:auto">
+        <div style="display:flex;align-items:center;gap:10px"><button onClick="{{ go.order }}" style="font-family:inherit;background:none;border:none;color:#166088;font-size:20px;cursor:pointer;padding:0">←</button><span style="font-size:18px;font-weight:800">Стоимость работ</span></div>
+        <div style="background:#FFFFFF;border:2px solid #166088;border-radius:16px;padding:16px;text-align:center"><div style="font-size:11px;font-weight:700;color:#5B7B8A;margin-bottom:4px">Работы</div><div style="font-size:28px;font-weight:800">15 000 ₸</div></div>
+        <div style="font-size:13.5px;font-weight:800">Что входит <span style="font-size:11.5px;font-weight:600;color:#5B7B8A">(увидит клиент)</span></div>
+        <textarea placeholder="Замена сифона и прокладки, детали есть с собой" style="font-family:inherit;background:#FFFFFF;border:1.5px solid #C0D6DF;border-radius:14px;padding:12px 14px;font-size:13.5px;min-height:76px;resize:none;color:#14303C;line-height:1.5">Замена сифона и прокладки, детали есть с собой. Займёт около часа.</textarea>
+        <div style="font-size:13.5px;font-weight:800">Длительность</div>
+        <div style="display:flex;gap:7px">
+          <span style="background:#166088;color:#FFFFFF;border-radius:999px;padding:7px 15px;font-size:12.5px;font-weight:800">~1 час</span>
+          <span style="border:1.5px solid #C0D6DF;border-radius:999px;padding:7px 15px;font-size:12.5px;font-weight:700;color:#5B7B8A">2–3 часа</span>
+          <span style="border:1.5px solid #C0D6DF;border-radius:999px;padding:7px 15px;font-size:12.5px;font-weight:700;color:#5B7B8A">полдня</span>
+        </div>
+        <div style="background:#CFE0E8;border-radius:14px;padding:12px 14px;font-size:12.5px;font-weight:600;line-height:1.5">Клиент увидит: выезд 3 500 ₸ + работы 15 000 ₸ = <b>18 500 ₸</b>. На решение у клиента 15 минут.</div>
+        <div style="margin-top:auto"></div>
+        <button onClick="{{ act.sendPrice }}" style="font-family:inherit;background:#166088;color:#FFFFFF;border:none;border-radius:999px;padding:16px;font-size:15px;font-weight:800;cursor:pointer">Отправить клиенту</button>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ scr.planned }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:1;overflow-y:auto;padding:6px 20px 14px;display:flex;flex-direction:column;gap:11px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div style="font-size:22px;font-weight:800">Плановые</div>
+          <button onClick="{{ go.credits }}" style="font-family:inherit;background:#CFE0E8;border:none;border-radius:999px;padding:6px 13px;font-size:12.5px;font-weight:800;cursor:pointer;color:#14303C">⬡ {{ credits }} кредитов</button>
+        </div>
+        <sc-if value="{{ bidSentNote }}" hint-placeholder-val="{{ false }}">
+          <div style="background:#E5F3EE;border-radius:14px;padding:11px 14px;font-size:12.5px;font-weight:700;color:#065F46;animation:mqUp 0.3s ease">✓ Отклик отправлен · списан 1 кредит · осталось {{ credits }}</div>
+        </sc-if>
+        <div style="background:#FFFFFF;border:1px solid #C0D6DF;border-radius:16px;padding:13px 15px">
+          <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:14.5px;font-weight:800">⚡ Электрика · Есиль</span><span style="font-size:10.5px;font-weight:800;background:#EAF2F6;color:#166088;border-radius:999px;padding:3px 9px">{{ feedBids }}/5 ставок</span></div>
+          <div style="font-size:12.5px;color:#38596A;line-height:1.45;margin-top:5px">«Заменить 6 розеток и перенести выключатель в спальне» · 1 фото</div>
+          <div style="font-size:12px;color:#5B7B8A;margin-top:5px">🗓 вт, 22 июля · 10:00–13:00 · бюджет ~20 000 ₸</div>
+          <div style="display:flex;align-items:center;gap:8px;margin-top:9px">
+            <span style="font-size:11px;font-weight:800;background:#FFF1E8;color:#9A3412;border-radius:999px;padding:3px 9px">отклик: 1 ⬡</span>
+            <button onClick="{{ go.bidForm }}" style="font-family:inherit;margin-left:auto;background:#166088;color:#FFFFFF;border:none;border-radius:999px;padding:8px 18px;font-size:12.5px;font-weight:800;cursor:pointer">Предложить цену</button>
+          </div>
+        </div>
+        <div style="background:#FFFFFF;border:1px solid #C0D6DF;border-radius:16px;padding:13px 15px;opacity:0.85">
+          <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:14.5px;font-weight:800">🔧 Сантехника · Алматы р-н</span><span style="font-size:10.5px;font-weight:800;background:#FBECEC;color:#DC2626;border-radius:999px;padding:3px 9px">5/5 ставок</span></div>
+          <div style="font-size:12.5px;color:#38596A;margin-top:5px">«Установить смеситель в ванной» · ср, 23 июля</div>
+          <div style="font-size:11.5px;color:#5B7B8A;margin-top:6px">Лимит откликов достигнут</div>
+        </div>
+        <div style="background:#FFFFFF;border:1px solid #C0D6DF;border-radius:16px;padding:13px 15px">
+          <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:14.5px;font-weight:800">🔐 Замки · Сарыарка</span><span style="font-size:10.5px;font-weight:800;background:#EAF2F6;color:#166088;border-radius:999px;padding:3px 9px">1/5 ставок</span></div>
+          <div style="font-size:12.5px;color:#38596A;margin-top:5px">«Заменить личинку замка входной двери» · чт, 24 июля</div>
+          <div style="display:flex;margin-top:9px"><button style="font-family:inherit;margin-left:auto;background:#166088;color:#FFFFFF;border:none;border-radius:999px;padding:8px 18px;font-size:12.5px;font-weight:800;cursor:pointer">Предложить цену</button></div>
+        </div>
+        <div style="background:#CFE0E8;border-radius:14px;padding:11px 14px;font-size:12px;font-weight:600;line-height:1.5">Проиграли отклик? Кредит не возвращается. Клиент отменил после выбора вас — кредит вернётся автоматически.</div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ scr.bidForm }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:1;display:flex;flex-direction:column;padding:6px 20px 14px;gap:12px;overflow-y:auto">
+        <div style="display:flex;align-items:center;gap:10px"><button onClick="{{ go.planned }}" style="font-family:inherit;background:none;border:none;color:#166088;font-size:20px;cursor:pointer;padding:0">←</button><span style="font-size:18px;font-weight:800">Ваше предложение</span></div>
+        <div style="background:#CFE0E8;border-radius:14px;padding:11px 14px;font-size:12.5px;font-weight:600">⚡ Электрика · Есиль · вт 22 июля, 10:00–13:00 · без точного адреса до выбора</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px">
+          <div style="background:#FFFFFF;border:1.5px solid #166088;border-radius:14px;padding:12px 14px"><div style="font-size:10.5px;font-weight:700;color:#5B7B8A">Цена</div><div style="font-size:16px;font-weight:800">18 000 ₸</div></div>
+          <div style="background:#FFFFFF;border:1.5px solid #C0D6DF;border-radius:14px;padding:12px 14px"><div style="font-size:10.5px;font-weight:700;color:#5B7B8A">Срок</div><div style="font-size:16px;font-weight:800">2 часа</div></div>
+        </div>
+        <textarea placeholder="Комментарий для клиента" style="font-family:inherit;background:#FFFFFF;border:1.5px solid #C0D6DF;border-radius:14px;padding:12px 14px;font-size:13.5px;min-height:70px;resize:none;color:#14303C;line-height:1.5">Сделаю во вторник до обеда, материалы посчитаны в цене.</textarea>
+        <sc-if value="{{ creditsOk }}" hint-placeholder-val="{{ true }}">
+          <div style="background:#FFFFFF;border:1px solid #C0D6DF;border-radius:14px;padding:12px 14px;display:flex;justify-content:space-between;font-size:13px;font-weight:700"><span>Спишется: 1 ⬡</span><span style="color:#5B7B8A">останется: {{ creditsAfter }}</span></div>
+        </sc-if>
+        <sc-if value="{{ creditsLow }}" hint-placeholder-val="{{ false }}">
+          <div style="background:#FBECEC;border-radius:14px;padding:12px 14px;font-size:12.5px;font-weight:700;color:#991B1B;line-height:1.5">Недостаточно кредитов (баланс: 0). Купите пакет — вернём вас в эту форму.</div>
+          <button onClick="{{ go.credits }}" style="font-family:inherit;background:#166088;color:#FFFFFF;border:none;border-radius:999px;padding:13px;font-size:14px;font-weight:800;cursor:pointer">Купить кредиты</button>
+        </sc-if>
+        <div style="margin-top:auto"></div>
+        <sc-if value="{{ creditsOk }}" hint-placeholder-val="{{ true }}">
+          <button onClick="{{ act.sendBid }}" style="font-family:inherit;background:#166088;color:#FFFFFF;border:none;border-radius:999px;padding:16px;font-size:15px;font-weight:800;cursor:pointer">Откликнуться · −1 ⬡</button>
+        </sc-if>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ scr.credits }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:1;overflow-y:auto;padding:6px 20px 14px;display:flex;flex-direction:column;gap:11px">
+        <div style="display:flex;align-items:center;gap:10px"><button onClick="{{ go.planned }}" style="font-family:inherit;background:none;border:none;color:#166088;font-size:20px;cursor:pointer;padding:0">←</button><span style="font-size:20px;font-weight:800">Lead-кредиты</span></div>
+        <div style="background:#FFFFFF;border:2px solid #C0D6DF;border-radius:18px;padding:16px;text-align:center">
+          <div style="font-size:11.5px;font-weight:700;color:#5B7B8A">баланс откликов</div>
+          <div style="font-size:32px;font-weight:800;margin-top:2px">⬡ {{ credits }}</div>
+          <div style="font-size:11.5px;color:#5B7B8A;margin-top:4px">кредиты — не деньги: тратятся только на отклики</div>
+        </div>
+        <div style="font-size:13.5px;font-weight:800">Пакеты</div>
+        <sc-for list="{{ packages }}" as="p" hint-placeholder-count="4">
+          <button onClick="{{ p.onBuy }}" style="font-family:inherit;background:#FFFFFF;border:1px solid {{ p.bc }};border-radius:14px;padding:13px 15px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;text-align:left">
+            <div><div style="font-size:14px;font-weight:800">⬡ {{ p.credits }}</div><sc-if value="{{ p.tag }}" hint-placeholder-val="{{ false }}"><div style="font-size:10.5px;font-weight:800;color:#059669">{{ p.tag }}</div></sc-if></div>
+            <span style="font-size:14px;font-weight:800;color:#166088">{{ p.price }}</span>
+          </button>
+        </sc-for>
+        <div style="font-size:13.5px;font-weight:800;margin-top:4px">История</div>
+        <div style="background:#FFFFFF;border:1px solid #C0D6DF;border-radius:14px;padding:12px 15px;display:flex;justify-content:space-between;font-size:12.5px;font-weight:700"><span>Отклик · Электрика №P-88</span><span style="color:#DC2626">−1 ⬡</span></div>
+        <div style="background:#FFFFFF;border:1px solid #C0D6DF;border-radius:14px;padding:12px 15px;display:flex;justify-content:space-between;font-size:12.5px;font-weight:700"><span>Возврат · клиент отменил</span><span style="color:#059669">+1 ⬡</span></div>
+        <div style="background:#FFFFFF;border:1px solid #C0D6DF;border-radius:14px;padding:12px 15px;display:flex;justify-content:space-between;font-size:12.5px;font-weight:700"><span>Штраф · отмена заказа</span><span style="color:#DC2626">−2 ⬡</span></div>
+        <div style="background:#FFFFFF;border:1px solid #C0D6DF;border-radius:14px;padding:12px 15px;display:flex;justify-content:space-between;font-size:12.5px;font-weight:700"><span>Покупка пакета 10</span><span style="color:#059669">+10 ⬡</span></div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ scr.wallet }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:1;overflow-y:auto;padding:6px 20px 14px;display:flex;flex-direction:column;gap:11px">
+        <div style="font-size:22px;font-weight:800">Кошелёк</div>
+        <div style="display:flex;background:#CFE0E8;border-radius:999px;padding:3px">
+          <div style="flex:1;background:#FFFFFF;border-radius:999px;padding:8px;text-align:center;font-size:13px;font-weight:800;box-shadow:0 1px 4px rgba(20,48,60,0.1)">₸ Деньги</div>
+          <button onClick="{{ go.credits }}" style="font-family:inherit;flex:1;background:none;border:none;padding:8px;text-align:center;font-size:13px;font-weight:700;color:#5B7B8A;cursor:pointer">⬡ Кредиты</button>
+        </div>
+        <div style="background:#166088;border-radius:18px;padding:18px;color:#FFFFFF">
+          <div style="font-size:11.5px;font-weight:700;color:#C0D6DF">доступно к выводу</div>
+          <div style="font-size:32px;font-weight:800;margin-top:2px">{{ walletStr }}</div>
+          <div style="font-size:12px;color:#C0D6DF;margin-top:4px">ожидает начисления: 2 100 ₸ (заказ №1042)</div>
+        </div>
+        <button onClick="{{ go.withdraw }}" style="font-family:inherit;background:#FFFFFF;border:1.5px solid #166088;color:#166088;border-radius:999px;padding:14px;font-size:14.5px;font-weight:800;cursor:pointer">Вывести средства · от 5 000 ₸</button>
+        <div style="font-size:13.5px;font-weight:800;margin-top:4px">История</div>
+        <sc-if value="{{ wReqPending }}" hint-placeholder-val="{{ false }}">
+          <div style="background:#FFFFFF;border:1px solid #C0D6DF;border-radius:14px;padding:12px 15px;display:flex;justify-content:space-between;align-items:center;font-size:12.5px;font-weight:700;animation:mqUp 0.3s ease"><span>Вывод на +7 ··· 45 67</span><span style="font-size:10.5px;font-weight:800;background:#FFF1E8;color:#9A3412;border-radius:999px;padding:3px 9px">в обработке</span></div>
+        </sc-if>
+        <sc-if value="{{ wReqPaid }}" hint-placeholder-val="{{ false }}">
+          <div style="background:#FFFFFF;border:1px solid #C0D6DF;border-radius:14px;padding:12px 15px;display:flex;justify-content:space-between;align-items:center;font-size:12.5px;font-weight:700;animation:mqUp 0.3s ease"><span>Вывод 20 000 ₸ на +7 ··· 45 67</span><span style="font-size:10.5px;font-weight:800;background:#E5F3EE;color:#059669;border-radius:999px;padding:3px 9px">выплачено</span></div>
+        </sc-if>
+        <div style="background:#FFFFFF;border:1px solid #C0D6DF;border-radius:14px;padding:12px 15px;display:flex;justify-content:space-between;font-size:12.5px;font-weight:700"><span>Заказ №1031 · выезд − сбор</span><span style="color:#059669">+1 500 ₸</span></div>
+        <div style="background:#FFFFFF;border:1px solid #C0D6DF;border-radius:14px;padding:12px 15px;display:flex;justify-content:space-between;align-items:center;font-size:12.5px;font-weight:700"><span>Вывод 12 000 ₸ · 10 июля</span><span style="font-size:10.5px;font-weight:800;background:#E5F3EE;color:#059669;border-radius:999px;padding:3px 9px">выплачено</span></div>
+        <div style="background:#FFFFFF;border:1px solid #C0D6DF;border-radius:14px;padding:12px 15px"><div style="display:flex;justify-content:space-between;align-items:center;font-size:12.5px;font-weight:700"><span>Вывод 8 000 ₸ · 2 июля</span><span style="font-size:10.5px;font-weight:800;background:#FBECEC;color:#DC2626;border-radius:999px;padding:3px 9px">отклонён банком</span></div><div style="font-size:11.5px;color:#5B7B8A;margin-top:3px">сумма возвращена на баланс</div></div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ scr.withdraw }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:1;display:flex;flex-direction:column;padding:6px 20px 14px;gap:12px">
+        <div style="display:flex;align-items:center;gap:10px"><button onClick="{{ go.wallet }}" style="font-family:inherit;background:none;border:none;color:#166088;font-size:20px;cursor:pointer;padding:0">←</button><span style="font-size:18px;font-weight:800">Вывод средств</span></div>
+        <div style="background:#FFFFFF;border:2px solid #166088;border-radius:16px;padding:16px;text-align:center"><div style="font-size:11px;font-weight:700;color:#5B7B8A;margin-bottom:4px">Сумма</div><div style="font-size:28px;font-weight:800">20 000 ₸</div></div>
+        <div style="display:flex;gap:7px">
+          <span style="border:1.5px solid #C0D6DF;border-radius:999px;padding:6px 14px;font-size:12.5px;font-weight:700;color:#5B7B8A">5 000</span>
+          <span style="background:#166088;color:#FFFFFF;border-radius:999px;padding:6px 14px;font-size:12.5px;font-weight:800">20 000</span>
+          <span style="border:1.5px solid #C0D6DF;border-radius:999px;padding:6px 14px;font-size:12.5px;font-weight:700;color:#5B7B8A">всё · {{ walletStr }}</span>
+        </div>
+        <div style="background:#FFFFFF;border:1px solid #C0D6DF;border-radius:14px;padding:12px 14px"><div style="font-size:10.5px;font-weight:700;color:#5B7B8A">Куда</div><div style="font-size:14px;font-weight:800;margin-top:2px">Kaspi · +7 707 ··· 45 67</div></div>
+        <div style="background:#CFE0E8;border-radius:14px;padding:11px 14px;font-size:12px;font-weight:600;line-height:1.5">Минимум 5 000 ₸, комиссии нет. Сумма спишется с баланса сразу; при отказе банка вернётся автоматически. Обычно 1–3 рабочих дня.</div>
+        <div style="margin-top:auto"></div>
+        <button onClick="{{ act.requestWithdraw }}" style="font-family:inherit;background:#166088;color:#FFFFFF;border:none;border-radius:999px;padding:16px;font-size:15px;font-weight:800;cursor:pointer">Вывести 20 000 ₸</button>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ scr.profile }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:1;overflow-y:auto;padding:6px 20px 14px;display:flex;flex-direction:column;gap:11px">
+        <div style="display:flex;gap:12px;align-items:center">
+          <div style="width:56px;height:56px;border-radius:50%;background:#166088;color:#FFFFFF;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:17px">ДС</div>
+          <div><div style="font-size:18px;font-weight:800">Данияр С. <span style="font-size:11px;font-weight:800;background:#E5F3EE;color:#059669;border-radius:999px;padding:2px 8px;vertical-align:3px">✓ мастер</span></div><div style="font-size:12.5px;color:#5B7B8A;font-weight:600">★ 4.9 · 214 заказов · с марта 2025</div></div>
+        </div>
+        <sc-if value="{{ isBlocked }}" hint-placeholder-val="{{ false }}">
+          <div style="background:#FBECEC;border-radius:16px;padding:14px 16px;animation:mqUp 0.3s ease">
+            <div style="font-size:14px;font-weight:800;color:#991B1B">⛔ Доступ к новым заявкам ограничен до 26 июля</div>
+            <div style="font-size:12.5px;color:#991B1B;line-height:1.5;margin-top:4px;opacity:0.85">Причина: 3 отмены заказов за 30 дней. Текущий активный заказ можно завершить. Вопросы — в поддержку.</div>
+          </div>
+        </sc-if>
+        <div style="background:#FFFFFF;border:1px solid #C0D6DF;border-radius:14px;padding:14px 15px">
+          <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:14px;font-weight:800">📄 Документы и категории</span><span style="font-size:12px;font-weight:800;color:#166088">открыть</span></div>
+          <div style="font-size:12px;color:#5B7B8A;margin-top:4px">Удостоверение ✓ · Квалификация ✓ · Сантехника, Замки</div>
+        </div>
+        <div style="background:#FFFFFF;border:1px solid #C0D6DF;border-radius:14px;padding:14px 15px;display:flex;justify-content:space-between;align-items:center"><span style="font-size:14px;font-weight:800">📍 Геозона: Есиль · 10 км</span><span style="color:#5B7B8A">›</span></div>
+        <div style="background:#FFFFFF;border:1px solid #C0D6DF;border-radius:14px;padding:14px 15px;display:flex;justify-content:space-between;align-items:center"><span style="font-size:14px;font-weight:800">⚖️ Мои споры</span><span style="font-size:10.5px;font-weight:800;background:#FFF1E8;color:#9A3412;border-radius:999px;padding:3px 9px">1 открыт</span></div>
+        <div style="background:#FFFFFF;border:1px solid #C0D6DF;border-radius:14px;padding:14px 15px;display:flex;justify-content:space-between;align-items:center"><span style="font-size:14px;font-weight:800">🛟 Поддержка</span><span style="color:#5B7B8A">›</span></div>
+        <button style="font-family:inherit;background:none;border:none;color:#DC2626;font-size:13.5px;font-weight:800;cursor:pointer;padding:8px">Выйти из аккаунта</button>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ scr.dispute }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:1;overflow-y:auto;padding:6px 20px 14px;display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;align-items:center;gap:10px"><button onClick="{{ go.profile }}" style="font-family:inherit;background:none;border:none;color:#166088;font-size:20px;cursor:pointer;padding:0">←</button><span style="font-size:17px;font-weight:800;flex:1">Спор по заявке №1042</span><span style="font-size:11px;font-weight:800;background:#FFF1E8;color:#9A3412;border-radius:999px;padding:4px 10px">Открыт</span></div>
+        <div style="background:#FFFFFF;border:1px solid #C0D6DF;border-radius:16px;padding:14px 16px">
+          <div style="font-size:12px;font-weight:700;color:#5B7B8A">Клиент Айгерім · причина: качество работ</div>
+          <div style="font-size:13px;color:#38596A;line-height:1.5;margin-top:4px">«Через час после ремонта труба снова потекла» · 2 фото</div>
+        </div>
+        <div style="font-size:13.5px;font-weight:800">Ваше пояснение <span style="font-size:11.5px;font-weight:600;color:#5B7B8A">(один ответ, будет виден оператору)</span></div>
+        <textarea placeholder="Опишите вашу версию: что сделали, что показали клиенту" style="font-family:inherit;background:#FFFFFF;border:1.5px solid #C0D6DF;border-radius:14px;padding:12px 14px;font-size:13.5px;min-height:90px;resize:none;color:#14303C;line-height:1.5">Прокладка заменена, течь в другом соединении — показал клиенту на месте и предложил устранить отдельно.</textarea>
+        <div style="display:flex;gap:9px">
+          <div style="width:60px;height:60px;border-radius:12px;background:repeating-linear-gradient(45deg,#C0D6DF 0 8px,#CFE0E8 8px 16px)"></div>
+          <button style="font-family:inherit;width:60px;height:60px;border-radius:12px;border:1.5px dashed #166088;background:none;color:#166088;font-size:18px;cursor:pointer">＋</button>
+        </div>
+        <div style="background:#CFE0E8;border-radius:14px;padding:11px 14px;font-size:12px;font-weight:600;line-height:1.5">Решение примет оператор — до 24 ч. Возможные исходы: возврат сервисного сбора клиенту и/или санкция (−2 ⬡, понижение приоритета).</div>
+        <div style="margin-top:auto"></div>
+        <button onClick="{{ go.profile }}" style="font-family:inherit;background:#166088;color:#FFFFFF;border:none;border-radius:999px;padding:15px;font-size:15px;font-weight:800;cursor:pointer">Отправить пояснение</button>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ confirmOpen }}" hint-placeholder-val="{{ false }}">
+      <div style="position:absolute;inset:0;background:rgba(20,48,60,0.5);display:flex;flex-direction:column;justify-content:flex-end;z-index:5" onClick="{{ act.dismissConfirm }}">
+        <div style="background:#FFFFFF;border-radius:22px 22px 0 0;padding:18px 20px 26px;animation:mqUp 0.25s ease">
+          <div style="width:38px;height:4px;border-radius:2px;background:#C0D6DF;margin:0 auto 14px"></div>
+          <div style="font-size:17px;font-weight:800">{{ confirmTitle }}</div>
+          <div style="font-size:13px;color:#5B7B8A;line-height:1.55;margin-top:6px">{{ confirmText }}</div>
+          <button onClick="{{ act.confirmYes }}" style="font-family:inherit;width:100%;background:{{ confirmBtnBg }};color:#FFFFFF;border:none;border-radius:999px;padding:15px;font-size:15px;font-weight:800;cursor:pointer;margin-top:14px">{{ confirmBtn }}</button>
+          <button onClick="{{ act.dismissConfirm }}" style="font-family:inherit;width:100%;background:none;border:none;color:#5B7B8A;font-size:13.5px;font-weight:800;cursor:pointer;padding:12px 0 0">Назад</button>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ showTabbar }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:none;display:flex;align-items:flex-end;background:#FFFFFF;border-top:1px solid #C0D6DF;padding:6px 6px 18px">
+        <button onClick="{{ go.work }}" style="font-family:inherit;flex:1;background:none;border:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;color:{{ tabWorkC }};font-size:10px;font-weight:800"><span style="font-size:19px">🛠</span>Работа</button>
+        <button onClick="{{ go.planned }}" style="font-family:inherit;flex:1;background:none;border:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;color:{{ tabPlannedC }};font-size:10px;font-weight:800"><span style="font-size:19px">🗓</span>Плановые</button>
+        <div style="flex:1;display:flex;justify-content:center">
+          <button onClick="{{ act.fabTap }}" style="font-family:inherit;width:52px;height:52px;border-radius:50%;background:{{ fabBg }};color:#FFFFFF;border:none;font-size:22px;cursor:pointer;margin-top:-22px;box-shadow:0 6px 16px rgba(22,96,136,0.4)">{{ fabIcon }}</button>
+        </div>
+        <button onClick="{{ go.wallet }}" style="font-family:inherit;flex:1;background:none;border:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;color:{{ tabWalletC }};font-size:10px;font-weight:800"><span style="font-size:19px">₸</span>Кошелёк</button>
+        <button onClick="{{ go.profile }}" style="font-family:inherit;flex:1;background:none;border:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;color:{{ tabProfileC }};font-size:10px;font-weight:800"><span style="font-size:19px">◉</span>Профиль</button>
+      </div>
+    </sc-if>
+    <div style="position:absolute;left:50%;bottom:7px;transform:translateX(-50%);width:130px;height:5px;border-radius:3px;background:#14303C;opacity:0.35;z-index:6"></div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = {
+    screen: 'work', online: false, geoDenied: false, offerNote: '',
+    mPhase: 'none', offerLeft: 47, offerCd: 0, pwT: 0, doneT: 0,
+    credits: 12, bidSentNote: false, feedBids: 2, creditsZeroDemo: false,
+    wallet: 64300, wReq: 'none', wReqT: 0,
+    confirm: null, blocked: false,
+  };
+  componentDidMount() { this.timer = setInterval(() => this.tick(), 1000); }
+  componentWillUnmount() { clearInterval(this.timer); }
+  beep() {
+    try {
+      const ctx = new AudioContext();
+      const osc = ctx.createOscillator();
+      osc.type = 'sine'; osc.frequency.value = 880;
+      osc.connect(ctx.destination); osc.start(); osc.stop(ctx.currentTime + 0.35);
+    } catch (e) {}
+  }
+  tick() {
+    const s = this.state;
+    if (s.online && s.mPhase === 'none' && s.offerCd > 0) {
+      const cd = s.offerCd - 1;
+      if (cd === 0 && ['work','planned','wallet','credits','profile'].includes(s.screen)) {
+        this.beep();
+        this.setState({ offerCd: 0, mPhase: 'offer', offerLeft: 47, screen: 'offer', offerNote: '' });
+      } else this.setState({ offerCd: cd });
+    } else if (s.mPhase === 'offer') {
+      const left = s.offerLeft - 1;
+      if (left <= 0) this.setState({ mPhase: 'none', offerLeft: 0, screen: 'work', offerNote: 'Время вышло — заявка ушла другому мастеру. Ждём следующую.' });
+      else this.setState({ offerLeft: left });
+    } else if (s.mPhase === 'priceWait') {
+      const p = s.pwT + 1;
+      if (p >= 5) this.setState({ mPhase: 'inprogress', pwT: p });
+      else this.setState({ pwT: p });
+    } else if (s.mPhase === 'done') {
+      const d = s.doneT + 1;
+      if (d >= 5) this.setState({ mPhase: 'closed', doneT: d, wallet: s.wallet + 2100 });
+      else this.setState({ doneT: d });
+    }
+    if (s.wReq === 'pending') {
+      const w = s.wReqT + 1;
+      if (w >= 4) this.setState({ wReq: 'paid', wReqT: w });
+      else this.setState({ wReqT: w });
+    }
+  }
+  renderVals() {
+    const s = this.state;
+    const set = (patch) => () => this.setState(patch);
+    const screens = ['ob1','ob2','ob3','ob4','obPending','obNeeds','obApproved','obRejected','work','offer','order','priceForm','planned','bidForm','credits','wallet','withdraw','profile','dispute'];
+    const scr = {}; screens.forEach(n => scr[n] = s.screen === n);
+    const go = {}; screens.forEach(n => go[n] = set({ screen: n }));
+
+    const mPhaseLabels = { offer:'Оффер', accepted:'Принят', onway:'Еду', onsite:'На месте', priceWait:'Цена у клиента', inprogress:'В работе', done:'Выполнено', closed:'Закрыт' };
+
+    const confirms = {
+      onway: { title:'Выехали к клиенту?', text:'Клиент увидит статус «Мастер в пути» и ваше положение на карте.', btn:'Да, еду', bg:'#166088', patch:{ mPhase:'onway', confirm:null } },
+      onsite: { title:'Вы на месте?', text:'Начнётся осмотр. После осмотра предложите стоимость работ — у клиента будет 15 минут на решение.', btn:'Да, на месте', bg:'#166088', patch:{ mPhase:'onsite', confirm:null } },
+      complete: { title:'Работа выполнена?', text:'Клиент получит запрос на подтверждение. После подтверждения заказ закроется и начисление придёт в кошелёк.', btn:'Да, выполнена', bg:'#059669', patch:{ mPhase:'done', doneT:0, confirm:null } },
+      cancel: { title:'Отменить заказ?', text:'Последствия: штраф −2 кредита, понижение приоритета на 24 ч. Третья отмена за 30 дней — блокировка на 7 дней. Заявка вернётся в поиск.', btn:'Отменить с последствиями', bg:'#DC2626', patch:{ mPhase:'none', confirm:null, screen:'work', credits: s.credits - 2, offerNote:'Заказ отменён: −2 ⬡, приоритет понижен на 24 ч.' } },
+    };
+    const c = s.confirm ? confirms[s.confirm] : null;
+
+    const act = {
+      toggleOnline: () => {
+        if (s.online) this.setState({ online: false, offerCd: 0 });
+        else this.setState({ online: true, offerCd: 6, offerNote: '' });
+      },
+      acceptOffer: set({ mPhase: 'accepted', screen: 'order' }),
+      skipOffer: set({ mPhase: 'none', screen: 'work', offerNote: 'Заявка пропущена. Останьтесь на линии — пришлём следующую.' }),
+      askOnway: set({ confirm: 'onway' }),
+      askOnsite: set({ confirm: 'onsite' }),
+      askComplete: set({ confirm: 'complete' }),
+      askCancel: set({ confirm: 'cancel' }),
+      confirmYes: () => { if (c) this.setState(c.patch); },
+      dismissConfirm: set({ confirm: null }),
+      sendPrice: set({ mPhase: 'priceWait', pwT: 0, screen: 'order' }),
+      sendBid: () => {
+        if (s.credits < 1) return;
+        this.setState({ credits: s.credits - 1, bidSentNote: true, feedBids: 3, screen: 'planned' });
+      },
+      requestWithdraw: () => this.setState({ wallet: s.wallet - 20000, wReq: 'pending', wReqT: 0, screen: 'wallet' }),
+      fabTap: set(s.mPhase !== 'none' && s.mPhase !== 'closed' ? { screen: 'order' } : { screen: 'work' }),
+    };
+
+    const packages = [
+      { credits: 1, price: '500 ₸', tag: '' },
+      { credits: 10, price: '5 000 ₸', tag: '' },
+      { credits: 25, price: '11 000 ₸', tag: 'выгоднее на 12%' },
+      { credits: 60, price: '24 000 ₸', tag: 'выгоднее на 20%' },
+    ].map((p, i) => ({ ...p, bc: p.tag ? '#166088' : '#C0D6DF', onBuy: () => this.setState({ credits: this.state.credits + p.credits }) }));
+
+    const J = (label, patch, hot) => ({
+      label, onTap: set(patch),
+      bg: hot ? '#166088' : '#EAF2F6', fg: hot ? '#FFFFFF' : '#166088', bc: hot ? '#166088' : '#C0D6DF',
+    });
+    const jumpGroups = [
+      { name:'Онбординг', items:[ J('Анкета',{screen:'ob1'}), J('Категории',{screen:'ob2'}), J('Документы',{screen:'ob3'}), J('Проверка',{screen:'ob4'}), J('На рассмотрении',{screen:'obPending'}), J('Нужны данные',{screen:'obNeeds'}), J('Одобрен',{screen:'obApproved'}), J('Отклонён',{screen:'obRejected'}) ] },
+      { name:'Работа', items:[ J('Экран «Работа»',{screen:'work'},true), J('Оффер ▶',{screen:'offer',mPhase:'offer',offerLeft:47},true), J('Принят',{screen:'order',mPhase:'accepted'}), J('Еду',{screen:'order',mPhase:'onway'}), J('На месте',{screen:'order',mPhase:'onsite'}), J('Форма цены',{screen:'priceForm',mPhase:'onsite'}), J('Ждём цену',{screen:'order',mPhase:'priceWait',pwT:0}), J('В работе',{screen:'order',mPhase:'inprogress'}), J('Выполнено',{screen:'order',mPhase:'done',doneT:0}) ] },
+      { name:'Плановые', items:[ J('Лента',{screen:'planned'}), J('Форма ставки',{screen:'bidForm',credits: Math.max(1, s.credits)}), J('0 кредитов',{screen:'bidForm',credits:0}) ] },
+      { name:'Деньги', items:[ J('Кошелёк ₸',{screen:'wallet'}), J('Вывод',{screen:'withdraw'}), J('Кредиты ⬡',{screen:'credits'}) ] },
+      { name:'Прочее', items:[ J('Спор',{screen:'dispute'}), J('Профиль',{screen:'profile',blocked:false}), J('Блокировка',{screen:'profile',blocked:true}), J('Гео запрещена',{screen:'work',geoDenied:true}) ] },
+    ];
+
+    const fmt = (n) => n.toLocaleString('ru-RU').replace(/,/g, ' ') + ' ₸';
+    const hasOrder = !['none','offer','closed'].includes(s.mPhase);
+
+    return {
+      scr, go, act, jumpGroups, packages,
+      onlineLabel: s.online ? 'На линии' : 'Не на линии',
+      onlineSub: s.online ? 'гео активна · Есиль · офферы приходят' : 'включите, чтобы получать срочные заявки',
+      onlineBc: s.online ? '#166088' : '#C0D6DF',
+      swBg: s.online ? '#166088' : '#C0D6DF', swKnob: s.online ? 29 : 3,
+      connLabel: s.online ? '● соединение активно' : '○ офлайн',
+      connBg: s.online ? '#E5F3EE' : '#EAF2F6', connFg: s.online ? '#059669' : '#5B7B8A',
+      geoDenied: s.geoDenied, offerNote: s.offerNote,
+      waitingHint: s.online && !hasOrder,
+      hasOrder, mPhaseLabel: mPhaseLabels[s.mPhase] ?? '',
+      offerLeftStr: String(s.offerLeft).padStart(2, '0'),
+      mAccepted: s.mPhase === 'accepted', mOnway: s.mPhase === 'onway', mOnsite: s.mPhase === 'onsite',
+      mPriceWait: s.mPhase === 'priceWait', mInprogress: s.mPhase === 'inprogress',
+      mDone: s.mPhase === 'done', mClosed: s.mPhase === 'closed',
+      mCancelable: ['accepted','onway'].includes(s.mPhase),
+      credits: s.credits, creditsAfter: Math.max(0, s.credits - 1),
+      creditsOk: s.credits >= 1, creditsLow: s.credits < 1,
+      bidSentNote: s.bidSentNote, feedBids: s.feedBids,
+      walletStr: fmt(s.wallet),
+      wReqPending: s.wReq === 'pending', wReqPaid: s.wReq === 'paid',
+      isBlocked: s.blocked,
+      confirmOpen: !!c,
+      confirmTitle: c ? c.title : '', confirmText: c ? c.text : '', confirmBtn: c ? c.btn : '', confirmBtnBg: c ? c.bg : '#166088',
+      showTabbar: ['work','planned','wallet','credits','profile'].includes(s.screen),
+      tabWorkC: s.screen === 'work' ? '#166088' : '#8FAAB8',
+      tabPlannedC: s.screen === 'planned' ? '#166088' : '#8FAAB8',
+      tabWalletC: ['wallet','credits'].includes(s.screen) ? '#166088' : '#8FAAB8',
+      tabProfileC: s.screen === 'profile' ? '#166088' : '#8FAAB8',
+      fabBg: hasOrder ? '#DC2626' : '#166088',
+      fabIcon: hasOrder ? '⚡' : '🛠',
+    };
+  }
+}
+</script>
+</body>
+</html>
