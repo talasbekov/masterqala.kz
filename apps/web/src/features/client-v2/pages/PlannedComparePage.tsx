@@ -22,7 +22,7 @@ export default function PlannedComparePage() {
   }
 
   if (error) return <div className="p-6 text-sm font-semibold text-c2-danger">{error}</div>;
-  if (!order || !id) return <div className="p-6 text-c2-ink-soft">Загрузка…</div>;
+  if (!order || !id) return <div className="p-6 text-c2-ink-soft">{t('common.loading')}</div>;
 
   const rows: { label: string; render: (b: PlannedBid) => string }[] = [
     { label: t('plannedDetail.comparePrice'), render: (b) => `${b.price} ₸` },
@@ -39,7 +39,7 @@ export default function PlannedComparePage() {
         <button type="button" onClick={() => navigate(`/planned/${id}`)} className="text-xl text-c2-primary">
           ←
         </button>
-        <span className="text-lg font-extrabold text-c2-ink">Сравнение мастеров</span>
+        <span className="text-lg font-extrabold text-c2-ink">{t('plannedDetail.compareTitle')}</span>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full min-w-[420px] border-collapse overflow-hidden rounded-c2-lg border border-c2-border text-[12.5px]">

@@ -5,7 +5,15 @@ import { api } from '../../../../api';
 import { PLANNED_STATUS_LABELS } from '../../../../orderStatus';
 import type { PlannedOrderDetail } from '../../pages/PlannedOrderPage';
 
-export default function PactiveView({ order, orderId }: { order: PlannedOrderDetail; orderId: string }) {
+export default function PactiveView({
+  order,
+  orderId,
+  onChanged,
+}: {
+  order: PlannedOrderDetail;
+  orderId: string;
+  onChanged: () => void;
+}) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [remaining, setRemaining] = useState(0);
@@ -24,6 +32,7 @@ export default function PactiveView({ order, orderId }: { order: PlannedOrderDet
     setError('');
     try {
       await api(`/planned-orders/${orderId}/cancel`, { method: 'POST' });
+      onChanged();
     } catch (e) {
       setError((e as Error).message);
     }
