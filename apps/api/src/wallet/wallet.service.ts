@@ -1,4 +1,12 @@
-import { Inject, Injectable, Logger, ServiceUnavailableException, UnprocessableEntityException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Inject,
+  Injectable,
+  Logger,
+  ServiceUnavailableException,
+  UnprocessableEntityException,
+} from '@nestjs/common';
+import { CommercialModeService } from '../commercial-mode/commercial-mode.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { PAYMENT_PROVIDER, PaymentProvider } from '../payments/payment.interface';
 
@@ -9,14 +17,17 @@ export class WalletService {
   constructor(
     private readonly prisma: PrismaService,
     @Inject(PAYMENT_PROVIDER) private readonly payments: PaymentProvider,
+    private readonly commercialMode: CommercialModeService,
   ) {}
 
   async getBalance(masterUserId: string): Promise<number> {
+    if (!this.commercialMode.payoutsEnabled()) return 0;
     const acc = await this.prisma.masterWalletAccount.findUnique({ where: { masterUserId } });
     return acc?.balance ?? 0;
   }
 
-  listMine(masterUserId: string) {
+  async listMine(masterUserId: string) {
+    if (!this.commercialMode.payoutsEnabled()) return [];
     return this.prisma.withdrawalRequest.findMany({
       where: { masterUserId },
       orderBy: { requestedAt: 'desc' },
@@ -24,6 +35,10 @@ export class WalletService {
   }
 
   async request(masterUserId: string, amount: number) {
+    if (!this.commercialMode.payoutsEnabled()) {
+      throw new ForbiddenException('Вывод средств недоступен в бесплатном пилоте');
+    }
+
     const withdrawal = await this.prisma.$transaction(async (tx) => {
       const spent = await tx.masterWalletAccount.updateMany({
         where: { masterUserId, balance: { gte: amount } },
