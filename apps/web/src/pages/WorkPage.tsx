@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api';
+import { useCommercialMode } from '../commercial-mode';
 import { getSocket } from '../socket';
 
 function beepAndVibrate() {
@@ -29,6 +30,7 @@ function useCountdown(deadline: string | null): number {
 }
 
 export default function WorkPage() {
+  const { leadCreditsEnabled } = useCommercialMode();
   const [online, setOnline] = useState(false);
   const [connected, setConnected] = useState(false);
   const [geoDenied, setGeoDenied] = useState(false);
@@ -179,7 +181,13 @@ export default function WorkPage() {
           <h1 className="text-2xl font-bold">{offer.category}</h1>
           <p>{offer.description}</p>
           <p className="opacity-80">{offer.address}</p>
-          <div className="text-xl font-semibold">Компенсация выезда: {offer.compensation} ₸</div>
+          {offer.freePilot ? (
+            <div className="rounded-xl bg-white/10 p-3 text-sm font-semibold">
+              Бесплатный пилот: стоимость работ согласовывается с клиентом, расчёт происходит напрямую.
+            </div>
+          ) : (
+            <div className="text-xl font-semibold">Компенсация выезда: {offer.compensation} ₸</div>
+          )}
           <button onClick={acceptOffer} className="w-full rounded-xl bg-white p-4 text-xl font-bold text-teal-800">
             Принять ({secondsLeft} с)
           </button>
@@ -287,7 +295,13 @@ export default function WorkPage() {
 
       {tab === 'planned' && !plannedOrder && (
         <div className="space-y-3">
-          <Link to="/lead-credits" className="block text-center text-teal-700 underline">Баланс и покупка кредитов</Link>
+          {leadCreditsEnabled ? (
+            <Link to="/lead-credits" className="block text-center text-teal-700 underline">Баланс и покупка кредитов</Link>
+          ) : (
+            <div className="rounded-xl bg-teal-50 p-3 text-center text-sm font-semibold text-teal-800">
+              В бесплатном пилоте отклики не расходуют lead-кредиты.
+            </div>
+          )}
           {feed.length === 0 && <p className="text-center text-gray-500">Пока нет заявок в ваших категориях</p>}
           {feed.map((o) => (
             <button key={o.id} onClick={() => openPlannedOrder(o.id)} className="block w-full rounded-xl border p-4 text-left">
@@ -326,7 +340,7 @@ export default function WorkPage() {
             disabled={!Number(bidPrice) || !bidTerm}
             onClick={submitBid}
           >
-            Откликнуться (1 кредит)
+            {leadCreditsEnabled ? 'Откликнуться (1 кредит)' : 'Откликнуться бесплатно'}
           </button>
         </div>
       )}
