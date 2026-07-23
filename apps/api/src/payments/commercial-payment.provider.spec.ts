@@ -1,12 +1,18 @@
 import { PaymentTransaction } from '@prisma/client';
 import { CommercialModeService } from '../commercial-mode/commercial-mode.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { CommercialPaymentProvider } from './commercial-payment.provider';
 import { MockPaymentProvider } from './mock-payment.provider';
 
-function setup(enabled: boolean) {
+function setup(orderMode: 'FREE_PILOT' | 'PAID_MOCK', globalEnabled = true) {
+  const prisma = {
+    order: {
+      findUnique: jest.fn().mockResolvedValue({ commercialMode: orderMode }),
+    },
+  } as unknown as PrismaService;
   const commercialMode = {
-    paymentsEnabled: jest.fn().mockReturnValue(enabled),
-    payoutsEnabled: jest.fn().mockReturnValue(enabled),
+    paymentsEnabled: jest.fn().mockReturnValue(globalEnabled),
+    payoutsEnabled: jest.fn().mockReturnValue(globalEnabled),
   } as unknown as CommercialModeService;
   const transaction = { id: 'paid-transaction' } as PaymentTransaction;
   const paidProvider = {
@@ -18,15 +24,15 @@ function setup(enabled: boolean) {
     refund: jest.fn().mockResolvedValue({ status: 'SUCCEEDED', providerRef: 'paid' }),
   } as unknown as MockPaymentProvider;
   return {
-    provider: new CommercialPaymentProvider(commercialMode, paidProvider),
+    provider: new CommercialPaymentProvider(prisma, commercialMode, paidProvider),
     paidProvider,
     transaction,
   };
 }
 
 describe('CommercialPaymentProvider', () => {
-  it('не вызывает платный провайдер и не создаёт реальную транзакцию в FREE_PILOT', async () => {
-    const { provider, paidProvider } = setup(false);
+  it('не вызывает платный провайдер для FREE_PILOT-заявки даже после глобального переключения в paid', async () => {
+    const { provider, paidProvider } = setup('FREE_PILOT', true);
 
     const hold = await provider.hold('order-1', 2500);
     const capture = await provider.capture('order-1');
@@ -45,15 +51,26 @@ describe('CommercialPaymentProvider', () => {
     expect(paidProvider.refund).not.toHaveBeenCalled();
   });
 
-  it('делегирует операции платному провайдеру в PAID_MOCK/PAID_LIVE', async () => {
-    const { provider, paidProvider, transaction } = setup(true);
+  it('продолжает платную обработку PAID_MOCK-заявки независимо от режима новых заявок', async () => {
+    const { provider, paidProvider, transaction } = setup('PAID_MOCK', false);
 
     await expect(provider.hold('order-2', 3000)).resolves.toBe(transaction);
-    await expect(provider.payout('withdrawal-1', 2000)).resolves.toEqual({
+    await expect(provider.capture('order-2')).resolves.toBe(transaction);
+    expect(paidProvider.hold).toHaveBeenCalledWith('order-2', 3000);
+    expect(paidProvider.capture).toHaveBeenCalledWith('order-2');
+  });
+
+  it('покупки и выводы без привязки к заявке используют текущий глобальный режим', async () => {
+    const enabled = setup('PAID_MOCK', true);
+    const disabled = setup('PAID_MOCK', false);
+
+    await expect(enabled.provider.payout('withdrawal-1', 2000)).resolves.toEqual({
       status: 'SUCCEEDED',
       providerRef: 'paid',
     });
-    expect(paidProvider.hold).toHaveBeenCalledWith('order-2', 3000);
-    expect(paidProvider.payout).toHaveBeenCalledWith('withdrawal-1', 2000);
+    await expect(disabled.provider.charge('purchase-1', 1000)).resolves.toEqual({
+      status: 'FAILED',
+      providerRef: 'free-pilot-disabled',
+    });
   });
 });
