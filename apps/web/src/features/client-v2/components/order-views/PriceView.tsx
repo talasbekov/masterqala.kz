@@ -1,12 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../../../api';
-import { useCommercialMode } from '../../../../commercial-mode';
 import type { OrderDetail } from '../../pages/OrderPage';
 
 export default function PriceView({ order, orderId, onChanged }: { order: OrderDetail; orderId: string; onChanged: () => void }) {
   const { t } = useTranslation();
-  const { paymentsEnabled } = useCommercialMode();
+  const paymentsEnabled = order.commercialMode !== 'FREE_PILOT' && order.freePilot !== true;
   const [remaining, setRemaining] = useState(0);
   const [error, setError] = useState('');
 
