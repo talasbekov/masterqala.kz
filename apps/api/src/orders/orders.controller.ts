@@ -23,12 +23,12 @@ export class OrdersController {
     if (!this.commercialMode.isFreePilot() || value === null || value === undefined) return value;
 
     if (Array.isArray(value)) {
-      return value.map((item) => this.presentValue(item)) as T;
+      return value.map((item) => this.presentValue(item)) as unknown as T;
     }
 
     if (typeof value !== 'object') return value;
 
-    const source = value as Record<string, unknown>;
+    const source = value as unknown as Record<string, unknown>;
     const presented: Record<string, unknown> = { ...source };
 
     if (typeof source.calloutPrice === 'number' && typeof source.serviceFee === 'number') {
@@ -43,7 +43,7 @@ export class OrdersController {
       presented.order = this.presentValue(source.order);
     }
 
-    return presented as T;
+    return presented as unknown as T;
   }
 
   @Post('orders/preview')
