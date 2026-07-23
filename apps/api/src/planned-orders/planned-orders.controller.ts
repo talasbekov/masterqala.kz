@@ -4,12 +4,16 @@ import { User } from '@prisma/client';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { PlannedOrdersService } from './planned-orders.service';
+import { PlannedOrdersCommercialService } from './planned-orders-commercial.service';
 import { CreatePlannedOrderDto, PlaceBidDto, SelectBidDto } from './dto';
 
 @Controller('planned-orders')
 @UseGuards(JwtAuthGuard)
 export class PlannedOrdersController {
-  constructor(private readonly plannedOrders: PlannedOrdersService) {}
+  constructor(
+    private readonly plannedOrders: PlannedOrdersService,
+    private readonly commercial: PlannedOrdersCommercialService,
+  ) {}
 
   @Post()
   create(@CurrentUser() user: User, @Body() dto: CreatePlannedOrderDto) {
@@ -39,7 +43,7 @@ export class PlannedOrdersController {
 
   @Post(':id/bids')
   placeBid(@CurrentUser() user: User, @Param('id') id: string, @Body() dto: PlaceBidDto) {
-    return this.plannedOrders.placeBid(user.id, id, dto);
+    return this.commercial.placeBid(user.id, id, dto);
   }
 
   @Post(':id/select')
@@ -74,6 +78,6 @@ export class PlannedOrdersController {
 
   @Post(':id/cancel')
   cancel(@CurrentUser() user: User, @Param('id') id: string) {
-    return this.plannedOrders.cancel(user, id);
+    return this.commercial.cancel(user, id);
   }
 }
