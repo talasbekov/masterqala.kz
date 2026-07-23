@@ -26,7 +26,7 @@ interface OrderStatusPayload extends Record<string, unknown> {
 
 const URGENT_EN_ROUTE_STATUSES: OrderStatus[] = ['ACCEPTED', 'MASTER_ON_WAY'];
 
-@WebSocketGateway({ cors: { origin: true } })
+@WebSocketGateway()
 export class RealtimeGateway implements OnGatewayInit {
   private readonly logger = new Logger(RealtimeGateway.name);
   private readonly orderStatusPresentations = new WeakMap<object, Promise<object>>();

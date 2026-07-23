@@ -21,10 +21,11 @@ import { DisputesModule } from './disputes/disputes.module';
 import { AddressesModule } from './addresses/addresses.module';
 import { ReviewsModule } from './reviews/reviews.module';
 import { CommercialModeModule } from './commercial-mode/commercial-mode.module';
+import { validateEnvironment } from './config/environment';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({ isGlobal: true, validate: validateEnvironment }),
     CommercialModeModule,
     PrismaModule,
     CommonModule,

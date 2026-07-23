@@ -2,8 +2,6 @@ name: CI
 
 on:
   pull_request:
-    branches:
-      - main
   push:
 
 permissions:
@@ -34,8 +32,10 @@ jobs:
           --health-retries 10
 
     env:
+      NODE_ENV: test
       DATABASE_URL: postgresql://masterqala:masterqala@localhost:5433/masterqala_test
-      JWT_SECRET: ci-only-secret
+      JWT_SECRET: ci-only-secret-with-at-least-32-characters
+      CORS_ORIGINS: http://localhost:5173
       PGBOSS_DISABLED: "1"
 
     steps:
