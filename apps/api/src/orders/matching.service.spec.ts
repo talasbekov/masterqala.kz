@@ -21,6 +21,11 @@ function setup(commercialMode: 'FREE_PILOT' | 'PAID_MOCK') {
         wave: 0,
         searchAttempt: 1,
         description: 'Течёт кран',
+        address: 'Астана, ул. Тестовая, 1',
+        entrance: '2',
+        floor: '7',
+        apartment: '42',
+        addressComment: 'Домофон 123',
         district: 'Есиль',
         calloutPrice: 2600,
         serviceFee: 1040,
@@ -72,5 +77,25 @@ describe('MatchingService — коммерческий режим оффера',
         freePilot: false,
       }),
     );
+  });
+
+  it('не раскрывает точный адрес и детали доступа до принятия заявки', async () => {
+    const { service, gateway } = setup('FREE_PILOT');
+
+    await service.handleWave({ orderId: 'order-1', wave: 1 });
+
+    const payload = gateway.emitToUser.mock.calls[0][2] as Record<string, unknown>;
+    expect(payload).toEqual(
+      expect.objectContaining({
+        district: 'Есиль',
+        description: 'Течёт кран',
+        distanceKm: expect.any(Number),
+      }),
+    );
+    expect(payload).not.toHaveProperty('address');
+    expect(payload).not.toHaveProperty('entrance');
+    expect(payload).not.toHaveProperty('floor');
+    expect(payload).not.toHaveProperty('apartment');
+    expect(payload).not.toHaveProperty('addressComment');
   });
 });
