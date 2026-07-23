@@ -13,6 +13,11 @@ export class CommercialModeService {
         `Недопустимый COMMERCIAL_MODE=${configured}. Допустимые значения: ${COMMERCIAL_MODES.join(', ')}`,
       );
     }
+    if (configured === 'PAID_LIVE') {
+      throw new Error(
+        'COMMERCIAL_MODE=PAID_LIVE пока недоступен: реальный платёжный провайдер не подключён. Используйте FREE_PILOT или PAID_MOCK.',
+      );
+    }
     this.currentMode = configured as CommercialMode;
   }
 
@@ -25,15 +30,15 @@ export class CommercialModeService {
   }
 
   paymentsEnabled(): boolean {
-    return !this.isFreePilot();
+    return this.currentMode === 'PAID_MOCK';
   }
 
   leadCreditsEnabled(): boolean {
-    return !this.isFreePilot();
+    return this.currentMode === 'PAID_MOCK';
   }
 
   payoutsEnabled(): boolean {
-    return !this.isFreePilot();
+    return this.currentMode === 'PAID_MOCK';
   }
 
   publicConfig(): PublicCommercialConfig {
