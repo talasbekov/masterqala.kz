@@ -1,4 +1,4 @@
-import { ValidationPipe } from '@nestjs/common';
+import { Logger, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
@@ -18,4 +18,8 @@ async function bootstrap() {
   await app.listen(config.getOrThrow<number>('PORT'));
 }
 
-void bootstrap();
+void bootstrap().catch((error: unknown) => {
+  const message = error instanceof Error ? error.message : String(error);
+  new Logger('Bootstrap').error(`API не запущен: ${message}`);
+  process.exit(1);
+});
