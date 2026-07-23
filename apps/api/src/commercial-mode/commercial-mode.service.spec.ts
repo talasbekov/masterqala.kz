@@ -30,4 +30,8 @@ describe('CommercialModeService', () => {
   it('останавливает запуск при неизвестном значении', () => {
     expect(() => service('FREE')).toThrow('Недопустимый COMMERCIAL_MODE=FREE');
   });
+
+  it('не позволяет PAID_LIVE тихо работать через mock-провайдер', () => {
+    expect(() => service('PAID_LIVE')).toThrow('реальный платёжный провайдер не подключён');
+  });
 });
