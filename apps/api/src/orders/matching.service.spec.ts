@@ -1,11 +1,10 @@
-import { CommercialModeService } from '../commercial-mode/commercial-mode.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { QueueService } from '../queue/queue.service';
 import { RealtimeGateway } from '../realtime/realtime.gateway';
 import { MatchingService } from './matching.service';
 import { OrdersService } from './orders.service';
 
-function setup(freePilot: boolean) {
+function setup(commercialMode: 'FREE_PILOT' | 'PAID_MOCK') {
   const tx = {
     order: { updateMany: jest.fn().mockResolvedValue({ count: 1 }) },
     orderOffer: { createMany: jest.fn().mockResolvedValue({ count: 1 }) },
@@ -18,6 +17,7 @@ function setup(freePilot: boolean) {
         categoryId: 'category-1',
         category: { name: 'Сантехник' },
         status: 'SEARCHING',
+        commercialMode,
         wave: 0,
         searchAttempt: 1,
         description: 'Течёт кран',
@@ -35,19 +35,16 @@ function setup(freePilot: boolean) {
   } as unknown as QueueService;
   const gateway = { emitToUser: jest.fn() } as unknown as RealtimeGateway;
   const orders = { emitOrderStatus: jest.fn().mockResolvedValue(undefined) } as unknown as OrdersService;
-  const commercialMode = {
-    isFreePilot: jest.fn().mockReturnValue(freePilot),
-  } as unknown as CommercialModeService;
 
   return {
-    service: new MatchingService(prisma, queue, gateway, orders, commercialMode),
+    service: new MatchingService(prisma, queue, gateway, orders),
     gateway: gateway as unknown as { emitToUser: jest.Mock },
   };
 }
 
 describe('MatchingService — коммерческий режим оффера', () => {
-  it('в FREE_PILOT отправляет нулевую компенсацию и явный признак пилота', async () => {
-    const { service, gateway } = setup(true);
+  it('для FREE_PILOT-заявки отправляет нулевую компенсацию независимо от текущего env', async () => {
+    const { service, gateway } = setup('FREE_PILOT');
 
     await service.handleWave({ orderId: 'order-1', wave: 1 });
 
@@ -62,8 +59,8 @@ describe('MatchingService — коммерческий режим оффера',
     );
   });
 
-  it('в платном режиме сохраняет рассчитанную компенсацию', async () => {
-    const { service, gateway } = setup(false);
+  it('для PAID_MOCK-заявки сохраняет рассчитанную компенсацию', async () => {
+    const { service, gateway } = setup('PAID_MOCK');
 
     await service.handleWave({ orderId: 'order-1', wave: 1 });
 
