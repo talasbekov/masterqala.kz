@@ -1,54 +1,78 @@
 # Техническая документация MasterQala.kz
 
-Этот раздел описывает не только целевую архитектуру, но и фактическую реализацию в репозитории.
+Этот раздел описывает фактическую реализацию репозитория, внедрённый бесплатный режим и обязательные изменения до публичного production-запуска.
 
-## Статусы документов
+## Статусы утверждений
 
-В документах используются два типа утверждений:
+В документах используются три типа утверждений:
 
-- **текущее поведение** — подтверждено кодом, Prisma-схемой или конфигурацией репозитория;
-- **целевая модель** — обязательное изменение до бесплатного пилота или production.
+- **реализовано** — подтверждено кодом, Prisma-схемой, миграцией или тестом;
+- **проверено CI** — команда фактически завершилась успешно в GitHub Actions;
+- **целевой gate** — обязательное изменение или проверка до production.
 
-Если поведение ещё не реализовано, это должно быть явно указано в документе.
+Наличие реализации без успешного CI/smoke не считается доказательством production-готовности.
 
 ## Источники истины
 
 При расхождении документов приоритет имеют:
 
-1. `apps/api/prisma/schema.prisma` — модель данных и перечисления статусов;
-2. контроллеры и сервисы `apps/api/src/**` — фактические HTTP-переходы и бизнес-ограничения;
-3. `apps/api/src/orders/order.constants.ts` и `apps/api/src/planned-orders/planned-order.constants.ts` — таймауты и лимиты;
-4. `apps/web/src/**` — реально доступные пользовательские сценарии;
-5. `docs/project-spec.md` — продуктовые требования и целевое поведение.
+1. `apps/api/prisma/schema.prisma` и migrations;
+2. контроллеры и сервисы `apps/api/src/**`;
+3. `order.constants.ts` и `planned-order.constants.ts`;
+4. realtime gateway/matching;
+5. `apps/web/src/**`;
+6. CI workflow и фактические результаты run;
+7. `docs/project-spec.md` как продуктовая целевая модель.
 
 ## Текущая система
 
 - [`CURRENT_ARCHITECTURE.md`](./CURRENT_ARCHITECTURE.md) — компоненты, зависимости и фактическая архитектура.
 - [`STATE_MACHINES.md`](./STATE_MACHINES.md) — статусы и переходы срочных и плановых заявок.
-- [`REST_API.md`](./REST_API.md) — публичные HTTP-маршруты, роли, ограничения и поведение в пилоте.
-- [`WEBSOCKET_EVENTS.md`](./WEBSOCKET_EVENTS.md) — handshake, realtime-события, payload и reconnect.
-- [`DATA_MODEL.md`](./DATA_MODEL.md) — Prisma-сущности, связи, ограничения и финансовые таблицы.
+- [`REST_API.md`](./REST_API.md) — HTTP-маршруты, DTO, роли, ошибки и коммерческое поведение.
+- [`WEBSOCKET_EVENTS.md`](./WEBSOCKET_EVENTS.md) — handshake, realtime payload и правила режима заявки.
+- [`DATA_MODEL.md`](./DATA_MODEL.md) — Prisma/PostGIS, `CommercialMode`, финансовые инварианты и пробелы constraints.
 
 ## Безопасность и эксплуатация
 
-- [`SECURITY.md`](./SECURITY.md) — текущие меры, P0/P1 риски, персональные данные и checklist.
-- [`DEPLOYMENT_RUNBOOK.md`](./DEPLOYMENT_RUNBOOK.md) — production-схема пилота, migrations, backup, monitoring и rollback.
-- [`TESTING_STRATEGY.md`](./TESTING_STRATEGY.md) — unit/integration/e2e/WebSocket/browser матрица.
+- [`SECURITY.md`](./SECURITY.md) — реализованные меры, P0/P1 риски, privacy и launch gate.
+- [`DEPLOYMENT_RUNBOOK.md`](./DEPLOYMENT_RUNBOOK.md) — CI, migration rollout, single-node deployment, backup, monitoring и rollback.
+- [`TESTING_STRATEGY.md`](./TESTING_STRATEGY.md) — фактические тесты PR #4 и недостающее integration/browser покрытие.
 
 ## Бесплатный пилот
 
-- [`../pilot/FREE_PILOT_TECHNICAL_SPEC.md`](../pilot/FREE_PILOT_TECHNICAL_SPEC.md) — целевое техническое поведение первой бесплатной версии.
-- [`../pilot/FREE_PILOT_IMPLEMENTATION_PLAN.md`](../pilot/FREE_PILOT_IMPLEMENTATION_PLAN.md) — последовательность изменений backend, frontend, данных, тестов и rollout.
+- [`../pilot/FREE_PILOT_TECHNICAL_SPEC.md`](../pilot/FREE_PILOT_TECHNICAL_SPEC.md) — требования первой бесплатной версии.
+- [`../pilot/FREE_PILOT_IMPLEMENTATION_PLAN.md`](../pilot/FREE_PILOT_IMPLEMENTATION_PLAN.md) — file-level план backend/frontend/data/testing/rollout.
 
-## Ключевой принцип бесплатной версии
+Фактическая реализация находится в PR #4 `feat/free-pilot-mode`.
+
+## Ключевой принцип
 
 `MockPaymentProvider` и бесплатный пилот — разные режимы:
 
-- mock имитирует успешную платную систему и создаёт финансовые записи;
-- `FREE_PILOT` не создаёт платформенные платежи, начисления, покупки кредитов и выводы.
+- `PAID_MOCK` имитирует платную систему и создаёт финансовые записи;
+- `FREE_PILOT` не создаёт платежи, начисления, покупки кредитов и выводы;
+- номинальные суммы могут храниться для аналитики, но не являются выручкой;
+- коммерческое поведение определяется неизменяемым режимом конкретной заявки.
 
-До реализации `COMMERCIAL_MODE=FREE_PILOT` текущий код нельзя считать готовой бесплатной production-версией.
+## Текущий статус готовности
+
+Реализовано в PR #4:
+
+- `CommercialMode` и миграция;
+- backend financial no-op/blocking;
+- HTTP/Socket.IO masking;
+- бесплатные плановые отклики;
+- frontend capability-логика;
+- unit/e2e-тесты;
+- GitHub Actions workflow.
+
+До public production остаются:
+
+- подтверждённый зелёный CI;
+- ручной smoke;
+- обязательные P0 из `SECURITY.md`;
+- production process/reverse proxy/storage/backup/monitoring.
 
 ## Правило актуализации
 
-Изменение Prisma-схемы, публичного endpoint, WebSocket-события, статуса, таймаута, платежного поведения, роли или production-конфигурации считается незавершённым, пока соответствующий технический документ не обновлён в том же pull request.
+Изменение Prisma-схемы, endpoint, Socket.IO payload, статуса, таймаута, коммерческого поведения, privacy rule или production-конфигурации считается незавершённым, пока в том же workstream не обновлены код, тесты и соответствующий документ.
