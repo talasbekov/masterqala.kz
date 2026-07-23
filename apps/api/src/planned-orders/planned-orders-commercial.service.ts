@@ -1,6 +1,5 @@
 import { ConflictException, ForbiddenException, Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
 import { Prisma, User } from '@prisma/client';
-import { CommercialModeService } from '../commercial-mode/commercial-mode.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { RealtimeGateway } from '../realtime/realtime.gateway';
 import { PlaceBidDto } from './dto';
@@ -12,12 +11,16 @@ export class PlannedOrdersCommercialService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly gateway: RealtimeGateway,
-    private readonly commercialMode: CommercialModeService,
     private readonly plannedOrders: PlannedOrdersService,
   ) {}
 
   async placeBid(masterUserId: string, plannedOrderId: string, dto: PlaceBidDto) {
-    if (this.commercialMode.leadCreditsEnabled()) {
+    const storedOrder = await this.prisma.plannedOrder.findUnique({
+      where: { id: plannedOrderId },
+      select: { commercialMode: true },
+    });
+    if (!storedOrder) throw new NotFoundException('Заявка не найдена');
+    if (storedOrder.commercialMode !== 'FREE_PILOT') {
       return this.plannedOrders.placeBid(masterUserId, plannedOrderId, dto);
     }
 
@@ -63,11 +66,11 @@ export class PlannedOrdersCommercialService {
   }
 
   async cancel(user: User, plannedOrderId: string) {
-    if (this.commercialMode.leadCreditsEnabled()) {
+    const order = await this.plannedOrders.findOrThrow(plannedOrderId);
+    if (order.commercialMode !== 'FREE_PILOT') {
       return this.plannedOrders.cancel(user, plannedOrderId);
     }
 
-    const order = await this.plannedOrders.findOrThrow(plannedOrderId);
     if (order.clientId !== user.id) {
       if (order.masterId === user.id) return this.plannedOrders.cancel(user, plannedOrderId);
       throw new ForbiddenException('Нет доступа к заявке');
