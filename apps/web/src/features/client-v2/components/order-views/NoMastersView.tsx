@@ -2,11 +2,17 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../../../api';
-import { useCommercialMode } from '../../../../commercial-mode';
 
-export default function NoMastersView({ orderId, onChanged }: { orderId: string; onChanged: () => void }) {
+export default function NoMastersView({
+  orderId,
+  freePilot,
+  onChanged,
+}: {
+  orderId: string;
+  freePilot: boolean;
+  onChanged: () => void;
+}) {
   const { t } = useTranslation();
-  const { paymentsEnabled } = useCommercialMode();
   const navigate = useNavigate();
   const [error, setError] = useState('');
 
@@ -25,9 +31,9 @@ export default function NoMastersView({ orderId, onChanged }: { orderId: string;
       <div className="text-4xl">😔</div>
       <div className="text-xl font-extrabold text-c2-ink">{t('orderDetail.noMastersTitle')}</div>
       <div className="max-w-[290px] text-sm leading-relaxed text-c2-ink-soft">
-        {paymentsEnabled
-          ? t('orderDetail.noMastersText')
-          : 'Сейчас рядом нет свободных мастеров. Списаний не было. Попробуйте поиск ещё раз или создайте плановую заявку — мастера сами предложат цену.'}
+        {freePilot
+          ? 'Сейчас рядом нет свободных мастеров. Списаний не было. Попробуйте поиск ещё раз или создайте плановую заявку — мастера сами предложат цену.'
+          : t('orderDetail.noMastersText')}
       </div>
       {error && <p className="text-sm font-semibold text-c2-danger">{error}</p>}
       <button
