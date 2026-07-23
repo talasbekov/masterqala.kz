@@ -1,12 +1,11 @@
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { useCommercialMode } from '../../../../commercial-mode';
 import { STEPPER_STEPS } from '../../../../orderStatus';
 import type { OrderDetail } from '../../pages/OrderPage';
 
 export default function ProgressView({ order }: { order: OrderDetail }) {
   const { t } = useTranslation();
-  const { paymentsEnabled } = useCommercialMode();
+  const paymentsEnabled = order.commercialMode !== 'FREE_PILOT' && order.freePilot !== true;
   const currentIdx = STEPPER_STEPS.findIndex((s) => s.status === order.status);
 
   return (
