@@ -23,13 +23,13 @@ function parseNodeEnvironment(value: unknown): NodeEnvironment {
   return normalized as NodeEnvironment;
 }
 
-function parsePort(value: unknown): number {
+function parseInteger(name: string, value: unknown, fallback: number, min: number, max: number): number {
   const normalized = requiredString(value);
-  const port = normalized ? Number(normalized) : 3000;
-  if (!Number.isInteger(port) || port < 1 || port > 65535) {
-    throw new Error(`Недопустимый PORT=${String(value)}. Ожидается целое число от 1 до 65535`);
+  const parsed = normalized ? Number(normalized) : fallback;
+  if (!Number.isInteger(parsed) || parsed < min || parsed > max) {
+    throw new Error(`Недопустимый ${name}=${String(value)}. Ожидается целое число от ${min} до ${max}`);
   }
-  return port;
+  return parsed;
 }
 
 export function parseCorsOrigins(value: unknown, nodeEnv: NodeEnvironment): string[] {
@@ -87,7 +87,8 @@ export function validateEnvironment(raw: Record<string, unknown>): Record<string
   }
 
   const corsOrigins = parseCorsOrigins(raw.CORS_ORIGINS, nodeEnv);
-  const port = parsePort(raw.PORT);
+  const port = parseInteger('PORT', raw.PORT, 3000, 1, 65535);
+  const trustProxyHops = parseInteger('TRUST_PROXY_HOPS', raw.TRUST_PROXY_HOPS, 0, 0, 10);
 
   return {
     ...raw,
@@ -95,6 +96,7 @@ export function validateEnvironment(raw: Record<string, unknown>): Record<string
     JWT_SECRET: jwtSecret,
     CORS_ORIGINS: corsOrigins.join(','),
     PORT: port,
+    TRUST_PROXY_HOPS: trustProxyHops,
   };
 }
 

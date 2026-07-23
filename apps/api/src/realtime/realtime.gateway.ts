@@ -25,11 +25,13 @@ interface OrderStatusPayload extends Record<string, unknown> {
 }
 
 const URGENT_EN_ROUTE_STATUSES: OrderStatus[] = ['ACCEPTED', 'MASTER_ON_WAY'];
+const GEO_UPDATE_MIN_INTERVAL_MS = 1_000;
 
 @WebSocketGateway()
 export class RealtimeGateway implements OnGatewayInit {
   private readonly logger = new Logger(RealtimeGateway.name);
   private readonly orderStatusPresentations = new WeakMap<object, Promise<object>>();
+  private readonly lastGeoUpdateAt = new WeakMap<Socket, number>();
 
   @WebSocketServer()
   server!: Server;
@@ -61,7 +63,7 @@ export class RealtimeGateway implements OnGatewayInit {
 
   @SubscribeMessage('presence:online')
   async onOnline(@ConnectedSocket() socket: Socket, @MessageBody() body: GeoPayload): Promise<void> {
-    if (typeof body?.lat !== 'number' || typeof body?.lng !== 'number') return;
+    if (!this.isValidGeo(body)) return;
     await this.presence.setOnline(socket.data.userId, body.lat, body.lng);
   }
 
@@ -72,7 +74,7 @@ export class RealtimeGateway implements OnGatewayInit {
 
   @SubscribeMessage('geo:update')
   async onGeo(@ConnectedSocket() socket: Socket, @MessageBody() body: GeoPayload): Promise<void> {
-    if (typeof body?.lat !== 'number' || typeof body?.lng !== 'number') return;
+    if (!this.isValidGeo(body) || !this.allowGeoUpdate(socket)) return;
     await this.presence.updateGeo(socket.data.userId, body.lat, body.lng);
     await this.relayToActiveOrder(socket.data.userId, body.lat, body.lng);
   }
@@ -89,6 +91,25 @@ export class RealtimeGateway implements OnGatewayInit {
       return;
     }
     this.emitRaw(userId, event, payload);
+  }
+
+  private isValidGeo(body: GeoPayload): boolean {
+    return (
+      Number.isFinite(body?.lat) &&
+      Number.isFinite(body?.lng) &&
+      body.lat >= -90 &&
+      body.lat <= 90 &&
+      body.lng >= -180 &&
+      body.lng <= 180
+    );
+  }
+
+  private allowGeoUpdate(socket: Socket): boolean {
+    const now = Date.now();
+    const previous = this.lastGeoUpdateAt.get(socket);
+    if (previous !== undefined && now - previous < GEO_UPDATE_MIN_INTERVAL_MS) return false;
+    this.lastGeoUpdateAt.set(socket, now);
+    return true;
   }
 
   private emitRaw(userId: string, event: string, payload: object): void {

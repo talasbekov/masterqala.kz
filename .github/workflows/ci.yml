@@ -36,6 +36,7 @@ jobs:
       DATABASE_URL: postgresql://masterqala:masterqala@localhost:5433/masterqala_test
       JWT_SECRET: ci-only-secret-with-at-least-32-characters
       CORS_ORIGINS: http://localhost:5173
+      TRUST_PROXY_HOPS: "0"
       PGBOSS_DISABLED: "1"
 
     steps:

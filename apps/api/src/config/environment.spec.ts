@@ -21,7 +21,7 @@ describe('environment security validation', () => {
     );
   });
 
-  it('использует только localhost origins вне production, если список не указан', () => {
+  it('использует безопасные local defaults вне production', () => {
     const env = validateEnvironment({ NODE_ENV: 'test', JWT_SECRET: secureSecret });
 
     expect(corsOriginsFromValue(env.CORS_ORIGINS)).toEqual([
@@ -29,6 +29,7 @@ describe('environment security validation', () => {
       'http://127.0.0.1:5173',
     ]);
     expect(env.PORT).toBe(3000);
+    expect(env.TRUST_PROXY_HOPS).toBe(0);
   });
 
   it('требует явный HTTPS allowlist в production', () => {
@@ -50,12 +51,22 @@ describe('environment security validation', () => {
     expect(() => parseCorsOrigins('file://masterqala.kz', 'development')).toThrow('http или https');
   });
 
-  it('нормализует и дедуплицирует разрешённые origins', () => {
+  it('валидирует PORT и TRUST_PROXY_HOPS', () => {
+    expect(() => validateEnvironment({ NODE_ENV: 'test', JWT_SECRET: secureSecret, PORT: '0' })).toThrow(
+      'Недопустимый PORT',
+    );
+    expect(() =>
+      validateEnvironment({ NODE_ENV: 'test', JWT_SECRET: secureSecret, TRUST_PROXY_HOPS: '11' }),
+    ).toThrow('Недопустимый TRUST_PROXY_HOPS');
+  });
+
+  it('нормализует origins и числовые параметры', () => {
     const env = validateEnvironment({
       NODE_ENV: 'production',
       JWT_SECRET: secureSecret,
       CORS_ORIGINS: 'https://masterqala.kz/, https://masterqala.kz, https://app.masterqala.kz',
       PORT: '3100',
+      TRUST_PROXY_HOPS: '1',
     });
 
     expect(corsOriginsFromValue(env.CORS_ORIGINS)).toEqual([
@@ -63,5 +74,6 @@ describe('environment security validation', () => {
       'https://app.masterqala.kz',
     ]);
     expect(env.PORT).toBe(3100);
+    expect(env.TRUST_PROXY_HOPS).toBe(1);
   });
 });
