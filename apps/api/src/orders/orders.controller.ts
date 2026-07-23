@@ -3,17 +3,30 @@ import { createReadStream } from 'fs';
 import { User } from '@prisma/client';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
+import { CommercialModeService } from '../commercial-mode/commercial-mode.service';
 import { OrdersService } from './orders.service';
 import { CreateOrderDto, PreviewOrderDto, ProposePriceDto } from './dto';
 
 @Controller()
 @UseGuards(JwtAuthGuard)
 export class OrdersController {
-  constructor(private readonly orders: OrdersService) {}
+  constructor(
+    private readonly orders: OrdersService,
+    private readonly commercialMode: CommercialModeService,
+  ) {}
 
   @Post('orders/preview')
-  preview(@CurrentUser() user: User, @Body() dto: PreviewOrderDto) {
-    return this.orders.preview(user.id, dto);
+  async preview(@CurrentUser() user: User, @Body() dto: PreviewOrderDto) {
+    const preview = await this.orders.preview(user.id, dto);
+    if (!this.commercialMode.isFreePilot() || !preview.available) return preview;
+    return {
+      ...preview,
+      nominalCalloutPrice: preview.calloutPrice,
+      nominalServiceFee: preview.serviceFee,
+      calloutPrice: 0,
+      serviceFee: 0,
+      freePilot: true,
+    };
   }
 
   @Post('orders')
