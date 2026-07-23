@@ -3,7 +3,12 @@ const NODE_ENVIRONMENTS = ['development', 'test', 'production'] as const;
 type NodeEnvironment = (typeof NODE_ENVIRONMENTS)[number];
 
 const DEFAULT_LOCAL_ORIGINS = ['http://localhost:5173', 'http://127.0.0.1:5173'];
-const INSECURE_JWT_SECRETS = new Set(['dev-secret-change-me', 'change-me', 'secret']);
+const INSECURE_JWT_SECRETS = new Set([
+  'dev-secret-change-me',
+  'change-me',
+  'secret',
+  'replace-with-a-random-secret-of-at-least-32-characters',
+]);
 const MIN_JWT_SECRET_LENGTH = 32;
 
 function requiredString(value: unknown): string {
