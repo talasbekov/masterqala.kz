@@ -1,8 +1,12 @@
 import { Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import {
-  ConnectedSocket, MessageBody, OnGatewayInit, SubscribeMessage,
-  WebSocketGateway, WebSocketServer,
+  ConnectedSocket,
+  MessageBody,
+  OnGatewayInit,
+  SubscribeMessage,
+  WebSocketGateway,
+  WebSocketServer,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { OrderStatus } from '@prisma/client';
@@ -16,11 +20,16 @@ interface GeoPayload {
   lng: number;
 }
 
+interface OrderStatusPayload extends Record<string, unknown> {
+  orderId: string;
+}
+
 const URGENT_EN_ROUTE_STATUSES: OrderStatus[] = ['ACCEPTED', 'MASTER_ON_WAY'];
 
 @WebSocketGateway({ cors: { origin: true } })
 export class RealtimeGateway implements OnGatewayInit {
   private readonly logger = new Logger(RealtimeGateway.name);
+  private readonly orderStatusPresentations = new WeakMap<object, Promise<object>>();
 
   @WebSocketServer()
   server!: Server;
@@ -69,7 +78,62 @@ export class RealtimeGateway implements OnGatewayInit {
   }
 
   emitToUser(userId: string, event: string, payload: object): void {
+    if (event === 'order:status' && this.isOrderStatusPayload(payload)) {
+      void this.presentOrderStatus(payload)
+        .then((presented) => this.emitRaw(userId, event, presented))
+        .catch((error: Error) => {
+          // Не отправляем исходный payload: для FREE_PILOT он может содержать
+          // номинальные суммы. Безопаснее пропустить событие, чем раскрыть их.
+          this.logger.error(`Не удалось нормализовать order:status orderId=${payload.orderId}: ${error.message}`);
+        });
+      return;
+    }
+    this.emitRaw(userId, event, payload);
+  }
+
+  private emitRaw(userId: string, event: string, payload: object): void {
     this.server?.to(`user:${userId}`).emit(event, payload);
+  }
+
+  private isOrderStatusPayload(payload: object): payload is OrderStatusPayload {
+    return 'orderId' in payload && typeof (payload as { orderId?: unknown }).orderId === 'string';
+  }
+
+  private presentOrderStatus(payload: OrderStatusPayload): Promise<object> {
+    const cached = this.orderStatusPresentations.get(payload);
+    if (cached) return cached;
+
+    const presentation = this.prisma.order
+      .findUnique({
+        where: { id: payload.orderId },
+        select: {
+          commercialMode: true,
+          calloutPrice: true,
+          serviceFee: true,
+        },
+      })
+      .then((order) => {
+        if (!order) return payload;
+        if (order.commercialMode === 'FREE_PILOT') {
+          return {
+            ...payload,
+            commercialMode: order.commercialMode,
+            calloutPrice: 0,
+            serviceFee: 0,
+            freePilot: true,
+          };
+        }
+        return {
+          ...payload,
+          commercialMode: order.commercialMode,
+          calloutPrice: order.calloutPrice,
+          serviceFee: order.serviceFee,
+          freePilot: false,
+        };
+      });
+
+    this.orderStatusPresentations.set(payload, presentation);
+    return presentation;
   }
 
   /** Мастер с активной срочной заявкой (едет) — шлём его позицию + ETA клиенту заявки. */
