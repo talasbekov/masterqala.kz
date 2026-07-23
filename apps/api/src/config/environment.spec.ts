@@ -7,10 +7,15 @@ describe('environment security validation', () => {
     expect(() => validateEnvironment({ NODE_ENV: 'test' })).toThrow('JWT_SECRET обязателен');
   });
 
-  it('отклоняет development-заглушку и короткий secret', () => {
-    expect(() => validateEnvironment({ NODE_ENV: 'test', JWT_SECRET: 'dev-secret-change-me' })).toThrow(
-      'небезопасное значение-заглушку',
-    );
+  it('отклоняет известные заглушки и короткий secret', () => {
+    for (const insecure of [
+      'dev-secret-change-me',
+      'replace-with-a-random-secret-of-at-least-32-characters',
+    ]) {
+      expect(() => validateEnvironment({ NODE_ENV: 'test', JWT_SECRET: insecure })).toThrow(
+        'небезопасное значение-заглушку',
+      );
+    }
     expect(() => validateEnvironment({ NODE_ENV: 'test', JWT_SECRET: 'too-short' })).toThrow(
       'не менее 32 символов',
     );
