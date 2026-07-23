@@ -76,7 +76,8 @@ export class MatchingService implements OnModuleInit {
 
     const timeoutS = WAVE_TIMEOUTS_S[wave - 1];
     const deadline = new Date(Date.now() + timeoutS * 1000).toISOString();
-    const compensation = order.calloutPrice - order.serviceFee;
+    const freePilot = order.commercialMode === 'FREE_PILOT';
+    const compensation = freePilot ? 0 : order.calloutPrice - order.serviceFee;
     for (const c of candidates) {
       this.gateway.emitToUser(c.id, 'offer:new', {
         orderId,
@@ -85,6 +86,7 @@ export class MatchingService implements OnModuleInit {
         district: order.district,
         distanceKm: Math.round((c.meters / 1000) * PostgisRoutingService.ROAD_FACTOR * 10) / 10,
         compensation,
+        freePilot,
         deadline,
         wave,
       });

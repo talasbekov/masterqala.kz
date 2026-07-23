@@ -3,7 +3,15 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../../../api';
 
-export default function NoMastersView({ orderId, onChanged }: { orderId: string; onChanged: () => void }) {
+export default function NoMastersView({
+  orderId,
+  freePilot,
+  onChanged,
+}: {
+  orderId: string;
+  freePilot: boolean;
+  onChanged: () => void;
+}) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [error, setError] = useState('');
@@ -22,7 +30,11 @@ export default function NoMastersView({ orderId, onChanged }: { orderId: string;
     <div className="flex min-h-[70vh] flex-col items-center justify-center gap-3.5 px-6 text-center">
       <div className="text-4xl">😔</div>
       <div className="text-xl font-extrabold text-c2-ink">{t('orderDetail.noMastersTitle')}</div>
-      <div className="max-w-[290px] text-sm leading-relaxed text-c2-ink-soft">{t('orderDetail.noMastersText')}</div>
+      <div className="max-w-[290px] text-sm leading-relaxed text-c2-ink-soft">
+        {freePilot
+          ? 'Сейчас рядом нет свободных мастеров. Списаний не было. Попробуйте поиск ещё раз или создайте плановую заявку — мастера сами предложат цену.'
+          : t('orderDetail.noMastersText')}
+      </div>
       {error && <p className="text-sm font-semibold text-c2-danger">{error}</p>}
       <button
         type="button"

@@ -5,6 +5,7 @@ import type { OrderDetail } from '../../pages/OrderPage';
 
 export default function ProgressView({ order }: { order: OrderDetail }) {
   const { t } = useTranslation();
+  const paymentsEnabled = order.commercialMode !== 'FREE_PILOT' && order.freePilot !== true;
   const currentIdx = STEPPER_STEPS.findIndex((s) => s.status === order.status);
 
   return (
@@ -36,7 +37,9 @@ export default function ProgressView({ order }: { order: OrderDetail }) {
         })}
       </div>
       <div className="rounded-c2-md bg-c2-fill p-3.5 text-xs font-semibold leading-relaxed text-c2-ink">
-        {t('orderDetail.progressNote', { price: order.calloutPrice + (order.workPrice ?? 0) })}
+        {paymentsEnabled
+          ? t('orderDetail.progressNote', { price: order.calloutPrice + (order.workPrice ?? 0) })
+          : `Согласованная стоимость работ: ${order.workPrice ?? 0} ₸. Расчёт происходит напрямую с мастером.`}
       </div>
       <div className="mt-auto" />
       <Link

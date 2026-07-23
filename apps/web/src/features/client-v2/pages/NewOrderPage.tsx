@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { api, apiUpload } from '../../../api';
+import { useCommercialMode } from '../../../commercial-mode';
 import { categoryMeta } from '../categoryMeta';
 import MapView, { type LatLng } from '../components/MapView';
 
@@ -30,6 +31,7 @@ const ASTANA_CENTER: LatLng = { lat: 51.1605, lng: 71.4704 };
 
 export default function NewOrderPage() {
   const { t } = useTranslation();
+  const { paymentsEnabled } = useCommercialMode();
   const navigate = useNavigate();
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
 
@@ -344,18 +346,30 @@ export default function NewOrderPage() {
             <span>{t('newOrder.step4CalloutLabel')}</span>
             <span className="font-extrabold">{preview.calloutPrice} ₸</span>
           </div>
-          <div className="mt-1 flex justify-between text-xs text-c2-ink-soft">
-            <span>{t('newOrder.step4FeeLabel')}</span>
-            <span>{preview.serviceFee} ₸</span>
-          </div>
+          {paymentsEnabled && (
+            <div className="mt-1 flex justify-between text-xs text-c2-ink-soft">
+              <span>{t('newOrder.step4FeeLabel')}</span>
+              <span>{preview.serviceFee} ₸</span>
+            </div>
+          )}
           <div className="my-2.5 border-t border-dashed border-c2-border" />
-          <div className="text-xs leading-relaxed text-c2-on-fill">{t('newOrder.step4Note')}</div>
+          <div className="text-xs leading-relaxed text-c2-on-fill">
+            {paymentsEnabled
+              ? t('newOrder.step4Note')
+              : 'Выезд в бесплатном пилоте не оплачивается. Стоимость работ мастер назовёт после осмотра; вы подтвердите её и рассчитаетесь с мастером напрямую.'}
+          </div>
         </div>
       )}
       <div className="flex items-center justify-between rounded-c2-md border border-c2-border bg-c2-surface p-3">
-        <span className="text-sm font-extrabold text-c2-ink">{t('newOrder.step4PaymentMethod')}</span>
+        <span className="text-sm font-extrabold text-c2-ink">
+          {paymentsEnabled ? t('newOrder.step4PaymentMethod') : 'Бесплатный пилот · без привязки карты'}
+        </span>
       </div>
-      <p className="text-xs leading-relaxed text-c2-ink-soft">{t('newOrder.step4CancelNote')}</p>
+      <p className="text-xs leading-relaxed text-c2-ink-soft">
+        {paymentsEnabled
+          ? t('newOrder.step4CancelNote')
+          : 'Отмена до начала работ не вызывает списаний со стороны платформы. Договорённости по фактическим расходам обсуждаются напрямую с мастером.'}
+      </p>
       {error && <p className="text-sm font-semibold text-c2-danger">{error}</p>}
       <div className="mt-auto" />
       <button
@@ -364,7 +378,7 @@ export default function NewOrderPage() {
         disabled={submitting || !preview?.available}
         className="rounded-c2-pill bg-c2-primary p-4 text-[15.5px] font-extrabold text-white disabled:opacity-40"
       >
-        {t('newOrder.step4Submit', { price: preview?.calloutPrice ?? '' })}
+        {paymentsEnabled ? t('newOrder.step4Submit', { price: preview?.calloutPrice ?? '' }) : 'Найти мастера бесплатно'}
       </button>
     </div>
   );

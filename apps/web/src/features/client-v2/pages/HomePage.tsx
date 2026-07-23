@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../../api';
-import { getSocket } from '../../../socket';
 import { useAuth } from '../../../auth';
+import { useCommercialMode } from '../../../commercial-mode';
+import { getSocket } from '../../../socket';
 import { STATUS_LABELS } from '../../../orderStatus';
 import { categoryMeta } from '../categoryMeta';
 
@@ -22,6 +23,7 @@ interface ActiveOrder {
 export default function HomePage() {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const { paymentsEnabled } = useCommercialMode();
   const navigate = useNavigate();
   const [order, setOrder] = useState<ActiveOrder | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -87,7 +89,11 @@ export default function HomePage() {
             {t('home.urgentEta')}
           </span>
         </div>
-        <div className="mt-1.5 text-[12.5px] leading-snug text-c2-ink-soft">{t('home.urgentDescription')}</div>
+        <div className="mt-1.5 text-[12.5px] leading-snug text-c2-ink-soft">
+          {paymentsEnabled
+            ? t('home.urgentDescription')
+            : 'Найдём ближайшего мастера. Выезд бесплатный, стоимость работ подтвердите после осмотра и оплатите мастеру напрямую.'}
+        </div>
         <div className="mt-2.5 rounded-c2-pill bg-c2-primary p-2.5 text-center text-sm font-extrabold text-white">
           {t('home.urgentButton')}
         </div>
@@ -138,7 +144,11 @@ export default function HomePage() {
 
       <div className="flex items-center gap-2.5 rounded-c2-md bg-c2-fill px-3.5 py-3">
         <span className="text-lg">🛡️</span>
-        <div className="text-xs font-semibold leading-snug text-c2-ink">{t('home.trustBanner')}</div>
+        <div className="text-xs font-semibold leading-snug text-c2-ink">
+          {paymentsEnabled
+            ? t('home.trustBanner')
+            : 'Все мастера проходят проверку документов. В пилоте расчёт происходит напрямую с мастером; при проблеме доступны спор и поддержка.'}
+        </div>
       </div>
     </div>
   );

@@ -2,6 +2,7 @@ import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
 import { User } from '@prisma/client';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
+import { CommercialModeService } from '../commercial-mode/commercial-mode.service';
 import { LeadCreditsService } from './lead-credits.service';
 import { LEAD_CREDIT_PACKAGES } from './lead-credits.config';
 import { PurchaseLeadCreditsDto } from './dto';
@@ -9,7 +10,10 @@ import { PurchaseLeadCreditsDto } from './dto';
 @Controller('lead-credits')
 @UseGuards(JwtAuthGuard)
 export class LeadCreditsController {
-  constructor(private readonly leadCredits: LeadCreditsService) {}
+  constructor(
+    private readonly leadCredits: LeadCreditsService,
+    private readonly commercialMode: CommercialModeService,
+  ) {}
 
   @Get('balance')
   async balance(@CurrentUser() user: User) {
@@ -18,7 +22,7 @@ export class LeadCreditsController {
 
   @Get('packages')
   packages() {
-    return LEAD_CREDIT_PACKAGES;
+    return this.commercialMode.leadCreditsEnabled() ? LEAD_CREDIT_PACKAGES : [];
   }
 
   @Post('purchase')

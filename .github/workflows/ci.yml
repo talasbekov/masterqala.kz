@@ -1,0 +1,84 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    services:
+      postgres:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_USER: masterqala
+          POSTGRES_PASSWORD: masterqala
+          POSTGRES_DB: masterqala_test
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U masterqala -d masterqala_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://masterqala:masterqala@localhost:5433/masterqala_test
+      JWT_SECRET: ci-only-secret
+      PGBOSS_DISABLED: "1"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.12.0
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Apply database migrations
+        run: pnpm --filter api exec prisma migrate deploy
+
+      - name: Build API
+        run: pnpm --filter api build
+
+      - name: Run API unit tests
+        run: pnpm --filter api test -- --runInBand
+
+      - name: Run API e2e tests
+        run: pnpm --filter api test:e2e
+
+      - name: Build web application
+        shell: bash
+        run: |
+          set -o pipefail
+          pnpm --filter web build 2>&1 | tee web-build.log
+
+      - name: Upload web build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-build-log
+          path: web-build.log
+          if-no-files-found: ignore
+          retention-days: 3

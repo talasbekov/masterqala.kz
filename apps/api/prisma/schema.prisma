@@ -30,6 +30,12 @@ enum DecisionType {
   REQUEST_INFO
 }
 
+enum CommercialMode {
+  FREE_PILOT
+  PAID_MOCK
+  PAID_LIVE
+}
+
 model User {
   id             String         @id @default(uuid())
   phone          String         @unique
@@ -172,11 +178,11 @@ enum AccrualType {
 }
 
 model Order {
-  id              String      @id @default(uuid())
+  id              String         @id @default(uuid())
   clientId        String
-  client          User        @relation("ClientOrders", fields: [clientId], references: [id])
+  client          User           @relation("ClientOrders", fields: [clientId], references: [id])
   categoryId      String
-  category        Category    @relation(fields: [categoryId], references: [id])
+  category        Category       @relation(fields: [categoryId], references: [id])
   description     String
   address         String
   district        String
@@ -185,11 +191,12 @@ model Order {
   apartment       String?
   addressComment  String?
   location        Unsupported("geography(Point, 4326)")?
-  status          OrderStatus @default(CREATED)
+  status          OrderStatus    @default(CREATED)
+  commercialMode  CommercialMode @default(PAID_MOCK)
   masterId        String?
-  master          User?       @relation("MasterOrders", fields: [masterId], references: [id])
-  wave            Int         @default(0)
-  searchAttempt   Int         @default(1)
+  master          User?          @relation("MasterOrders", fields: [masterId], references: [id])
+  wave            Int            @default(0)
+  searchAttempt   Int            @default(1)
   calloutPrice    Int
   serviceFee      Int
   workPrice       Int?
@@ -200,8 +207,8 @@ model Order {
   priceProposedAt DateTime?
   completedAt     DateTime?
   closedAt        DateTime?
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
   offers          OrderOffer[]
   payments        PaymentTransaction[]
   accruals        Accrual[]
@@ -211,6 +218,7 @@ model Order {
 
   @@index([clientId, status])
   @@index([masterId, status])
+  @@index([commercialMode, createdAt])
 }
 
 model OrderOffer {
@@ -299,6 +307,7 @@ model PlannedOrder {
   slotStart      DateTime
   slotEnd        DateTime
   status         PlannedOrderStatus @default(CREATED)
+  commercialMode CommercialMode     @default(PAID_MOCK)
   masterId       String?
   master         User?              @relation("MasterPlannedOrders", fields: [masterId], references: [id])
   selectedBidId  String?            @unique
@@ -320,6 +329,7 @@ model PlannedOrder {
   @@index([clientId, status])
   @@index([masterId, status])
   @@index([categoryId, status])
+  @@index([commercialMode, createdAt])
 }
 
 model PlannedOrderBid {
