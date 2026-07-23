@@ -1,11 +1,10 @@
 import { User } from '@prisma/client';
-import { CommercialModeService } from '../commercial-mode/commercial-mode.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { RealtimeGateway } from '../realtime/realtime.gateway';
 import { PlannedOrdersCommercialService } from './planned-orders-commercial.service';
 import { PlannedOrdersService } from './planned-orders.service';
 
-function setup(leadCreditsEnabled: boolean) {
+function setup(orderMode: 'FREE_PILOT' | 'PAID_MOCK') {
   const tx = {
     plannedOrder: { findUnique: jest.fn() },
     masterProfile: { findUnique: jest.fn() },
@@ -13,12 +12,10 @@ function setup(leadCreditsEnabled: boolean) {
   };
   const prisma = {
     $transaction: jest.fn((callback: (client: typeof tx) => unknown) => callback(tx)),
+    plannedOrder: { findUnique: jest.fn().mockResolvedValue({ commercialMode: orderMode }) },
     plannedOrderBid: { findFirstOrThrow: jest.fn() },
   } as unknown as PrismaService;
   const gateway = { emitToUser: jest.fn() } as unknown as RealtimeGateway;
-  const commercialMode = {
-    leadCreditsEnabled: jest.fn().mockReturnValue(leadCreditsEnabled),
-  } as unknown as CommercialModeService;
   const plannedOrders = {
     placeBid: jest.fn(),
     cancel: jest.fn(),
@@ -28,9 +25,10 @@ function setup(leadCreditsEnabled: boolean) {
   } as unknown as PlannedOrdersService;
 
   return {
-    service: new PlannedOrdersCommercialService(prisma, gateway, commercialMode, plannedOrders),
+    service: new PlannedOrdersCommercialService(prisma, gateway, plannedOrders),
     tx,
     prisma: prisma as unknown as {
+      plannedOrder: { findUnique: jest.Mock };
       plannedOrderBid: { findFirstOrThrow: jest.Mock };
     },
     gateway: gateway as unknown as { emitToUser: jest.Mock },
@@ -45,8 +43,8 @@ function setup(leadCreditsEnabled: boolean) {
 }
 
 describe('PlannedOrdersCommercialService', () => {
-  it('создаёт отклик в FREE_PILOT без обращения к lead-credit таблицам', async () => {
-    const { service, tx, prisma, gateway, plannedOrders } = setup(false);
+  it('создаёт отклик для FREE_PILOT-заявки без обращения к lead-credit таблицам', async () => {
+    const { service, tx, prisma, gateway, plannedOrders } = setup('FREE_PILOT');
     const bid = { id: 'bid-1', plannedOrderId: 'planned-1', masterUserId: 'master-1' };
     tx.plannedOrder.findUnique.mockResolvedValue({ id: 'planned-1', clientId: 'client-1', status: 'PUBLISHED' });
     tx.masterProfile.findUnique.mockResolvedValue({ blockedUntil: null });
@@ -74,8 +72,8 @@ describe('PlannedOrdersCommercialService', () => {
     });
   });
 
-  it('делегирует платный отклик существующему сервису', async () => {
-    const { service, plannedOrders } = setup(true);
+  it('делегирует отклик PAID_MOCK-заявки даже если новые заявки уже бесплатны', async () => {
+    const { service, plannedOrders } = setup('PAID_MOCK');
     const bid = { id: 'paid-bid' };
     plannedOrders.placeBid.mockResolvedValue(bid);
 
@@ -86,14 +84,15 @@ describe('PlannedOrdersCommercialService', () => {
     });
   });
 
-  it('отменяет выбранную клиентом заявку без REFUND-операции в FREE_PILOT', async () => {
-    const { service, plannedOrders } = setup(false);
+  it('отменяет выбранную клиентом FREE_PILOT-заявку без REFUND-операции', async () => {
+    const { service, plannedOrders } = setup('FREE_PILOT');
     const user = { id: 'client-1' } as User;
     const selected = {
       id: 'planned-1',
       clientId: user.id,
       masterId: 'master-1',
       status: 'MASTER_SELECTED',
+      commercialMode: 'FREE_PILOT',
     };
     const cancelled = { ...selected, status: 'CANCELLED_BY_CLIENT' };
     plannedOrders.findOrThrow.mockResolvedValueOnce(selected).mockResolvedValueOnce(cancelled);
