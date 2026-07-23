@@ -69,4 +69,16 @@ jobs:
         run: pnpm --filter api test:e2e
 
       - name: Build web application
-        run: pnpm --filter web build
+        shell: bash
+        run: |
+          set -o pipefail
+          pnpm --filter web build 2>&1 | tee web-build.log
+
+      - name: Upload web build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-build-log
+          path: web-build.log
+          if-no-files-found: ignore
+          retention-days: 3
