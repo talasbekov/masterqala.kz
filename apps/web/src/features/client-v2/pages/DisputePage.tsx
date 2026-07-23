@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { api, apiUpload } from '../../../api';
-import { useCommercialMode } from '../../../commercial-mode';
 
 interface Dispute {
   id: string;
@@ -15,10 +14,10 @@ const CATEGORY_KEYS = ['categoryQuality', 'categoryPrice', 'categoryBehavior', '
 
 export default function DisputePage({ kind }: { kind: 'orders' | 'planned-orders' }) {
   const { t } = useTranslation();
-  const { paymentsEnabled } = useCommercialMode();
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const [dispute, setDispute] = useState<Dispute | null>(null);
+  const [freePilot, setFreePilot] = useState(false);
   const [category, setCategory] = useState<(typeof CATEGORY_KEYS)[number]>('categoryQuality');
   const [text, setText] = useState('');
   const [evidenceCount, setEvidenceCount] = useState(0);
@@ -27,7 +26,10 @@ export default function DisputePage({ kind }: { kind: 'orders' | 'planned-orders
 
   useEffect(() => {
     api(`/${kind}/${id}`)
-      .then((o) => setDispute(o.dispute ?? null))
+      .then((order) => {
+        setDispute(order.dispute ?? null);
+        setFreePilot(order.commercialMode === 'FREE_PILOT' || order.freePilot === true);
+      })
       .catch((e) => setError((e as Error).message));
   }, [id, kind]);
 
@@ -96,9 +98,9 @@ export default function DisputePage({ kind }: { kind: 'orders' | 'planned-orders
             className="min-h-24 rounded-c2-md border-[1.5px] border-c2-border bg-c2-surface p-3.5 text-sm text-c2-ink outline-none placeholder:text-c2-muted"
           />
           <div className="rounded-c2-md bg-c2-fill p-3 text-xs font-semibold leading-relaxed text-c2-ink">
-            {paymentsEnabled
-              ? t('dispute.note')
-              : 'Мастер сможет дать пояснение, после чего оператор рассмотрит спор. Платформа не может вернуть оплату, переданную мастеру напрямую, но может зафиксировать нарушение, ограничить мастера и помочь сторонам урегулировать ситуацию.'}
+            {freePilot
+              ? 'Мастер сможет дать пояснение, после чего оператор рассмотрит спор. Платформа не может вернуть оплату, переданную мастеру напрямую, но может зафиксировать нарушение, ограничить мастера и помочь сторонам урегулировать ситуацию.'
+              : t('dispute.note')}
           </div>
           {error && <p className="text-sm font-semibold text-c2-danger">{error}</p>}
           <div className="mt-auto" />
