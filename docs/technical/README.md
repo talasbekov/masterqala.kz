@@ -10,7 +10,9 @@
 - **проверено CI** — команда фактически завершилась успешно в GitHub Actions;
 - **целевой gate** — обязательное изменение или проверка до production.
 
-Наличие реализации без успешного CI/smoke не считается доказательством production-готовности.
+Наличие реализации и зелёного CI без production-like smoke не считается доказательством полной production-готовности.
+
+Актуальный снимок проверки: [`VERIFICATION_STATUS.md`](./VERIFICATION_STATUS.md).
 
 ## Источники истины
 
@@ -37,6 +39,7 @@
 - [`SECURITY.md`](./SECURITY.md) — реализованные меры, P0/P1 риски, privacy и launch gate.
 - [`DEPLOYMENT_RUNBOOK.md`](./DEPLOYMENT_RUNBOOK.md) — CI, migration rollout, single-node deployment, backup, monitoring и rollback.
 - [`TESTING_STRATEGY.md`](./TESTING_STRATEGY.md) — фактические тесты PR #4 и недостающее integration/browser покрытие.
+- [`VERIFICATION_STATUS.md`](./VERIFICATION_STATUS.md) — последний подтверждённый CI run и остающиеся ручные gates.
 
 ## Бесплатный пилот
 
@@ -56,20 +59,30 @@
 
 ## Текущий статус готовности
 
-Реализовано в PR #4:
+Реализовано и проверено GitHub Actions в PR #4:
 
-- `CommercialMode` и миграция;
+- `CommercialMode` и migration deploy;
 - backend financial no-op/blocking;
 - HTTP/Socket.IO masking;
 - бесплатные плановые отклики;
 - frontend capability-логика;
-- unit/e2e-тесты;
-- GitHub Actions workflow.
+- API build;
+- API unit tests;
+- API e2e tests;
+- web build вместе с workspace-пакетом `@masterqala/ui`.
+
+Подтверждённый run:
+
+```text
+GitHub Actions CI run #9
+commit: 0e1232585ef95c174fcecaf587b42e11f30059c7
+conclusion: success
+```
 
 До public production остаются:
 
-- подтверждённый зелёный CI;
-- ручной smoke;
+- ручной business smoke;
+- migration/rollback/backup smoke на production-like staging;
 - обязательные P0 из `SECURITY.md`;
 - production process/reverse proxy/storage/backup/monitoring.
 
