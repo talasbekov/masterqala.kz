@@ -20,7 +20,7 @@ export class OrdersController {
   }
 
   private presentValue<T>(value: T): T {
-    if (!this.commercialMode.isFreePilot() || value === null || value === undefined) return value;
+    if (value === null || value === undefined) return value;
 
     if (Array.isArray(value)) {
       return value.map((item) => this.presentValue(item)) as unknown as T;
@@ -31,16 +31,23 @@ export class OrdersController {
     const source = value as unknown as Record<string, unknown>;
     const presented: Record<string, unknown> = { ...source };
 
-    if (typeof source.calloutPrice === 'number' && typeof source.serviceFee === 'number') {
-      presented.nominalCalloutPrice = source.calloutPrice;
-      presented.nominalServiceFee = source.serviceFee;
-      presented.calloutPrice = 0;
-      presented.serviceFee = 0;
-      presented.freePilot = true;
-    }
-
     if ('order' in source) {
       presented.order = this.presentValue(source.order);
+    }
+
+    if (typeof source.calloutPrice === 'number' && typeof source.serviceFee === 'number') {
+      const hasStoredMode = typeof source.commercialMode === 'string';
+      const freePilot = hasStoredMode
+        ? source.commercialMode === 'FREE_PILOT'
+        : this.commercialMode.isFreePilot();
+
+      if (freePilot) {
+        presented.nominalCalloutPrice = source.calloutPrice;
+        presented.nominalServiceFee = source.serviceFee;
+        presented.calloutPrice = 0;
+        presented.serviceFee = 0;
+        presented.freePilot = true;
+      }
     }
 
     return presented as unknown as T;
