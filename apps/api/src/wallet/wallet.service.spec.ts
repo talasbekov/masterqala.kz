@@ -1,5 +1,6 @@
 import { Test } from '@nestjs/testing';
 import { Logger, ServiceUnavailableException } from '@nestjs/common';
+import { CommercialModeService } from '../commercial-mode/commercial-mode.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { PAYMENT_PROVIDER, PaymentProvider } from '../payments/payment.interface';
 import { WalletService } from './wallet.service';
@@ -26,6 +27,7 @@ describe('WalletService — ветка FAILED', () => {
         WalletService,
         { provide: PrismaService, useValue: prisma },
         { provide: PAYMENT_PROVIDER, useValue: payments },
+        { provide: CommercialModeService, useValue: { payoutsEnabled: () => true } },
       ],
     }).compile();
     service = moduleRef.get(WalletService);
