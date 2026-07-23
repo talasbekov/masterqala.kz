@@ -18,7 +18,14 @@ export class OrdersController {
   @Post('orders/preview')
   async preview(@CurrentUser() user: User, @Body() dto: PreviewOrderDto) {
     const preview = await this.orders.preview(user.id, dto);
-    if (!this.commercialMode.isFreePilot() || !preview.available) return preview;
+    if (
+      !this.commercialMode.isFreePilot() ||
+      !preview.available ||
+      !('calloutPrice' in preview) ||
+      !('serviceFee' in preview)
+    ) {
+      return preview;
+    }
     return {
       ...preview,
       nominalCalloutPrice: preview.calloutPrice,
