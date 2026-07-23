@@ -1,6 +1,5 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import { CommercialModeService } from '../commercial-mode/commercial-mode.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { QueueService } from '../queue/queue.service';
 import { JOBS } from '../queue/queue.constants';
@@ -34,7 +33,6 @@ export class MatchingService implements OnModuleInit {
     private readonly queue: QueueService,
     private readonly gateway: RealtimeGateway,
     private readonly orders: OrdersService,
-    private readonly commercialMode: CommercialModeService,
   ) {}
 
   onModuleInit(): void {
@@ -78,7 +76,7 @@ export class MatchingService implements OnModuleInit {
 
     const timeoutS = WAVE_TIMEOUTS_S[wave - 1];
     const deadline = new Date(Date.now() + timeoutS * 1000).toISOString();
-    const freePilot = this.commercialMode.isFreePilot();
+    const freePilot = order.commercialMode === 'FREE_PILOT';
     const compensation = freePilot ? 0 : order.calloutPrice - order.serviceFee;
     for (const c of candidates) {
       this.gateway.emitToUser(c.id, 'offer:new', {
