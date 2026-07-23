@@ -2,12 +2,11 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../../../api';
-import { useCommercialMode } from '../../../../commercial-mode';
 import type { OrderDetail } from '../../pages/OrderPage';
 
 export default function DoneView({ order, orderId, onChanged }: { order: OrderDetail; orderId: string; onChanged: () => void }) {
   const { t } = useTranslation();
-  const { paymentsEnabled } = useCommercialMode();
+  const paymentsEnabled = order.commercialMode !== 'FREE_PILOT' && order.freePilot !== true;
   const navigate = useNavigate();
   const [error, setError] = useState('');
 
