@@ -1,111 +1,143 @@
 # Развёртывание и эксплуатация бесплатного пилота
 
-Документ описывает переход от текущего development-запуска к первой публичной версии `FREE_PILOT`.
+Документ описывает безопасную сборку, миграцию, запуск и откат первой публичной версии MasterQala.kz в режиме `FREE_PILOT`.
 
-## 1. Текущее состояние репозитория
+Фактическая реализация находится в PR #4. Специализированные smoke/SQL-проверки дополнительно описаны в `docs/pilot/FREE_PILOT_ROLLOUT.md` этого PR.
 
-Монорепозиторий использует `pnpm`:
+## 1. Текущее состояние
+
+Монорепозиторий:
 
 - `apps/api` — NestJS API;
-- `apps/web` — Vite + React PWA;
-- PostgreSQL + PostGIS;
-- pg-boss использует ту же PostgreSQL-базу;
-- файлы сохраняются на локальный диск;
-- `docker-compose.yml` поднимает только development и test базы;
-- production Dockerfile, reverse proxy, production compose/manifest и полноценные readiness probes пока не зафиксированы.
+- `apps/web` — React/Vite PWA;
+- PostgreSQL 16 + PostGIS 3.4;
+- pg-boss использует PostgreSQL;
+- Socket.IO работает внутри API;
+- Prisma управляет основной схемой;
+- файлы сохраняются через storage abstraction, текущая реализация — local disk;
+- `docker-compose.yml` поднимает development/test базы;
+- production Dockerfile/compose/systemd unit и reverse proxy config пока не добавлены.
 
-Development-порты:
+Порты разработки:
 
 - API: `3000`;
 - Vite: `5173`;
-- PostgreSQL: `5432`;
+- development PostgreSQL: `5432`;
 - test PostgreSQL: `5433`.
 
-## 2. Рекомендуемая архитектура пилота
+## 2. Статус готовности компонентов
 
-Для первого города допустима single-node схема:
+| Компонент | Статус |
+|---|---|
+| `COMMERCIAL_MODE=FREE_PILOT` | реализован в PR #4 |
+| неизменяемый режим заявки | реализован |
+| миграция `CommercialMode` | реализована |
+| public config endpoint | реализован |
+| финансовые блокировки пилота | реализованы |
+| HTTP/Socket.IO маскирование цены | реализовано |
+| CI workflow | добавлен в PR #4 |
+| подтверждённый успешный CI run | пока не подтверждён доступным connector |
+| production container/systemd | не зафиксирован |
+| CORS allowlist | не реализован |
+| обязательный production JWT secret | не реализован |
+| readiness зависимостей | не реализован |
+| общий rate limit | не реализован |
+| файловый security pipeline | не реализован |
+| backup/restore automation | не добавлена в репозиторий |
+
+PR #4 должен оставаться draft до подтверждённого CI и ручного smoke.
+
+## 3. Рекомендуемая топология первого пилота
+
+Для ограниченного запуска в одном городе допустима single-node схема:
 
 ```text
 Internet
    │
    ▼
 Reverse proxy / TLS
-   ├── /api + Socket.IO ──► NestJS API :3000
-   └── /                ──► статическая сборка React PWA
+   ├── /api/*       ─────► NestJS API :3000
+   ├── /socket.io/* ─────► NestJS API :3000 (Upgrade)
+   └── /*            ─────► React static build
                                   │
                     ┌─────────────┴─────────────┐
                     ▼                           ▼
           PostgreSQL + PostGIS          private upload volume
-          + schema pgboss
+          + pgboss schema
 ```
 
-Ограничения single-node:
+Ограничения:
 
 - один API-инстанс;
-- локальное файловое хранилище;
-- downtime при некоторых обновлениях;
-- сервер является единой точкой отказа.
+- сервер — единая точка отказа;
+- локальные uploads не поддерживают горизонтальное масштабирование;
+- часть обновлений требует короткого downtime;
+- БД, API и файлы могут находиться на одном физическом сервере только для ограниченного пилота.
 
-Для пилота это допустимо только при наличии ежедневных резервных копий и проверенной процедуры восстановления.
+Single-node допустим только при:
 
-## 3. Окружения
+- внешнем backup;
+- проверенном restore;
+- мониторинге диска;
+- доступе по SSH-ключам;
+- закрытой БД;
+- понятном владельце инцидента.
+
+## 4. Окружения
 
 Минимум три независимых окружения:
 
 | Окружение | Назначение | Данные |
 |---|---|---|
 | local | разработка | синтетические |
-| staging | приёмка релиза | синтетические/обезличенные |
-| production | бесплатный пилот | реальные |
+| staging | миграции и приёмка | синтетические/обезличенные |
+| production | реальный `FREE_PILOT` | реальные |
 
 Запрещено:
 
 - использовать production-БД для разработки;
-- копировать документы мастеров в local/staging;
-- использовать одинаковые JWT/SMS/DB секреты;
-- запускать seed, создающий тестовых пользователей, без явного контроля в production.
+- копировать ИИН, документы, адреса и фото в staging;
+- использовать одинаковые JWT/SMS/DB secrets;
+- подключать staging к production SMS без allowlist;
+- запускать seed на production без явной проверки;
+- переносить mock-финансовые записи как реальные обязательства.
 
-## 4. Требования к серверу
+## 5. Версии runtime
 
-Перед развёртыванием:
+CI PR #4 фиксирует:
 
-- Linux с поддерживаемой версией и обновлениями безопасности;
-- Node.js-версия зафиксирована в `.nvmrc` или container image;
-- `pnpm` зафиксированной версии;
-- PostgreSQL 16 + PostGIS 3.4 или совместимая проверенная версия;
-- reverse proxy с WebSocket proxying;
-- домен и TLS;
-- отдельный непривилегированный системный пользователь;
-- persistent volume для PostgreSQL;
-- persistent private volume для uploads;
-- внешний backup target;
-- синхронизация времени;
-- firewall.
+```text
+Node.js 22.12.0
+pnpm 9.15.0
+PostGIS image 16-3.4
+```
 
-Минимальные открытые порты:
+Production должен использовать те же major/minor версии до отдельного тестирования обновления.
 
-- `80/tcp` — только для redirect/ACME;
-- `443/tcp` — приложение;
-- SSH — только с доверенных адресов или через VPN.
+В репозитории пока нет `.nvmrc` и production image. До эксплуатации желательно зафиксировать runtime одним из способов:
 
-PostgreSQL `5432` не публикуется в интернет.
+- `.nvmrc` + systemd;
+- multi-stage Dockerfile;
+- immutable VM image.
 
-## 5. Production-переменные окружения
+Нельзя устанавливать произвольный latest Node/pnpm при каждом deploy.
 
-Текущие и необходимые переменные:
+## 6. Production-переменные окружения
+
+Минимальный набор:
 
 ```env
 NODE_ENV=production
+COMMERCIAL_MODE=FREE_PILOT
 DATABASE_URL=postgresql://<user>:<password>@<host>:5432/<database>
 JWT_SECRET=<strong-random-secret>
 OPERATOR_PHONE=<controlled-operator-phone>
 UPLOAD_DIR=/var/lib/masterqala/uploads
 PGBOSS_DISABLED=0
-COMMERCIAL_MODE=FREE_PILOT
 CORS_ORIGINS=https://masterqala.kz
 ```
 
-Параметры будущей тарификации могут оставаться заданными для аналитического расчёта:
+Тарификация может оставаться заданной для номинального расчёта:
 
 ```env
 PRICING_BASE_FARE=...
@@ -114,317 +146,491 @@ SERVICE_FEE_RATE=...
 SERVICE_FEE_MIN=...
 ```
 
-Они не должны приводить к списанию денег в `FREE_PILOT`.
+В `FREE_PILOT` эти значения не должны создавать платёжные операции.
 
-Дополнительно потребуются настройки реального SMS-провайдера. Dev-реализация, печатающая код в лог, запрещена в production.
+Дополнительно необходимы настройки реального SMS-провайдера. Провайдер, печатающий код в stdout, запрещён в production.
 
-## 6. Подготовка репозитория к production
+### 6.1 Незакрытый риск конфигурации
 
-До первой выкладки необходимо добавить:
+Сейчас централизованно валидируется `COMMERCIAL_MODE`, включая fail-fast `PAID_LIVE`. Остальные переменные ещё не объединены в startup schema.
 
-1. конфигурационную schema-валидацию;
-2. реализацию `COMMERCIAL_MODE`;
-3. production build/release script;
-4. systemd unit либо Dockerfile/compose;
-5. reverse proxy config с WebSocket;
-6. migration job;
-7. liveness/readiness checks;
-8. backup scripts;
-9. log rotation;
-10. CI pipeline.
+До запуска API должен завершаться с ошибкой при:
 
-## 7. Сборка
+- отсутствии/слабости `JWT_SECRET`;
+- отсутствии `DATABASE_URL`;
+- пустом `UPLOAD_DIR`;
+- неизвестном origin;
+- production dev-SMS режиме;
+- недоступной директории uploads.
 
-Рекомендуемая последовательность в CI или release-каталоге:
+## 7. CI
+
+PR #4 добавляет `.github/workflows/ci.yml`.
+
+Job использует:
+
+- checkout;
+- pnpm 9.15.0;
+- Node 22.12.0;
+- PostGIS service;
+- `pnpm install --frozen-lockfile`;
+- `prisma migrate deploy`;
+- API build;
+- API unit tests;
+- API e2e tests;
+- web build.
+
+Workflow запускается:
+
+- на push ветки;
+- на pull request в `main`.
+
+На момент обновления документа успешный run доступным connector не подтверждён. Наличие YAML не равно успешному CI.
+
+Минимальный merge gate:
+
+```text
+install = success
+migration = success
+api build = success
+unit = success
+e2e = success
+web build = success
+```
+
+## 8. Локальная проверка перед release
 
 ```bash
 corepack enable
 pnpm install --frozen-lockfile
-pnpm --filter api test
-pnpm --filter api test:e2e
+pnpm --filter api exec prisma generate
+pnpm --filter api exec prisma migrate deploy
 pnpm --filter api build
+pnpm --filter api test -- --runInBand
+pnpm --filter api test:e2e
 pnpm --filter web build
 ```
 
-Перед этим test PostgreSQL должен быть доступен, а e2e запускаются с отдельным `DATABASE_URL`.
+Для e2e используется отдельная test-БД с PostGIS.
 
-Артефакты:
+Нельзя запускать тесты, очищающие данные, против staging/production URL.
 
-- API: `apps/api/dist`;
-- frontend: `apps/web/dist`;
-- Prisma schema и migrations;
-- lockfile и production package metadata.
+## 9. Артефакты release
 
-## 8. Миграции
+Release должен быть immutable и содержать:
 
-Для production применяется:
+- commit SHA;
+- API build `apps/api/dist`;
+- web build `apps/web/dist`;
+- Prisma schema;
+- все migrations;
+- `package.json`/workspace metadata;
+- `pnpm-lock.yaml`;
+- deployment manifests;
+- checksum артефакта;
+- release notes с миграциями и rollback-ограничениями.
+
+Сервер не должен собирать произвольную ветку непосредственно из рабочего Git checkout без фиксации SHA.
+
+## 10. Миграции
+
+Production-команда:
 
 ```bash
-pnpm --filter api prisma migrate deploy
+pnpm --filter api exec prisma migrate deploy
 ```
 
-Не использовать в production:
+Запрещено:
 
 ```bash
 prisma migrate dev
 prisma db push
 ```
 
-Правила:
+### 10.1 Миграция `CommercialMode`
 
-- backup выполняется до миграции;
-- миграция сначала проверяется на staging-копии схемы;
-- destructive migration требует отдельного плана;
-- приложение не должно стартовать на несовместимой схеме;
-- миграции и выкладка приложения должны иметь порядок, совместимый с rollback.
+Миграция:
 
-`pg-boss` создаёт собственную схему автоматически при запуске API. У пользователя БД должны быть необходимые права, но эти права не должны быть шире требуемого.
+- создаёт enum `CommercialMode`;
+- добавляет обязательные поля в `Order` и `PlannedOrder`;
+- относит исторические строки к `PAID_MOCK`;
+- создаёт индексы `(commercialMode, createdAt)`.
 
-## 9. Первичная установка single-node
+Порядок rollout:
 
-Пример логической последовательности:
+1. backup;
+2. остановить создание новых заявок или включить maintenance;
+3. применить миграцию;
+4. развернуть API с `COMMERCIAL_MODE=FREE_PILOT`;
+5. проверить `/config/public`;
+6. открыть создание новых заявок;
+7. проверить, что новые записи получают `FREE_PILOT`;
+8. проверить отсутствие финансовых side effects.
+
+Нельзя запустить новый Prisma Client до применения миграции: код ожидает новые обязательные поля.
+
+### 10.2 Общие правила миграций
+
+- сначала staging;
+- backup перед изменением;
+- backward-compatible DDL;
+- destructive migration — отдельный approved plan;
+- schema migration выполняется один раз отдельным release step;
+- несколько API-инстансов не должны одновременно выполнять migration;
+- rollback приложения не означает автоматический rollback БД;
+- предпочтителен forward-fix.
+
+## 11. Первичная установка single-node
 
 1. создать системного пользователя `masterqala`;
-2. создать каталоги release, shared uploads и logs;
-3. установить PostgreSQL/PostGIS либо подключить managed database;
-4. создать отдельного DB-пользователя приложения;
-5. записать секреты вне репозитория с правами `600`;
-6. развернуть release-артефакт;
-7. выполнить `prisma migrate deploy`;
-8. выполнить контролируемое заполнение справочника категорий и оператора;
-9. запустить API;
-10. разместить frontend build;
-11. включить reverse proxy и TLS;
-12. выполнить smoke test;
-13. включить мониторинг и backup;
-14. только после этого открыть внешний доступ.
+2. создать release/shared/uploads/log directories;
+3. настроить владельца и права;
+4. установить/подключить PostgreSQL 16 + PostGIS;
+5. создать отдельного DB-пользователя приложения;
+6. закрыть PostgreSQL firewall/security group;
+7. записать secrets вне репозитория с правами `600` или через secret manager;
+8. развернуть immutable release;
+9. проверить checksum;
+10. выполнить migrations;
+11. выполнить контролируемое создание категорий и оператора;
+12. запустить API без внешнего трафика;
+13. проверить public config, health и storage;
+14. разместить web build;
+15. настроить reverse proxy/TLS/Socket.IO;
+16. выполнить smoke;
+17. включить monitoring и backup;
+18. только после этого открыть внешний доступ.
 
-## 10. Reverse proxy
+## 12. Reverse proxy
 
-Proxy должен поддерживать:
+Требования:
 
 - HTTPS termination;
-- HTTP/2 для web;
-- WebSocket upgrade для Socket.IO;
-- передачу корректных `X-Forwarded-*`;
-- разумные timeout для realtime;
-- ограничение размера request body;
+- HTTP/2/3 по поддержке;
+- WebSocket Upgrade;
+- корректные `X-Forwarded-*`;
+- request body limit;
+- connect/read timeout для Socket.IO;
+- compression для static assets;
+- SPA fallback;
 - security headers;
-- access log без токенов и персональных payload.
+- access log без Authorization и body;
+- rate limiting.
 
 Маршрутизация:
 
 ```text
 /api/*       → API :3000
 /socket.io/* → API :3000 с Upgrade
-/*           → apps/web/dist с SPA fallback
+/*           → apps/web/dist
 ```
 
-## 11. Запуск API
+Рекомендуемые headers:
 
-Production-команда после сборки:
+- HSTS после проверки TLS;
+- `X-Content-Type-Options: nosniff`;
+- CSP, адаптированная под frontend/maps;
+- `Referrer-Policy`;
+- `Permissions-Policy` для geolocation;
+- запрет framing.
+
+CORS должен ограничиваться production origin. Текущее `origin: true` в коде необходимо изменить до публичного запуска.
+
+## 13. Запуск API
+
+Предпочтительная команда из workspace:
 
 ```bash
-node apps/api/dist/main.js
+pnpm --filter api start:prod
 ```
 
-Процесс должен управляться systemd, container runtime или process supervisor.
+Либо эквивалентный запуск собранного `dist/main.js`.
 
-Требования:
+Process manager должен обеспечивать:
 
-- автоматический restart при crash;
-- graceful shutdown;
-- ограничение памяти;
-- журналирование stdout/stderr;
+- restart при crash;
 - restart rate limit;
-- health monitoring.
+- graceful shutdown;
+- лимиты памяти/CPU;
+- stdout/stderr collection;
+- environment injection;
+- startup/readiness timeout;
+- остановку старого процесса только после готовности нового, если топология позволяет.
 
-Текущий код слушает порт `3000` без env-переменной. До production рекомендуется добавить `PORT` и bind address.
+Текущий API слушает `3000`. Поддержка `PORT`/bind address ещё не формализована.
 
-## 12. Smoke test после выкладки
+## 14. Проверки до открытия трафика
 
-### Технический
+### 14.1 Технические
 
-- `GET /api/v1/health` возвращает `200`;
-- API подключается к БД;
+- API процесс запущен;
+- `/api/v1/health` отвечает;
+- `/api/v1/config/public` показывает `FREE_PILOT`;
 - migrations применены;
-- pg-boss стартовал без ошибок;
-- upload volume доступен на запись;
-- frontend загружается;
-- PWA assets доступны;
-- Socket.IO подключается через публичный домен;
-- SMS доставляется тестовому номеру.
+- PostgreSQL/PostGIS доступны;
+- pg-boss зарегистрировал jobs;
+- uploads доступны на запись;
+- web build загружается;
+- Socket.IO проходит через reverse proxy;
+- SMS доставляется allowlisted тестовому номеру;
+- production CORS отклоняет неизвестный browser origin;
+- логи не содержат SMS-код/JWT/ИИН/адрес.
 
-### Бизнесовый
+### 14.2 Срочная заявка
 
 1. клиент входит;
-2. мастер входит и имеет `ACTIVE` профиль;
+2. активный мастер входит;
 3. мастер становится онлайн;
-4. клиент создаёт срочную заявку;
-5. мастер получает и принимает оффер;
-6. проходят статусы до закрытия;
-7. в `FREE_PILOT` отсутствуют `PaymentTransaction` и `Accrual`;
-8. мастер с нулевыми lead-кредитами оставляет плановый отклик;
-9. покупка кредитов и вывод заблокированы;
-10. оператор видит анкету и спор;
-11. файлы недоступны постороннему пользователю.
+4. клиент создаёт заявку;
+5. мастер получает `offer:new` без точного адреса;
+6. `offer:new.freePilot=true` и `compensation=0`;
+7. мастер принимает;
+8. проходит state machine до закрытия;
+9. HTTP и `order:status` показывают нулевой выезд/сбор;
+10. БД не содержит `PaymentTransaction`/`Accrual` по заявке;
+11. расчёт за работу обозначен как прямой между сторонами.
 
-## 13. Резервное копирование
+### 14.3 Плановая заявка
 
-Backup состоит минимум из двух согласованных частей:
+1. создать `FREE_PILOT` запись;
+2. мастер с нулевым балансом откликается;
+3. `LeadCreditTransaction` не создаётся;
+4. выбрать и подтвердить мастера;
+5. завершить заявку;
+6. отдельную заявку отменить после выбора;
+7. убедиться, что `REFUND` не создаётся.
+
+### 14.4 Отключённые операции
+
+- покупка кредитов возвращает `403`;
+- вывод средств возвращает `403`;
+- packages пусты;
+- wallet balance равен 0;
+- withdrawal history пуста.
+
+### 14.5 Доступ к данным
+
+- посторонний пользователь не получает заявку;
+- точный адрес отсутствует в оффере;
+- неназначенный мастер не получает плановые детали;
+- защищённые фото/документы недоступны без прав;
+- оператор видит только разрешённый административный контур.
+
+## 15. SQL-контроль пилота
+
+Проверка режима новых записей:
+
+```sql
+SELECT "commercialMode", COUNT(*)
+FROM "Order"
+GROUP BY "commercialMode";
+```
+
+Проверка запрещённых финансовых записей:
+
+```sql
+SELECT o.id
+FROM "Order" o
+WHERE o."commercialMode" = 'FREE_PILOT'
+  AND (
+    EXISTS (SELECT 1 FROM "PaymentTransaction" p WHERE p."orderId" = o.id)
+    OR EXISTS (SELECT 1 FROM "Accrual" a WHERE a."orderId" = o.id)
+  );
+```
+
+Ожидается 0 строк.
+
+Эта проверка должна стать автоматическим alert/query, а не только ручным smoke.
+
+## 16. Backup
+
+Backup состоит минимум из:
 
 1. PostgreSQL;
-2. upload volume.
+2. upload volume;
+3. deployment configuration без plaintext secrets;
+4. release metadata/commit SHA.
 
-Пример backup БД:
+Пример PostgreSQL:
 
 ```bash
 pg_dump --format=custom --file=masterqala-YYYYMMDD-HHMM.dump "$DATABASE_URL"
 ```
 
-Upload backup выполняется через snapshot, rsync или архивирование на внешний storage.
+Требования:
 
-Рекомендуемая политика пилота:
-
-- ежедневный полный backup;
-- дополнительный backup перед каждой миграцией;
-- хранение минимум нескольких дневных и недельных точек;
-- шифрование backup;
+- ежедневный backup;
+- дополнительный backup перед миграцией;
+- шифрование;
 - копия вне основного сервера;
-- ежемесячная проверка восстановления.
+- ограниченный доступ;
+- контроль успешности;
+- retention дневных/недельных/месячных точек;
+- регулярный restore-test.
 
-Backup, который ни разу не восстанавливался, не считается рабочим.
+`pg_dump` и копия uploads должны представлять согласованный временной срез либо процедура должна учитывать рассинхронизацию.
 
-## 14. Восстановление
+## 17. Restore
 
-Проверяемый сценарий:
+Проверяемая процедура:
 
-1. поднять чистую PostgreSQL/PostGIS;
+1. развернуть чистый PostgreSQL/PostGIS;
 2. восстановить dump;
-3. восстановить uploads в ожидаемый `UPLOAD_DIR`;
-4. проверить migrations/version;
-5. запустить API с закрытым внешним доступом;
-6. проверить пользователей, заявки, фото, документы, споры и pg-boss;
-7. выполнить smoke test;
-8. переключить трафик.
+3. восстановить uploads;
+4. проверить владельцев/права файлов;
+5. развернуть соответствующий release SHA;
+6. проверить migration state;
+7. запустить API без внешнего трафика;
+8. проверить пользователей, заявки, документы, споры и queue;
+9. выполнить smoke;
+10. переключить трафик.
 
-Цели RPO/RTO должны быть утверждены владельцем продукта. Для первого пилота их необходимо зафиксировать до начала работы с реальными пользователями.
+RPO/RTO утверждаются владельцем продукта до работы с реальными пользователями.
 
-## 15. Наблюдаемость
+Backup без успешного restore-test не считается рабочим.
 
-Минимальные метрики:
+## 18. Наблюдаемость
 
 ### API
 
-- доступность;
+- availability;
 - p50/p95/p99 latency;
 - 4xx/5xx;
-- число активных WebSocket connections;
+- auth failures;
+- active Socket.IO connections;
 - reconnect rate;
-- память/CPU;
+- memory/CPU;
 - crash/restart count.
 
-### PostgreSQL
+### PostgreSQL/pg-boss
 
 - connections;
 - disk usage;
 - slow queries;
-- locks;
-- replication/backup status, если применимо;
-- размер основной и `pgboss` схем.
+- locks/deadlocks;
+- long transactions;
+- queue lag;
+- failed/retried jobs;
+- backup status;
+- size основной и `pgboss` schemas.
+
+### Файлы
+
+- свободное место;
+- write errors;
+- orphan files;
+- backup age;
+- restore-test age.
 
 ### Бизнес
 
-- созданные срочные/плановые заявки;
-- доля `NO_MASTERS`;
-- время до первого оффера и принятия;
-- доля отмен;
+- заявки по `commercialMode`;
+- `NO_MASTERS`;
+- время до оффера/принятия;
+- отмены;
 - зависшие статусы;
 - открытые споры;
 - SMS delivery errors;
-- заявки без realtime-синхронизации.
+- realtime desync;
+- любые финансовые строки для `FREE_PILOT`.
 
-### Инфраструктура
-
-- свободное место uploads;
-- срок действия TLS;
-- backup success;
-- время последнего успешного restore test.
-
-## 16. Алерты
+## 19. Алерты
 
 Обязательные:
 
-- API недоступен;
-- readiness БД не проходит;
+- API unavailable;
+- readiness failed;
 - 5xx выше порога;
-- pg-boss не обрабатывает jobs;
-- диск или volume заполнен;
-- backup не выполнен;
-- SMS-провайдер недоступен;
-- резкий рост 401/429;
-- очередь таймаутов растёт;
-- появились финансовые записи при `FREE_PILOT`.
+- PostgreSQL connections/disk критичны;
+- pg-boss queue lag/failed jobs;
+- uploads заполнены или read-only;
+- backup просрочен/упал;
+- SMS provider unavailable;
+- резкий рост 401/403/429;
+- TLS скоро истекает;
+- появились `PaymentTransaction`, `Accrual`, `SPEND` или `REFUND` для `FREE_PILOT`.
 
-Последний alert является критическим инвариантом режима.
+Последний alert — критический инвариант продукта.
 
-## 17. Обновление приложения
+## 20. Обновление приложения
 
-Рекомендуемый release workflow:
+1. сформировать immutable release;
+2. получить успешный CI;
+3. проверить release notes и migrations;
+4. выполнить backup;
+5. включить maintenance для несовместимого изменения;
+6. применить migrations;
+7. запустить новый API без трафика;
+8. проверить config/health/readiness;
+9. переключить трафик;
+10. выполнить smoke;
+11. наблюдать метрики;
+12. сохранить предыдущий release для rollback.
 
-1. создать immutable release;
-2. пройти CI;
-3. backup;
-4. применить backward-compatible migrations;
-5. запустить новый API;
-6. проверить readiness;
-7. переключить трафик/перезапустить процесс;
-8. проверить smoke test;
-9. сохранить предыдущий release для rollback;
-10. наблюдать ключевые метрики.
+Новые и старые процессы не должны одновременно работать на несовместимых версиях схемы/payload.
 
-## 18. Rollback
+## 21. Rollback
 
-Rollback приложения:
+### Приложение
 
+- закрыть создание новых заявок;
 - вернуть предыдущий release;
 - перезапустить процесс;
-- проверить API и Socket.IO.
+- проверить HTTP/Socket.IO;
+- вручную сверить активные заявки.
 
-Rollback БД:
+### База
 
-- Prisma migrations не следует автоматически откатывать в production;
-- предпочтительны forward-fix и backward-compatible изменения;
-- destructive migration восстанавливается только по отдельному плану или из backup;
-- при несовместимости остановить трафик до восстановления согласованного состояния.
+- не откатывать Prisma migration автоматически;
+- для additive `CommercialMode` оставить enum/columns/indexes;
+- использовать forward-fix;
+- destructive rollback — только по отдельному плану/backup.
 
-## 19. Инцидентный режим
+Предыдущая версия приложения может не понимать новые обязательные поля/режим. Совместимость rollback должна быть проверена на staging до rollout.
 
-При критической ошибке бесплатного пилота:
+## 22. Инцидентный режим
 
-1. отключить создание новых заявок через feature flag или maintenance mode;
-2. не прерывать уже назначенные работы без связи с участниками;
-3. сообщить оператору список активных заказов;
-4. сохранить логи и состояние очереди;
-5. исправить или выполнить rollback;
-6. вручную сверить зависшие заявки;
-7. оформить postmortem.
+1. включить maintenance/остановить новые заявки;
+2. не терять связь с участниками уже назначенных работ;
+3. получить список активных срочных и плановых заявок;
+4. сохранить логи, queue state и временную шкалу;
+5. отозвать затронутые secrets при необходимости;
+6. выполнить fix или rollback;
+7. сверить зависшие состояния и финансовые инварианты;
+8. уведомить ответственных;
+9. оформить postmortem;
+10. добавить автоматический контроль против повторения.
 
-Нужен отдельный способ экстренно показать пользователям сообщение о недоступности сервиса.
+Frontend должен иметь управляемое сообщение о maintenance, а оператор — инструкцию ручной связи с активными пользователями.
 
-## 20. Критерии готовности к запуску
+## 23. Gate запуска
 
-- [ ] `COMMERCIAL_MODE=FREE_PILOT` реализован и проверен;
+### Реализовано кодом
+
+- [x] `COMMERCIAL_MODE=FREE_PILOT`;
+- [x] режим заявки сохраняется в БД;
+- [x] исторические записи мигрируют в `PAID_MOCK`;
+- [x] финансовые side effects пилота заблокированы;
+- [x] HTTP/Socket.IO маскируют выезд и сбор;
+- [x] CI workflow добавлен;
+- [x] rollout и SQL smoke документированы.
+
+### Требует подтверждения/реализации
+
+- [ ] CI workflow успешно завершён;
 - [ ] production secrets валидируются;
 - [ ] CORS ограничен;
-- [ ] HTTPS и WebSocket работают через домен;
-- [ ] migrations выполняются через `deploy`;
-- [ ] production и staging разделены;
-- [ ] реальный SMS-провайдер подключён;
-- [ ] uploads persistent и закрыты от прямого доступа;
-- [ ] backup БД и файлов автоматизирован;
-- [ ] restore test успешен;
-- [ ] мониторинг и алерты включены;
-- [ ] операторский smoke test пройден;
-- [ ] ни один бесплатный сценарий не создаёт финансовые записи;
-- [ ] есть rollback и контакт ответственного за инцидент.
+- [ ] реальный SMS provider подключён;
+- [ ] production process/container manifest создан;
+- [ ] reverse proxy/TLS проверены;
+- [ ] uploads persistent/private;
+- [ ] file signature/EXIF/PDF security реализованы;
+- [ ] global rate limit включён;
+- [ ] backup автоматизирован;
+- [ ] restore-test успешен;
+- [ ] monitoring/alerts включены;
+- [ ] ручной security review пройден;
+- [ ] полный smoke выполнен;
+- [ ] назначен ответственный за инцидент.
+
+Публичный доступ нельзя открывать только на основании merge PR: обязательны инфраструктурный gate, security gate и smoke на production-подобном staging.
