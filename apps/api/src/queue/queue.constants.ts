@@ -7,4 +7,5 @@ export const JOBS = {
   PLANNED_EXPIRY: 'planned-order-expiry',
   PLANNED_CONFIRM_TIMEOUT: 'planned-order-confirm-timeout',
   PLANNED_AUTO_CLOSE: 'planned-order-auto-close',
+  UPLOAD_CLEANUP: 'pending-upload-cleanup',
 } as const;
