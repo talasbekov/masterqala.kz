@@ -8,6 +8,7 @@ import { PendingUploadsService } from './pending-uploads.service';
 import { PersistentFileScansService } from './persistent-file-scans.service';
 import { PhotoReferenceGuard } from './photo-reference.guard';
 import { QUARANTINE_SCANNER } from './quarantine-scanner.interface';
+import { SecurityRetentionService } from './security-retention.service';
 
 @Module({
   providers: [
@@ -29,7 +30,14 @@ import { QUARANTINE_SCANNER } from './quarantine-scanner.interface';
     PhotoReferenceGuard,
     PendingUploadsService,
     PersistentFileScansService,
+    SecurityRetentionService,
   ],
-  exports: [FILE_STORAGE, PhotoReferenceGuard, PendingUploadsService, PersistentFileScansService],
+  exports: [
+    FILE_STORAGE,
+    PhotoReferenceGuard,
+    PendingUploadsService,
+    PersistentFileScansService,
+    SecurityRetentionService,
+  ],
 })
 export class StorageModule {}

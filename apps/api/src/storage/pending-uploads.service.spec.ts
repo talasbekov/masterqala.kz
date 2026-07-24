@@ -16,6 +16,7 @@ const statusRow = {
   expiresAt: new Date('2026-07-24T18:00:00.000Z'),
   scanStatus: 'PENDING_SCAN',
   scannedAt: null,
+  purgedAt: null,
 };
 
 describe('PendingUploadsService quarantine lifecycle', () => {
@@ -32,8 +33,6 @@ describe('PendingUploadsService quarantine lifecycle', () => {
       pendingUpload: {
         create: jest.fn().mockImplementation(({ data }) => Promise.resolve({ id: 'upload-1', ...data })),
         count: jest.fn().mockResolvedValue(1),
-        findMany: jest.fn().mockResolvedValue([]),
-        deleteMany: jest.fn().mockResolvedValue({ count: 1 }),
       },
       $queryRaw: jest.fn(),
       $executeRaw: jest.fn().mockResolvedValue(1),
@@ -84,6 +83,7 @@ describe('PendingUploadsService quarantine lifecycle', () => {
       expiresAt: new Date('2026-07-24T18:00:00.000Z'),
       scanStatus: 'PENDING_SCAN',
       scannedAt: null,
+      purgedAt: null,
     });
     expect(queue.send).toHaveBeenCalledWith('pending-upload-scan', { pendingUploadId: 'upload-1' });
   });
@@ -101,7 +101,7 @@ describe('PendingUploadsService quarantine lifecycle', () => {
     expect(queue.send).not.toHaveBeenCalled();
   });
 
-  it('помечает заражённый файл и удаляет его из quarantine storage', async () => {
+  it('помечает заражённый файл, удаляет бинарник и фиксирует purgedAt', async () => {
     const { service, prisma, scanner, storage } = setup();
     prisma.$queryRaw.mockResolvedValue([{ id: 'upload-1', path }]);
     scanner.scan.mockResolvedValue({ status: 'INFECTED', signature: 'Eicar-Signature' });
@@ -109,7 +109,7 @@ describe('PendingUploadsService quarantine lifecycle', () => {
     await service.scanUpload('upload-1');
 
     expect(storage.remove).toHaveBeenCalledWith(path);
-    expect(prisma.$executeRaw).toHaveBeenCalledTimes(1);
+    expect(prisma.$executeRaw).toHaveBeenCalledTimes(2);
   });
 
   it('оставляет scanner error в fail-closed статусе и пробрасывает ошибку', async () => {
@@ -142,20 +142,14 @@ describe('PendingUploadsService quarantine lifecycle', () => {
     expect(queue.send).toHaveBeenNthCalledWith(2, 'pending-upload-scan', { pendingUploadId: 'upload-2' });
   });
 
-  it('удаляет только истёкшие непривязанные uploads', async () => {
+  it('обычный TTL cleanup не стирает terminal forensic metadata', async () => {
     const { service, prisma, storage } = setup();
-    prisma.pendingUpload.findMany.mockResolvedValue([{ id: 'upload-1', path }]);
+    prisma.$queryRaw.mockResolvedValue([{ id: 'upload-1', path }]);
 
     await service.cleanupExpired(25);
 
     expect(storage.remove).toHaveBeenCalledWith(path);
-    expect(prisma.pendingUpload.deleteMany).toHaveBeenCalledWith({
-      where: {
-        id: 'upload-1',
-        consumedAt: null,
-        expiresAt: { lte: new Date('2026-07-24T06:00:00.000Z') },
-      },
-    });
+    expect(prisma.$executeRaw).toHaveBeenCalledTimes(1);
   });
 
   it('регистрирует scan worker, retry sweep и cleanup cron', () => {

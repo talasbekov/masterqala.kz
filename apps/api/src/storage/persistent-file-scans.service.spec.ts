@@ -59,14 +59,24 @@ describe('PersistentFileScansService', () => {
     expect(prisma.$executeRaw).toHaveBeenCalledTimes(1);
   });
 
-  it('помечает evidence INFECTED и удаляет файл', async () => {
+  it('помечает evidence INFECTED, удаляет файл и фиксирует purgedAt', async () => {
     const { service, prisma, storage } = setup({ status: 'INFECTED', signature: 'Eicar-Test-Signature' });
     prisma.$queryRaw.mockResolvedValueOnce([{ id: 'evidence-1', path: 'evidence.png' }]);
 
     await service.scanDisputeEvidence('evidence-1');
 
-    expect(prisma.$executeRaw).toHaveBeenCalledTimes(1);
+    expect(prisma.$executeRaw).toHaveBeenCalledTimes(2);
     expect(storage.remove).toHaveBeenCalledWith('evidence.png');
+  });
+
+  it('не ставит purgedAt, если storage deletion упала', async () => {
+    const { service, prisma, storage } = setup({ status: 'INFECTED', signature: 'Eicar-Test-Signature' });
+    prisma.$queryRaw.mockResolvedValueOnce([{ id: 'evidence-1', path: 'evidence.png' }]);
+    storage.remove.mockRejectedValueOnce(new Error('disk unavailable'));
+
+    await service.scanDisputeEvidence('evidence-1');
+
+    expect(prisma.$executeRaw).toHaveBeenCalledTimes(1);
   });
 
   it('переводит запись в SCAN_FAILED при ошибке scanner', async () => {

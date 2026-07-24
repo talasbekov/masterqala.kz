@@ -69,6 +69,7 @@ export class PersistentFileScansService implements OnModuleInit {
           "scannedAt" = CURRENT_TIMESTAMP,
           "scanError" = NULL
       WHERE "id" = ${documentId}
+        AND "purgedAt" IS NULL
         AND "scanStatus" IN ('PENDING_SCAN', 'SCAN_FAILED')
         AND "scanAttempts" < ${this.maxScanAttempts}
       RETURNING "id", "filePath" AS "path"
@@ -82,6 +83,7 @@ export class PersistentFileScansService implements OnModuleInit {
       () => this.markMasterDocumentClean(claim.id),
       (signature) => this.markMasterDocumentInfected(claim.id, signature),
       (message) => this.markMasterDocumentFailed(claim.id, message),
+      () => this.markMasterDocumentPurged(claim.id),
     );
   }
 
@@ -93,6 +95,7 @@ export class PersistentFileScansService implements OnModuleInit {
           "scannedAt" = CURRENT_TIMESTAMP,
           "scanError" = NULL
       WHERE "id" = ${evidenceId}
+        AND "purgedAt" IS NULL
         AND "scanStatus" IN ('PENDING_SCAN', 'SCAN_FAILED')
         AND "scanAttempts" < ${this.maxScanAttempts}
       RETURNING "id", "path"
@@ -106,6 +109,7 @@ export class PersistentFileScansService implements OnModuleInit {
       () => this.markDisputeEvidenceClean(claim.id),
       (signature) => this.markDisputeEvidenceInfected(claim.id, signature),
       (message) => this.markDisputeEvidenceFailed(claim.id, message),
+      () => this.markDisputeEvidencePurged(claim.id),
     );
   }
 
@@ -115,6 +119,7 @@ export class PersistentFileScansService implements OnModuleInit {
     markClean: () => Promise<unknown>,
     markInfected: (signature: string) => Promise<unknown>,
     markFailed: (message: string) => Promise<unknown>,
+    markPurged: () => Promise<unknown>,
   ): Promise<void> {
     try {
       if (!(await this.storage.exists(claim.path))) throw new Error('Quarantine file is missing');
@@ -126,7 +131,7 @@ export class PersistentFileScansService implements OnModuleInit {
       }
 
       await markInfected(result.signature?.slice(0, 500) ?? 'Malware detected');
-      await this.removeInfected(claim.path, context);
+      if (await this.removeInfected(claim.path, context)) await markPurged();
     } catch (error) {
       const message = (error as Error).message.slice(0, 500);
       await markFailed(message);
@@ -156,6 +161,14 @@ export class PersistentFileScansService implements OnModuleInit {
       UPDATE "MasterDocument"
       SET "scanStatus" = 'SCAN_FAILED', "scannedAt" = CURRENT_TIMESTAMP, "scanError" = ${message}
       WHERE "id" = ${id} AND "scanStatus" = 'SCANNING'
+    `;
+  }
+
+  private markMasterDocumentPurged(id: string) {
+    return this.prisma.$executeRaw`
+      UPDATE "MasterDocument"
+      SET "purgedAt" = CURRENT_TIMESTAMP
+      WHERE "id" = ${id} AND "scanStatus" = 'INFECTED' AND "purgedAt" IS NULL
     `;
   }
 
@@ -193,17 +206,27 @@ export class PersistentFileScansService implements OnModuleInit {
     `;
   }
 
+  private markDisputeEvidencePurged(id: string) {
+    return this.prisma.$executeRaw`
+      UPDATE "DisputeEvidence"
+      SET "purgedAt" = CURRENT_TIMESTAMP
+      WHERE "id" = ${id} AND "scanStatus" = 'INFECTED' AND "purgedAt" IS NULL
+    `;
+  }
+
   async scanPending(limit = 100): Promise<void> {
     await this.prisma.$executeRaw`
       UPDATE "MasterDocument"
       SET "scanStatus" = 'SCAN_FAILED', "scanError" = 'Scan lease expired'
       WHERE "scanStatus" = 'SCANNING'
+        AND "purgedAt" IS NULL
         AND "scannedAt" < CURRENT_TIMESTAMP - INTERVAL '5 minutes'
     `;
     await this.prisma.$executeRaw`
       UPDATE "DisputeEvidence"
       SET "scanStatus" = 'SCAN_FAILED', "scanError" = 'Scan lease expired'
       WHERE "scanStatus" = 'SCANNING'
+        AND "purgedAt" IS NULL
         AND "scannedAt" < CURRENT_TIMESTAMP - INTERVAL '5 minutes'
     `;
 
@@ -211,11 +234,13 @@ export class PersistentFileScansService implements OnModuleInit {
       SELECT 'MASTER_DOCUMENT' AS "kind", "id", "createdAt"
       FROM "MasterDocument"
       WHERE "scanStatus" IN ('PENDING_SCAN', 'SCAN_FAILED')
+        AND "purgedAt" IS NULL
         AND "scanAttempts" < ${this.maxScanAttempts}
       UNION ALL
       SELECT 'DISPUTE_EVIDENCE' AS "kind", "id", "createdAt"
       FROM "DisputeEvidence"
       WHERE "scanStatus" IN ('PENDING_SCAN', 'SCAN_FAILED')
+        AND "purgedAt" IS NULL
         AND "scanAttempts" < ${this.maxScanAttempts}
       ORDER BY "createdAt" ASC
       LIMIT ${limit}
@@ -224,11 +249,13 @@ export class PersistentFileScansService implements OnModuleInit {
     for (const candidate of candidates) await this.enqueue(candidate.kind, candidate.id);
   }
 
-  private async removeInfected(path: string, context: string): Promise<void> {
+  private async removeInfected(path: string, context: string): Promise<boolean> {
     try {
       await this.storage.remove(path);
+      return true;
     } catch (error) {
       this.logger.error(`Не удалось удалить infected ${context} ${path}: ${(error as Error).message}`);
+      return false;
     }
   }
 }
