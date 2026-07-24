@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, UseGuards, UseInterceptors, UploadedFile, BadRequestException } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, UseGuards, UseInterceptors, UploadedFile, BadRequestException } from '@nestjs/common';
 import { User } from '@prisma/client';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { PrismaService } from '../prisma/prisma.service';
@@ -41,5 +41,11 @@ export class MastersController {
   ) {
     if (!file) throw new BadRequestException('Файл обязателен');
     return this.masters.uploadDocument(user.id, dto.type, file);
+  }
+
+  @Get('masters/application/documents/:id/status')
+  @UseGuards(JwtAuthGuard)
+  documentStatus(@CurrentUser() user: User, @Param('id') id: string) {
+    return this.masters.getDocumentStatus(user.id, id);
   }
 }
