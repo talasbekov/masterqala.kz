@@ -37,6 +37,9 @@ describe('environment security validation', () => {
     expect(env.CLAMAV_PORT).toBe(3310);
     expect(env.CLAMAV_TIMEOUT_MS).toBe(15000);
     expect(env.UPLOAD_SCAN_MAX_ATTEMPTS).toBe(3);
+    expect(env.SECURITY_AUDIT_RETENTION_DAYS).toBe(365);
+    expect(env.FILE_QUARANTINE_RETENTION_DAYS).toBe(30);
+    expect(env.CONSUMED_UPLOAD_METADATA_RETENTION_DAYS).toBe(30);
   });
 
   it('требует явный HTTPS allowlist в production', () => {
@@ -106,9 +109,22 @@ describe('environment security validation', () => {
     expect(() =>
       validateEnvironment({ NODE_ENV: 'test', JWT_SECRET: secureSecret, UPLOAD_SCAN_MAX_ATTEMPTS: '11' }),
     ).toThrow('Недопустимый UPLOAD_SCAN_MAX_ATTEMPTS');
+    expect(() =>
+      validateEnvironment({ NODE_ENV: 'test', JWT_SECRET: secureSecret, SECURITY_AUDIT_RETENTION_DAYS: '29' }),
+    ).toThrow('Недопустимый SECURITY_AUDIT_RETENTION_DAYS');
+    expect(() =>
+      validateEnvironment({ NODE_ENV: 'test', JWT_SECRET: secureSecret, FILE_QUARANTINE_RETENTION_DAYS: '0' }),
+    ).toThrow('Недопустимый FILE_QUARANTINE_RETENTION_DAYS');
+    expect(() =>
+      validateEnvironment({
+        NODE_ENV: 'test',
+        JWT_SECRET: secureSecret,
+        CONSUMED_UPLOAD_METADATA_RETENTION_DAYS: '366',
+      }),
+    ).toThrow('Недопустимый CONSUMED_UPLOAD_METADATA_RETENTION_DAYS');
   });
 
-  it('нормализует origins и scanner параметры', () => {
+  it('нормализует origins, scanner и retention параметры', () => {
     const env = validateEnvironment({
       NODE_ENV: 'production',
       JWT_SECRET: secureSecret,
@@ -122,6 +138,9 @@ describe('environment security validation', () => {
       CLAMAV_PORT: '3311',
       CLAMAV_TIMEOUT_MS: '20000',
       UPLOAD_SCAN_MAX_ATTEMPTS: '5',
+      SECURITY_AUDIT_RETENTION_DAYS: '730',
+      FILE_QUARANTINE_RETENTION_DAYS: '45',
+      CONSUMED_UPLOAD_METADATA_RETENTION_DAYS: '60',
     });
 
     expect(corsOriginsFromValue(env.CORS_ORIGINS)).toEqual([
@@ -137,5 +156,8 @@ describe('environment security validation', () => {
     expect(env.CLAMAV_PORT).toBe(3311);
     expect(env.CLAMAV_TIMEOUT_MS).toBe(20000);
     expect(env.UPLOAD_SCAN_MAX_ATTEMPTS).toBe(5);
+    expect(env.SECURITY_AUDIT_RETENTION_DAYS).toBe(730);
+    expect(env.FILE_QUARANTINE_RETENTION_DAYS).toBe(45);
+    expect(env.CONSUMED_UPLOAD_METADATA_RETENTION_DAYS).toBe(60);
   });
 });
