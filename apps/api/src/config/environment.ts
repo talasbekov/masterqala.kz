@@ -119,6 +119,15 @@ export function validateEnvironment(raw: Record<string, unknown>): Record<string
   const clamavPort = parseInteger('CLAMAV_PORT', raw.CLAMAV_PORT, 3310, 1, 65535);
   const clamavTimeoutMs = parseInteger('CLAMAV_TIMEOUT_MS', raw.CLAMAV_TIMEOUT_MS, 15000, 1000, 120000);
   const uploadScanMaxAttempts = parseInteger('UPLOAD_SCAN_MAX_ATTEMPTS', raw.UPLOAD_SCAN_MAX_ATTEMPTS, 3, 1, 10);
+  const securityAuditRetentionDays = parseInteger(
+    'SECURITY_AUDIT_RETENTION_DAYS', raw.SECURITY_AUDIT_RETENTION_DAYS, 365, 30, 3650,
+  );
+  const fileQuarantineRetentionDays = parseInteger(
+    'FILE_QUARANTINE_RETENTION_DAYS', raw.FILE_QUARANTINE_RETENTION_DAYS, 30, 1, 365,
+  );
+  const consumedUploadMetadataRetentionDays = parseInteger(
+    'CONSUMED_UPLOAD_METADATA_RETENTION_DAYS', raw.CONSUMED_UPLOAD_METADATA_RETENTION_DAYS, 30, 1, 365,
+  );
 
   if (fileScanMode === 'CLAMAV' && !clamavHost) {
     throw new Error('CLAMAV_HOST обязателен при FILE_SCAN_MODE=CLAMAV');
@@ -138,6 +147,9 @@ export function validateEnvironment(raw: Record<string, unknown>): Record<string
     CLAMAV_PORT: clamavPort,
     CLAMAV_TIMEOUT_MS: clamavTimeoutMs,
     UPLOAD_SCAN_MAX_ATTEMPTS: uploadScanMaxAttempts,
+    SECURITY_AUDIT_RETENTION_DAYS: securityAuditRetentionDays,
+    FILE_QUARANTINE_RETENTION_DAYS: fileQuarantineRetentionDays,
+    CONSUMED_UPLOAD_METADATA_RETENTION_DAYS: consumedUploadMetadataRetentionDays,
   };
 }
 
