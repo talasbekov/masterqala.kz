@@ -25,6 +25,7 @@ describe('DisputesService evidence upload security', () => {
           orderId: 'order-1',
           plannedOrderId: null,
           status: 'OPEN',
+          evidenceDocIds: ['uuid.png'],
         }),
       },
       order: {
@@ -66,13 +67,16 @@ describe('DisputesService evidence upload security', () => {
     };
   }
 
-  it('создаёт quarantine metadata и ставит evidence на проверку', async () => {
+  it('создаёт quarantine metadata и сохраняет совместимый ответ спора', async () => {
     const { service, storage, fileScans } = setup();
 
     const result = await service.addEvidence('user-1', 'dispute-1', pngFile());
 
     expect(storage.save).toHaveBeenCalledWith(expect.any(Buffer), 'png');
     expect(fileScans.enqueueDisputeEvidence).toHaveBeenCalledWith(expect.any(String));
+    expect(result.id).toBe('dispute-1');
+    expect(result.evidenceId).toBe('evidence-1');
+    expect(result.evidenceDocIds).toEqual(['uuid.png']);
     expect(result.scanStatus).toBe('CLEAN');
     expect(result.statusPath).toContain('/disputes/dispute-1/evidence/');
   });
