@@ -142,7 +142,21 @@ export class DisputesService {
     }
 
     await this.fileScans.enqueueDisputeEvidence(evidenceId);
-    return this.getEvidenceStatus(userId, disputeId, evidenceId);
+    const [status, updatedDispute] = await Promise.all([
+      this.getEvidenceStatus(userId, disputeId, evidenceId),
+      this.findOrThrow(disputeId),
+    ]);
+
+    return {
+      ...updatedDispute,
+      evidenceId: status.id,
+      path: status.path,
+      mimeType: status.mimeType,
+      sizeBytes: status.sizeBytes,
+      scanStatus: status.scanStatus,
+      scannedAt: status.scannedAt,
+      statusPath: status.statusPath,
+    };
   }
 
   async getEvidenceStatus(userId: string, disputeId: string, evidenceId: string) {
