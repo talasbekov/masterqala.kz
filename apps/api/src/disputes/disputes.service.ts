@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   ConflictException,
   ForbiddenException,
   Inject,
@@ -12,13 +11,13 @@ import { Prisma, User } from '@prisma/client';
 import { createReadStream } from 'fs';
 import { PrismaService } from '../prisma/prisma.service';
 import { FileStorage, FILE_STORAGE } from '../storage/storage.interface';
+import { validateUploadedFile } from '../storage/upload-security';
 import { PAYMENT_PROVIDER, PaymentProvider } from '../payments/payment.interface';
 import { MasterPenaltyService } from '../common/master-penalty.service';
 import { CompensationService } from '../common/compensation.service';
 import { OpenDisputeDto, ResolveDisputeDto } from './dto';
 
 const DISPUTE_WINDOW_AFTER_CLOSE_MS = 48 * 3600 * 1000;
-const ALLOWED_MIME: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png' };
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
 
 @Injectable()
@@ -111,14 +110,19 @@ export class DisputesService {
     const dispute = await this.findOrThrow(disputeId);
     await this.guardParticipant(userId, dispute);
     if (dispute.status !== 'OPEN') throw new ConflictException('Спор уже закрыт');
-    const ext = ALLOWED_MIME[file.mimetype];
-    if (!ext) throw new BadRequestException('Допустимы только JPEG и PNG');
-    if (file.size > MAX_FILE_BYTES) throw new BadRequestException('Файл больше 10 МБ');
-    const relPath = await this.storage.save(file.buffer, ext);
-    return this.prisma.dispute.update({
-      where: { id: disputeId },
-      data: { evidenceDocIds: { push: relPath } },
-    });
+
+    const validated = validateUploadedFile(file, ['jpeg', 'png'], MAX_FILE_BYTES);
+    const relPath = await this.storage.save(file.buffer, validated.extension);
+
+    try {
+      return await this.prisma.dispute.update({
+        where: { id: disputeId },
+        data: { evidenceDocIds: { push: relPath } },
+      });
+    } catch (error) {
+      await this.removeOrphan(relPath, 'dispute evidence');
+      throw error;
+    }
   }
 
   async addCounterStatement(userId: string, disputeId: string, counterStatement: string) {
@@ -213,5 +217,13 @@ export class DisputesService {
     }
     if (!dispute.evidenceDocIds.includes(docPath)) throw new NotFoundException('Документ не найден');
     return createReadStream(this.storage.absolutePath(docPath));
+  }
+
+  private async removeOrphan(relPath: string, context: string): Promise<void> {
+    try {
+      await this.storage.remove(relPath);
+    } catch (error) {
+      this.logger.error(`Не удалось удалить orphan ${context} ${relPath}: ${(error as Error).message}`);
+    }
   }
 }
