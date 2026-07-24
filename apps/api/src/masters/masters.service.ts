@@ -22,6 +22,7 @@ const PROFILE_INCLUDE = {
 
 type MasterDocumentSecurityRow = {
   id: string;
+  type: DocumentType;
   filePath: string;
   originalName: string;
   mimeType: string;
@@ -100,7 +101,7 @@ export class MastersService {
       orderBy: { createdAt: 'desc' },
     });
     const securityRows = await this.prisma.$queryRaw<MasterDocumentSecurityRow[]>`
-      SELECT "id", "filePath", "originalName", "mimeType", "sizeBytes",
+      SELECT "id", "type", "filePath", "originalName", "mimeType", "sizeBytes",
              "scanStatus", "scannedAt", "cdrStatus"
       FROM "MasterDocument"
       WHERE "masterProfileId" = ${profile.id}
@@ -162,7 +163,7 @@ export class MastersService {
 
   async getDocumentStatus(userId: string, documentId: string) {
     const rows = await this.prisma.$queryRaw<MasterDocumentSecurityRow[]>`
-      SELECT document."id", document."filePath", document."originalName", document."mimeType",
+      SELECT document."id", document."type", document."filePath", document."originalName", document."mimeType",
              document."sizeBytes", document."scanStatus", document."scannedAt", document."cdrStatus"
       FROM "MasterDocument" AS document
       JOIN "MasterProfile" AS profile ON profile."id" = document."masterProfileId"
@@ -173,6 +174,7 @@ export class MastersService {
     if (!document) throw new NotFoundException('Документ не найден');
     return {
       id: document.id,
+      type: document.type,
       path: document.filePath,
       originalName: document.originalName,
       mimeType: document.mimeType,
