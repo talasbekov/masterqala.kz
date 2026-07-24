@@ -20,7 +20,7 @@ export class PlannedOrdersController {
 
   @Post()
   async create(@CurrentUser() user: User, @Body() dto: CreatePlannedOrderDto) {
-    await this.photoReferences.assertAvailable(dto.photoPaths);
+    await this.photoReferences.assertAvailable(user.id, dto.photoPaths);
     return this.plannedOrders.create(user.id, dto);
   }
 
