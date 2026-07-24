@@ -1,8 +1,20 @@
-import { Body, Controller, Get, Param, Post, Query, StreamableFile, UseGuards, ParseEnumPipe } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  NotFoundException,
+  Param,
+  ParseEnumPipe,
+  Post,
+  Query,
+  StreamableFile,
+  UseGuards,
+} from '@nestjs/common';
 import { MasterStatus, User } from '@prisma/client';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Roles, RolesGuard } from '../auth/roles.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
+import { mimeTypeForStoredPath } from '../storage/upload-security';
 import { AdminService } from './admin.service';
 import { DecisionDto } from './dto';
 
@@ -28,7 +40,10 @@ export class AdminController {
   @Get(':id/documents/:docId')
   async document(@Param('id') id: string, @Param('docId') docId: string) {
     const { stream, doc } = await this.admin.getDocumentStream(id, docId);
-    return new StreamableFile(stream, { type: doc.mimeType, disposition: 'inline' });
+    const mimeType = mimeTypeForStoredPath(doc.filePath);
+    if (!mimeType) throw new NotFoundException('Документ не найден');
+    const disposition = mimeType === 'application/pdf' ? 'attachment' : 'inline';
+    return new StreamableFile(stream, { type: mimeType, disposition });
   }
 
   @Post(':id/decision')
