@@ -30,6 +30,7 @@ describe('environment security validation', () => {
     ]);
     expect(env.PORT).toBe(3000);
     expect(env.TRUST_PROXY_HOPS).toBe(0);
+    expect(env.UPLOAD_TTL_HOURS).toBe(24);
   });
 
   it('требует явный HTTPS allowlist в production', () => {
@@ -51,13 +52,19 @@ describe('environment security validation', () => {
     expect(() => parseCorsOrigins('file://masterqala.kz', 'development')).toThrow('http или https');
   });
 
-  it('валидирует PORT и TRUST_PROXY_HOPS', () => {
+  it('валидирует PORT, TRUST_PROXY_HOPS и UPLOAD_TTL_HOURS', () => {
     expect(() => validateEnvironment({ NODE_ENV: 'test', JWT_SECRET: secureSecret, PORT: '0' })).toThrow(
       'Недопустимый PORT',
     );
     expect(() =>
       validateEnvironment({ NODE_ENV: 'test', JWT_SECRET: secureSecret, TRUST_PROXY_HOPS: '11' }),
     ).toThrow('Недопустимый TRUST_PROXY_HOPS');
+    expect(() =>
+      validateEnvironment({ NODE_ENV: 'test', JWT_SECRET: secureSecret, UPLOAD_TTL_HOURS: '0' }),
+    ).toThrow('Недопустимый UPLOAD_TTL_HOURS');
+    expect(() =>
+      validateEnvironment({ NODE_ENV: 'test', JWT_SECRET: secureSecret, UPLOAD_TTL_HOURS: '169' }),
+    ).toThrow('Недопустимый UPLOAD_TTL_HOURS');
   });
 
   it('нормализует origins и числовые параметры', () => {
@@ -67,6 +74,7 @@ describe('environment security validation', () => {
       CORS_ORIGINS: 'https://masterqala.kz/, https://masterqala.kz, https://app.masterqala.kz',
       PORT: '3100',
       TRUST_PROXY_HOPS: '1',
+      UPLOAD_TTL_HOURS: '12',
     });
 
     expect(corsOriginsFromValue(env.CORS_ORIGINS)).toEqual([
@@ -75,5 +83,6 @@ describe('environment security validation', () => {
     ]);
     expect(env.PORT).toBe(3100);
     expect(env.TRUST_PROXY_HOPS).toBe(1);
+    expect(env.UPLOAD_TTL_HOURS).toBe(12);
   });
 });
