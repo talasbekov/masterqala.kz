@@ -1,13 +1,10 @@
-import { BadRequestException, Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { JOBS } from '../queue/queue.constants';
 import { QueueService } from '../queue/queue.service';
 import { FILE_STORAGE, FileStorage } from './storage.interface';
 import { ValidatedUpload } from './upload-security';
-
-type Tx = Prisma.TransactionClient;
 
 @Injectable()
 export class PendingUploadsService implements OnModuleInit {
@@ -50,25 +47,6 @@ export class PendingUploadsService implements OnModuleInit {
     } catch (error) {
       await this.removeOrphan(path, 'registration failure');
       throw error;
-    }
-  }
-
-  async consume(tx: Tx, userId: string, paths?: readonly string[]): Promise<void> {
-    if (!paths?.length) return;
-
-    const now = new Date();
-    const result = await tx.pendingUpload.updateMany({
-      where: {
-        userId,
-        path: { in: [...paths] },
-        consumedAt: null,
-        expiresAt: { gt: now },
-      },
-      data: { consumedAt: now },
-    });
-
-    if (result.count !== paths.length) {
-      throw new BadRequestException('Фото недоступно, истекло или уже использовано');
     }
   }
 
