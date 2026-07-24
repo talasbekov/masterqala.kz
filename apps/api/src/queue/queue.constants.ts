@@ -8,4 +8,6 @@ export const JOBS = {
   PLANNED_CONFIRM_TIMEOUT: 'planned-order-confirm-timeout',
   PLANNED_AUTO_CLOSE: 'planned-order-auto-close',
   UPLOAD_CLEANUP: 'pending-upload-cleanup',
+  UPLOAD_SCAN: 'pending-upload-scan',
+  UPLOAD_SCAN_SWEEP: 'pending-upload-scan-sweep',
 } as const;
