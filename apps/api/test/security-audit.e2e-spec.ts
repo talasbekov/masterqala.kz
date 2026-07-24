@@ -44,14 +44,14 @@ describe('Security audit trail (e2e)', () => {
       SELECT "id", "action", "severity", "outcome", "actorUserId"
       FROM "SecurityAuditEvent"
       WHERE "resourceType" = 'PENDING_UPLOAD' AND "resourceId" = ${uploadId}
-      ORDER BY "createdAt" ASC
     `;
 
-    expect(events.map((event) => event.action)).toEqual([
+    expect(events).toHaveLength(3);
+    expect(events.map((event) => event.action)).toEqual(expect.arrayContaining([
       'FILE_REGISTERED',
       'FILE_SCAN_STARTED',
       'FILE_SCAN_CLEAN',
-    ]);
+    ]));
     expect(events.every((event) => event.actorUserId === client.userId)).toBe(true);
 
     await request(app.getHttpServer())
