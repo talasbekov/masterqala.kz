@@ -67,7 +67,19 @@ jobs:
         run: pnpm --filter api test -- --runInBand
 
       - name: Run API e2e tests
-        run: pnpm --filter api test:e2e
+        shell: bash
+        run: |
+          set -o pipefail
+          pnpm --filter api test:e2e 2>&1 | tee api-e2e.log
+
+      - name: Upload API e2e log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-e2e-log
+          path: api-e2e.log
+          if-no-files-found: ignore
+          retention-days: 3
 
       - name: Build web application
         shell: bash

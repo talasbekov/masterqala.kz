@@ -1,9 +1,11 @@
-import { Body, Controller, Get, Param, Post, StreamableFile, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, NotFoundException, Param, Post, StreamableFile, UseGuards } from '@nestjs/common';
 import { createReadStream } from 'fs';
 import { User } from '@prisma/client';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { CommercialModeService } from '../commercial-mode/commercial-mode.service';
+import { PhotoReferenceGuard } from '../storage/photo-reference.guard';
+import { mimeTypeForStoredPath } from '../storage/upload-security';
 import { OrdersService } from './orders.service';
 import { CreateOrderDto, PreviewOrderDto, ProposePriceDto } from './dto';
 
@@ -13,6 +15,7 @@ export class OrdersController {
   constructor(
     private readonly orders: OrdersService,
     private readonly commercialMode: CommercialModeService,
+    private readonly photoReferences: PhotoReferenceGuard,
   ) {}
 
   private async present<T>(value: T | Promise<T>): Promise<T> {
@@ -59,7 +62,8 @@ export class OrdersController {
   }
 
   @Post('orders')
-  create(@CurrentUser() user: User, @Body() dto: CreateOrderDto) {
+  async create(@CurrentUser() user: User, @Body() dto: CreateOrderDto) {
+    await this.photoReferences.assertAvailable(dto.photoPaths);
     return this.present(this.orders.create(user.id, dto));
   }
 
@@ -81,7 +85,9 @@ export class OrdersController {
   @Get('orders/:id/photos/:photoId')
   async photo(@CurrentUser() user: User, @Param('id') id: string, @Param('photoId') photoId: string) {
     const absPath = await this.orders.getPhotoStream(user, id, photoId);
-    return new StreamableFile(createReadStream(absPath), { type: 'image/jpeg', disposition: 'inline' });
+    const mimeType = mimeTypeForStoredPath(absPath);
+    if (!mimeType || mimeType === 'application/pdf') throw new NotFoundException('Фото не найдено');
+    return new StreamableFile(createReadStream(absPath), { type: mimeType, disposition: 'inline' });
   }
 
   @Get('master/active-order')

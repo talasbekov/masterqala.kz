@@ -5,6 +5,8 @@ import { UserRole } from '@prisma/client';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
 
+export const TEST_PNG_BYTES = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00]);
+
 export async function createTestApp(opts: { listen?: boolean } = {}): Promise<INestApplication> {
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
   const app = moduleRef.createNestApplication();
@@ -97,6 +99,16 @@ export async function createActiveMaster(
   });
   await setMasterOnline(app, userId, point);
   return { token, userId };
+}
+
+export async function uploadPngViaApi(app: INestApplication, token: string): Promise<string> {
+  const response = await request(app.getHttpServer())
+    .post('/api/v1/uploads')
+    .set('Authorization', `Bearer ${token}`)
+    .attach('file', TEST_PNG_BYTES, { filename: 'photo.png', contentType: 'image/png' })
+    .expect(201);
+
+  return response.body.path as string;
 }
 
 export async function createOrderViaApi(
