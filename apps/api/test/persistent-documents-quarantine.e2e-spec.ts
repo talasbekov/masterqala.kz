@@ -61,11 +61,11 @@ describe('Persistent document quarantine (e2e)', () => {
     expect(rows[0]).toEqual({ scanStatus: 'CLEAN', cdrStatus: 'NOT_REQUIRED' });
 
     await request(app.getHttpServer())
-      .get(upload.body.statusPath)
+      .get(`/api/v1${upload.body.statusPath}`)
       .set('Authorization', `Bearer ${owner.token}`)
       .expect(200);
     await request(app.getHttpServer())
-      .get(upload.body.statusPath)
+      .get(`/api/v1${upload.body.statusPath}`)
       .set('Authorization', `Bearer ${stranger.token}`)
       .expect(404);
 
@@ -124,11 +124,11 @@ describe('Persistent document quarantine (e2e)', () => {
     expect(updatedDispute.evidenceDocIds).toContain(upload.body.path);
 
     await request(app.getHttpServer())
-      .get(upload.body.statusPath)
+      .get(`/api/v1${upload.body.statusPath}`)
       .set('Authorization', `Bearer ${master.token}`)
       .expect(200);
     await request(app.getHttpServer())
-      .get(upload.body.statusPath)
+      .get(`/api/v1${upload.body.statusPath}`)
       .set('Authorization', `Bearer ${stranger.token}`)
       .expect(403);
 
