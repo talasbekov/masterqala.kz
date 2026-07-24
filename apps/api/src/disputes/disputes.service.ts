@@ -8,9 +8,11 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { Prisma, User } from '@prisma/client';
+import { randomUUID } from 'crypto';
 import { createReadStream } from 'fs';
 import { PrismaService } from '../prisma/prisma.service';
 import { FileStorage, FILE_STORAGE } from '../storage/storage.interface';
+import { PersistentFileScansService, PersistentScanStatus } from '../storage/persistent-file-scans.service';
 import { validateUploadedFile } from '../storage/upload-security';
 import { PAYMENT_PROVIDER, PaymentProvider } from '../payments/payment.interface';
 import { MasterPenaltyService } from '../common/master-penalty.service';
@@ -20,6 +22,16 @@ import { OpenDisputeDto, ResolveDisputeDto } from './dto';
 const DISPUTE_WINDOW_AFTER_CLOSE_MS = 48 * 3600 * 1000;
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
 
+type EvidenceSecurityRow = {
+  id: string;
+  disputeId: string;
+  path: string;
+  mimeType: string;
+  sizeBytes: number;
+  scanStatus: PersistentScanStatus;
+  scannedAt: Date | null;
+};
+
 @Injectable()
 export class DisputesService {
   private readonly logger = new Logger(DisputesService.name);
@@ -27,6 +39,7 @@ export class DisputesService {
   constructor(
     private readonly prisma: PrismaService,
     @Inject(FILE_STORAGE) private readonly storage: FileStorage,
+    private readonly fileScans: PersistentFileScansService,
     @Inject(PAYMENT_PROVIDER) private readonly payments: PaymentProvider,
     private readonly penalties: MasterPenaltyService,
     private readonly compensation: CompensationService,
@@ -113,16 +126,45 @@ export class DisputesService {
 
     const validated = validateUploadedFile(file, ['jpeg', 'png'], MAX_FILE_BYTES);
     const relPath = await this.storage.save(file.buffer, validated.extension);
+    const evidenceId = randomUUID();
 
     try {
-      return await this.prisma.dispute.update({
-        where: { id: disputeId },
-        data: { evidenceDocIds: { push: relPath } },
-      });
+      await this.prisma.$executeRaw`
+        INSERT INTO "DisputeEvidence" (
+          "id", "disputeId", "uploadedByUserId", "path", "mimeType", "sizeBytes"
+        ) VALUES (
+          ${evidenceId}, ${disputeId}, ${userId}, ${relPath}, ${validated.mimeType}, ${validated.sizeBytes}
+        )
+      `;
     } catch (error) {
       await this.removeOrphan(relPath, 'dispute evidence');
       throw error;
     }
+
+    await this.fileScans.enqueueDisputeEvidence(evidenceId);
+    return this.getEvidenceStatus(userId, disputeId, evidenceId);
+  }
+
+  async getEvidenceStatus(userId: string, disputeId: string, evidenceId: string) {
+    const dispute = await this.findOrThrow(disputeId);
+    await this.guardParticipant(userId, dispute);
+    const rows = await this.prisma.$queryRaw<EvidenceSecurityRow[]>`
+      SELECT "id", "disputeId", "path", "mimeType", "sizeBytes", "scanStatus", "scannedAt"
+      FROM "DisputeEvidence"
+      WHERE "id" = ${evidenceId} AND "disputeId" = ${disputeId}
+      LIMIT 1
+    `;
+    const evidence = rows[0];
+    if (!evidence) throw new NotFoundException('Доказательство не найдено');
+    return {
+      id: evidence.id,
+      path: evidence.path,
+      mimeType: evidence.mimeType,
+      sizeBytes: evidence.sizeBytes,
+      scanStatus: evidence.scanStatus,
+      scannedAt: evidence.scannedAt,
+      statusPath: `/disputes/${disputeId}/evidence/${evidence.id}/status`,
+    };
   }
 
   async addCounterStatement(userId: string, disputeId: string, counterStatement: string) {
@@ -156,8 +198,6 @@ export class DisputesService {
           select: { commercialMode: true, serviceFee: true },
         })
       : null;
-    // Возврат возможен только для срочной платной заявки. В FREE_PILOT платформа
-    // не принимала деньги, поэтому флаг принудительно сохраняется как false.
     const refundServiceFee = Boolean(
       urgentOrder && urgentOrder.commercialMode !== 'FREE_PILOT' && dto.refundServiceFee,
     );
@@ -181,7 +221,6 @@ export class DisputesService {
         if (dto.penalizeMaster && order.masterId) await this.penalties.applyPenalty(tx, order.masterId);
         if (order.status === 'DONE') {
           await tx.order.updateMany({ where: { id: orderId, status: 'DONE' }, data: { status: 'CLOSED', closedAt: new Date() } });
-          // CompensationService самостоятельно учитывает сохранённый commercialMode заявки.
           await this.compensation.accrueCallout(tx, order);
         }
       } else if (plannedOrderId) {
@@ -194,9 +233,6 @@ export class DisputesService {
     });
 
     if (refundServiceFee && orderId && urgentOrder) {
-      // Спор уже сохранён RESOLVED в транзакции выше — откатить это здесь нельзя.
-      // Исход неизвестен при исключении провайдера: громкий лог для ручной сверки
-      // оператором, тот же fail-safe принцип, что и в WalletService.request().
       try {
         await this.payments.refund(orderId, urgentOrder.serviceFee);
       } catch (e) {
