@@ -32,6 +32,7 @@ describe('environment security validation', () => {
     expect(env.TRUST_PROXY_HOPS).toBe(0);
     expect(env.UPLOAD_TTL_HOURS).toBe(24);
     expect(env.FILE_SCAN_MODE).toBe('DISABLED');
+    expect(env.PDF_CDR_MODE).toBe('BYPASS');
     expect(env.CLAMAV_HOST).toBe('127.0.0.1');
     expect(env.CLAMAV_PORT).toBe(3310);
     expect(env.CLAMAV_TIMEOUT_MS).toBe(15000);
@@ -56,6 +57,7 @@ describe('environment security validation', () => {
       NODE_ENV: 'production',
       JWT_SECRET: secureSecret,
       CORS_ORIGINS: 'https://masterqala.kz',
+      PDF_CDR_MODE: 'REQUIRED',
     };
 
     expect(() => validateEnvironment(productionBase)).toThrow('FILE_SCAN_MODE');
@@ -63,6 +65,20 @@ describe('environment security validation', () => {
       'должен быть CLAMAV',
     );
     expect(validateEnvironment({ ...productionBase, FILE_SCAN_MODE: 'CLAMAV' }).FILE_SCAN_MODE).toBe('CLAMAV');
+  });
+
+  it('требует явную PDF CDR policy в production', () => {
+    const productionBase = {
+      NODE_ENV: 'production',
+      JWT_SECRET: secureSecret,
+      CORS_ORIGINS: 'https://masterqala.kz',
+      FILE_SCAN_MODE: 'CLAMAV',
+    };
+
+    expect(() => validateEnvironment(productionBase)).toThrow('PDF_CDR_MODE');
+    expect(validateEnvironment({ ...productionBase, PDF_CDR_MODE: 'REQUIRED' }).PDF_CDR_MODE).toBe('REQUIRED');
+    expect(validateEnvironment({ ...productionBase, PDF_CDR_MODE: 'BYPASS' }).PDF_CDR_MODE).toBe('BYPASS');
+    expect(() => validateEnvironment({ ...productionBase, PDF_CDR_MODE: 'UNKNOWN' })).toThrow('PDF_CDR_MODE');
   });
 
   it('отклоняет wildcard, path и неизвестный протокол', () => {
@@ -101,6 +117,7 @@ describe('environment security validation', () => {
       TRUST_PROXY_HOPS: '1',
       UPLOAD_TTL_HOURS: '12',
       FILE_SCAN_MODE: 'CLAMAV',
+      PDF_CDR_MODE: 'REQUIRED',
       CLAMAV_HOST: 'clamav.internal',
       CLAMAV_PORT: '3311',
       CLAMAV_TIMEOUT_MS: '20000',
@@ -115,6 +132,7 @@ describe('environment security validation', () => {
     expect(env.TRUST_PROXY_HOPS).toBe(1);
     expect(env.UPLOAD_TTL_HOURS).toBe(12);
     expect(env.FILE_SCAN_MODE).toBe('CLAMAV');
+    expect(env.PDF_CDR_MODE).toBe('REQUIRED');
     expect(env.CLAMAV_HOST).toBe('clamav.internal');
     expect(env.CLAMAV_PORT).toBe(3311);
     expect(env.CLAMAV_TIMEOUT_MS).toBe(20000);
