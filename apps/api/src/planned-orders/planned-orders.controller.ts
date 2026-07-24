@@ -3,6 +3,7 @@ import { createReadStream } from 'fs';
 import { User } from '@prisma/client';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
+import { PhotoReferenceGuard } from '../storage/photo-reference.guard';
 import { mimeTypeForStoredPath } from '../storage/upload-security';
 import { PlannedOrdersService } from './planned-orders.service';
 import { PlannedOrdersCommercialService } from './planned-orders-commercial.service';
@@ -14,10 +15,12 @@ export class PlannedOrdersController {
   constructor(
     private readonly plannedOrders: PlannedOrdersService,
     private readonly commercial: PlannedOrdersCommercialService,
+    private readonly photoReferences: PhotoReferenceGuard,
   ) {}
 
   @Post()
-  create(@CurrentUser() user: User, @Body() dto: CreatePlannedOrderDto) {
+  async create(@CurrentUser() user: User, @Body() dto: CreatePlannedOrderDto) {
+    await this.photoReferences.assertAvailable(dto.photoPaths);
     return this.plannedOrders.create(user.id, dto);
   }
 
