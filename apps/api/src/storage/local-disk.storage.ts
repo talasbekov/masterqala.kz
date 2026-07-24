@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { randomUUID } from 'crypto';
-import { mkdir, unlink, writeFile } from 'fs/promises';
+import { access, mkdir, unlink, writeFile } from 'fs/promises';
 import { join, resolve, sep } from 'path';
 import { FileStorage } from './storage.interface';
 
@@ -19,6 +19,17 @@ export class LocalDiskStorage implements FileStorage {
     const relPath = `${randomUUID()}.${ext}`;
     await writeFile(join(this.dir, relPath), buffer, { flag: 'wx', mode: 0o600 });
     return relPath;
+  }
+
+  async exists(relPath: string): Promise<boolean> {
+    const absolutePath = this.absolutePath(relPath);
+    try {
+      await access(absolutePath);
+      return true;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return false;
+      throw error;
+    }
   }
 
   async remove(relPath: string): Promise<void> {
