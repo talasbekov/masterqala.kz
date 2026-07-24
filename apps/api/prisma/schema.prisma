@@ -60,10 +60,26 @@ model User {
   withdrawalRequests     WithdrawalRequest[]
   cancellations          MasterCancellation[]
   addresses              Address[]
+  pendingUploads         PendingUpload[]
   disputesOpened         Dispute[]               @relation("DisputesOpened")
   disputesResolved       Dispute[]               @relation("DisputesResolved")
   reviewsGiven           Review[]                @relation("ReviewsGiven")
   reviewsReceived        Review[]                @relation("ReviewsReceived")
+}
+
+model PendingUpload {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  path       String   @unique
+  mimeType   String
+  sizeBytes  Int
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime @default(now())
+
+  @@index([userId, consumedAt, expiresAt])
+  @@index([expiresAt, consumedAt])
 }
 
 model SmsCode {

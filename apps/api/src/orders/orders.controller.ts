@@ -63,7 +63,7 @@ export class OrdersController {
 
   @Post('orders')
   async create(@CurrentUser() user: User, @Body() dto: CreateOrderDto) {
-    await this.photoReferences.assertAvailable(dto.photoPaths);
+    await this.photoReferences.assertAvailable(user.id, dto.photoPaths);
     return this.present(this.orders.create(user.id, dto));
   }
 
