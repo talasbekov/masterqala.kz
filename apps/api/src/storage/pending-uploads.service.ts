@@ -17,9 +17,11 @@ type UploadStatusRow = {
   expiresAt: Date;
   scanStatus: UploadScanStatus;
   scannedAt: Date | null;
+  purgedAt: Date | null;
 };
 
 type ScanClaim = { id: string; path: string };
+type CleanupCandidate = { id: string; path: string };
 
 @Injectable()
 export class PendingUploadsService implements OnModuleInit {
@@ -72,14 +74,14 @@ export class PendingUploadsService implements OnModuleInit {
       return this.getStatus(userId, path);
     } catch (error) {
       const persisted = await this.prisma.pendingUpload.count({ where: { path } }).catch(() => 0);
-      if (persisted === 0) await this.removeOrphan(path, 'registration failure');
+      if (persisted === 0) await this.removeFile(path, 'registration failure');
       throw error;
     }
   }
 
   async getStatus(userId: string, path: string) {
     const rows = await this.prisma.$queryRaw<UploadStatusRow[]>`
-      SELECT "id", "path", "mimeType", "sizeBytes", "expiresAt", "scanStatus", "scannedAt"
+      SELECT "id", "path", "mimeType", "sizeBytes", "expiresAt", "scanStatus", "scannedAt", "purgedAt"
       FROM "PendingUpload"
       WHERE "userId" = ${userId} AND "path" = ${path}
       LIMIT 1
@@ -93,6 +95,7 @@ export class PendingUploadsService implements OnModuleInit {
       expiresAt: row.expiresAt,
       scanStatus: row.scanStatus,
       scannedAt: row.scannedAt,
+      purgedAt: row.purgedAt,
     };
   }
 
@@ -135,7 +138,13 @@ export class PendingUploadsService implements OnModuleInit {
             "scanError" = ${result.signature?.slice(0, 500) ?? 'Malware detected'}
         WHERE "id" = ${upload.id} AND "scanStatus" = 'SCANNING'
       `;
-      await this.removeOrphan(upload.path, 'infected upload');
+      if (await this.removeFile(upload.path, 'infected upload')) {
+        await this.prisma.$executeRaw`
+          UPDATE "PendingUpload"
+          SET "purgedAt" = CURRENT_TIMESTAMP
+          WHERE "id" = ${upload.id} AND "purgedAt" IS NULL
+        `;
+      }
     } catch (error) {
       const message = (error as Error).message.slice(0, 500);
       await this.prisma.$executeRaw`
@@ -178,31 +187,39 @@ export class PendingUploadsService implements OnModuleInit {
   }
 
   async cleanupExpired(limit = 100): Promise<void> {
-    const now = new Date();
-    const expired = await this.prisma.pendingUpload.findMany({
-      where: { consumedAt: null, expiresAt: { lte: now } },
-      orderBy: { expiresAt: 'asc' },
-      take: limit,
-      select: { id: true, path: true },
-    });
+    const rows = await this.prisma.$queryRaw<CleanupCandidate[]>`
+      SELECT "id", "path"
+      FROM "PendingUpload"
+      WHERE "consumedAt" IS NULL
+        AND "expiresAt" <= CURRENT_TIMESTAMP
+        AND "scanStatus" IN ('PENDING_SCAN', 'SCANNING', 'CLEAN')
+      ORDER BY "expiresAt" ASC
+      LIMIT ${limit}
+    `;
 
-    for (const upload of expired) {
+    for (const upload of rows) {
       try {
         await this.storage.remove(upload.path);
-        await this.prisma.pendingUpload.deleteMany({
-          where: { id: upload.id, consumedAt: null, expiresAt: { lte: now } },
-        });
+        await this.prisma.$executeRaw`
+          DELETE FROM "PendingUpload"
+          WHERE "id" = ${upload.id}
+            AND "consumedAt" IS NULL
+            AND "expiresAt" <= CURRENT_TIMESTAMP
+            AND "scanStatus" IN ('PENDING_SCAN', 'SCANNING', 'CLEAN')
+        `;
       } catch (error) {
         this.logger.error(`Не удалось очистить expired upload ${upload.path}: ${(error as Error).message}`);
       }
     }
   }
 
-  private async removeOrphan(path: string, context: string): Promise<void> {
+  private async removeFile(path: string, context: string): Promise<boolean> {
     try {
       await this.storage.remove(path);
+      return true;
     } catch (error) {
-      this.logger.error(`Не удалось удалить orphan upload ${path} (${context}): ${(error as Error).message}`);
+      this.logger.error(`Не удалось удалить upload ${path} (${context}): ${(error as Error).message}`);
+      return false;
     }
   }
 }
