@@ -1,8 +1,16 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException, Inject } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Inject,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { DocumentType } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { SubmitApplicationDto } from './dto';
 import { FileStorage, FILE_STORAGE } from '../storage/storage.interface';
+import { validateUploadedFile } from '../storage/upload-security';
 
 const PROFILE_INCLUDE = {
   categories: { include: { category: true } },
@@ -11,12 +19,8 @@ const PROFILE_INCLUDE = {
 
 @Injectable()
 export class MastersService {
-  private static readonly ALLOWED_MIME: Record<string, string> = {
-    'image/jpeg': 'jpg',
-    'image/png': 'png',
-    'application/pdf': 'pdf',
-  };
   static readonly MAX_FILE_BYTES = 10 * 1024 * 1024;
+  private readonly logger = new Logger(MastersService.name);
 
   constructor(
     private readonly prisma: PrismaService,
@@ -85,21 +89,32 @@ export class MastersService {
     if (profile.status !== 'PENDING_REVIEW' && profile.status !== 'NEEDS_INFO') {
       throw new ConflictException('Документы можно загружать только пока заявка на проверке');
     }
-    const ext = MastersService.ALLOWED_MIME[file.mimetype];
-    if (!ext) throw new BadRequestException('Допустимы только JPEG, PNG и PDF');
-    if (file.size > MastersService.MAX_FILE_BYTES) {
-      throw new BadRequestException('Файл больше 10 МБ');
+
+    const validated = validateUploadedFile(file, ['jpeg', 'png', 'pdf'], MastersService.MAX_FILE_BYTES);
+    const relPath = await this.storage.save(file.buffer, validated.extension);
+
+    try {
+      return await this.prisma.masterDocument.create({
+        data: {
+          masterProfileId: profile.id,
+          type,
+          filePath: relPath,
+          originalName: validated.originalName,
+          mimeType: validated.mimeType,
+          sizeBytes: validated.sizeBytes,
+        },
+      });
+    } catch (error) {
+      await this.removeOrphan(relPath);
+      throw error;
     }
-    const relPath = await this.storage.save(file.buffer, ext);
-    return this.prisma.masterDocument.create({
-      data: {
-        masterProfileId: profile.id,
-        type,
-        filePath: relPath,
-        originalName: file.originalname,
-        mimeType: file.mimetype,
-        sizeBytes: file.size,
-      },
-    });
+  }
+
+  private async removeOrphan(relPath: string): Promise<void> {
+    try {
+      await this.storage.remove(relPath);
+    } catch (error) {
+      this.logger.error(`Не удалось удалить orphan master document ${relPath}: ${(error as Error).message}`);
+    }
   }
 }
