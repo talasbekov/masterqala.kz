@@ -89,6 +89,7 @@ export function validateEnvironment(raw: Record<string, unknown>): Record<string
   const corsOrigins = parseCorsOrigins(raw.CORS_ORIGINS, nodeEnv);
   const port = parseInteger('PORT', raw.PORT, 3000, 1, 65535);
   const trustProxyHops = parseInteger('TRUST_PROXY_HOPS', raw.TRUST_PROXY_HOPS, 0, 0, 10);
+  const uploadTtlHours = parseInteger('UPLOAD_TTL_HOURS', raw.UPLOAD_TTL_HOURS, 24, 1, 168);
 
   return {
     ...raw,
@@ -97,6 +98,7 @@ export function validateEnvironment(raw: Record<string, unknown>): Record<string
     CORS_ORIGINS: corsOrigins.join(','),
     PORT: port,
     TRUST_PROXY_HOPS: trustProxyHops,
+    UPLOAD_TTL_HOURS: uploadTtlHours,
   };
 }
 
