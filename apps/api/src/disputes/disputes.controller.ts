@@ -1,8 +1,22 @@
-import { Body, Controller, Get, Param, Patch, Post, StreamableFile, UseGuards, UseInterceptors, UploadedFile, BadRequestException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Get,
+  NotFoundException,
+  Param,
+  Patch,
+  Post,
+  StreamableFile,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { User } from '@prisma/client';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
+import { mimeTypeForStoredPath } from '../storage/upload-security';
 import { DisputesService } from './disputes.service';
 import { OpenDisputeDto, CounterStatementDto } from './dto';
 
@@ -38,6 +52,8 @@ export class DisputesController {
   @Get('disputes/:id/evidence/:docPath')
   async evidence(@CurrentUser() user: User, @Param('id') id: string, @Param('docPath') docPath: string) {
     const stream = await this.disputes.getEvidenceStream(user, id, docPath);
-    return new StreamableFile(stream, { type: 'image/jpeg', disposition: 'inline' });
+    const mimeType = mimeTypeForStoredPath(docPath);
+    if (!mimeType || mimeType === 'application/pdf') throw new NotFoundException('Документ не найден');
+    return new StreamableFile(stream, { type: mimeType, disposition: 'inline' });
   }
 }
