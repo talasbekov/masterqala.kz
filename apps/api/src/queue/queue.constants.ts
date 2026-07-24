@@ -13,4 +13,5 @@ export const JOBS = {
   MASTER_DOCUMENT_SCAN: 'master-document-scan',
   DISPUTE_EVIDENCE_SCAN: 'dispute-evidence-scan',
   PERSISTENT_FILE_SCAN_SWEEP: 'persistent-file-scan-sweep',
+  SECURITY_RETENTION: 'security-retention',
 } as const;
