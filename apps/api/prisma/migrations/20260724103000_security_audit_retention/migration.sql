@@ -1,3 +1,6 @@
+ALTER TABLE "PendingUpload"
+  ADD COLUMN "purgedAt" TIMESTAMP(3);
+
 ALTER TABLE "MasterDocument"
   ADD COLUMN "purgedAt" TIMESTAMP(3);
 
@@ -123,6 +126,13 @@ BEGIN
     );
   END IF;
 
+  IF OLD."purgedAt" IS NULL AND NEW."purgedAt" IS NOT NULL THEN
+    PERFORM security_append_audit(
+      'FILE_BINARY_PURGED', 'INFO', 'DELETED', 'PENDING_UPLOAD', NEW."id", NEW."userId",
+      jsonb_build_object('scanStatus', NEW."scanStatus", 'purgedAt', NEW."purgedAt")
+    );
+  END IF;
+
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
@@ -135,10 +145,17 @@ CREATE FUNCTION audit_master_document()
 RETURNS TRIGGER AS $$
 DECLARE
   actor_id TEXT;
+  profile_id TEXT;
 BEGIN
+  IF TG_OP = 'DELETE' THEN
+    profile_id := OLD."masterProfileId";
+  ELSE
+    profile_id := NEW."masterProfileId";
+  END IF;
+
   SELECT "userId" INTO actor_id
   FROM "MasterProfile"
-  WHERE "id" = COALESCE(NEW."masterProfileId", OLD."masterProfileId");
+  WHERE "id" = profile_id;
 
   IF TG_OP = 'INSERT' THEN
     PERFORM security_append_audit(
