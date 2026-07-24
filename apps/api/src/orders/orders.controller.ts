@@ -4,6 +4,7 @@ import { User } from '@prisma/client';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { CommercialModeService } from '../commercial-mode/commercial-mode.service';
+import { PhotoReferenceGuard } from '../storage/photo-reference.guard';
 import { mimeTypeForStoredPath } from '../storage/upload-security';
 import { OrdersService } from './orders.service';
 import { CreateOrderDto, PreviewOrderDto, ProposePriceDto } from './dto';
@@ -14,6 +15,7 @@ export class OrdersController {
   constructor(
     private readonly orders: OrdersService,
     private readonly commercialMode: CommercialModeService,
+    private readonly photoReferences: PhotoReferenceGuard,
   ) {}
 
   private async present<T>(value: T | Promise<T>): Promise<T> {
@@ -60,7 +62,8 @@ export class OrdersController {
   }
 
   @Post('orders')
-  create(@CurrentUser() user: User, @Body() dto: CreateOrderDto) {
+  async create(@CurrentUser() user: User, @Body() dto: CreateOrderDto) {
+    await this.photoReferences.assertAvailable(dto.photoPaths);
     return this.present(this.orders.create(user.id, dto));
   }
 
