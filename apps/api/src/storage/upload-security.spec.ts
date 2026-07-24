@@ -1,5 +1,9 @@
 import { BadRequestException } from '@nestjs/common';
-import { sanitizeOriginalFilename, validateUploadedFile } from './upload-security';
+import {
+  isCanonicalStoredPhotoPath,
+  sanitizeOriginalFilename,
+  validateUploadedFile,
+} from './upload-security';
 
 function file(
   buffer: Buffer,
@@ -99,5 +103,12 @@ describe('upload security', () => {
 
     expect(sanitized).toHaveLength(180);
     expect(sanitized.endsWith('.pdf')).toBe(true);
+  });
+
+  it('принимает только UUID-пути JPEG и PNG для фотографий заявок', () => {
+    expect(isCanonicalStoredPhotoPath('123e4567-e89b-42d3-a456-426614174000.jpg')).toBe(true);
+    expect(isCanonicalStoredPhotoPath('123e4567-e89b-42d3-a456-426614174000.png')).toBe(true);
+    expect(isCanonicalStoredPhotoPath('123e4567-e89b-42d3-a456-426614174000.pdf')).toBe(false);
+    expect(isCanonicalStoredPhotoPath('../../etc/passwd')).toBe(false);
   });
 });
