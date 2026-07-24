@@ -50,7 +50,9 @@ export class ClamAvScanner implements QuarantineScanner {
         stream.on('data', (chunk: Buffer) => {
           const length = Buffer.allocUnsafe(4);
           length.writeUInt32BE(chunk.length, 0);
-          if (!socket.write(length) || !socket.write(chunk)) stream.pause();
+          const headerWritable = socket.write(length);
+          const chunkWritable = socket.write(chunk);
+          if (!headerWritable || !chunkWritable) stream.pause();
         });
         socket.on('drain', () => stream.resume());
         stream.on('end', () => socket.end(Buffer.alloc(4)));
