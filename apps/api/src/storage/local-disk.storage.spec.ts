@@ -19,7 +19,7 @@ describe('LocalDiskStorage', () => {
     await rm(directory, { recursive: true, force: true });
   });
 
-  it('сохраняет файл под UUID-именем и удаляет его', async () => {
+  it('сохраняет файл под UUID-именем, проверяет наличие и удаляет его', async () => {
     const storage = new LocalDiskStorage();
     const content = Buffer.from('safe-content');
 
@@ -29,8 +29,10 @@ describe('LocalDiskStorage', () => {
     expect(relPath).toMatch(/^[0-9a-f-]{36}\.jpg$/);
     expect(await readFile(absolutePath)).toEqual(content);
     expect((await stat(absolutePath)).mode & 0o777).toBe(0o600);
+    await expect(storage.exists(relPath)).resolves.toBe(true);
 
     await storage.remove(relPath);
+    await expect(storage.exists(relPath)).resolves.toBe(false);
     await expect(stat(absolutePath)).rejects.toMatchObject({ code: 'ENOENT' });
     await expect(storage.remove(relPath)).resolves.toBeUndefined();
   });
