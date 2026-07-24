@@ -5,6 +5,7 @@ import { DisabledQuarantineScanner } from './disabled-quarantine.scanner';
 import { FILE_STORAGE } from './storage.interface';
 import { LocalDiskStorage } from './local-disk.storage';
 import { PendingUploadsService } from './pending-uploads.service';
+import { PersistentFileScansService } from './persistent-file-scans.service';
 import { PhotoReferenceGuard } from './photo-reference.guard';
 import { QUARANTINE_SCANNER } from './quarantine-scanner.interface';
 
@@ -27,7 +28,8 @@ import { QUARANTINE_SCANNER } from './quarantine-scanner.interface';
     },
     PhotoReferenceGuard,
     PendingUploadsService,
+    PersistentFileScansService,
   ],
-  exports: [FILE_STORAGE, PhotoReferenceGuard, PendingUploadsService],
+  exports: [FILE_STORAGE, PhotoReferenceGuard, PendingUploadsService, PersistentFileScansService],
 })
 export class StorageModule {}

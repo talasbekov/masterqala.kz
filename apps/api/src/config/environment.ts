@@ -1,8 +1,10 @@
 const NODE_ENVIRONMENTS = ['development', 'test', 'production'] as const;
 const FILE_SCAN_MODES = ['DISABLED', 'CLAMAV'] as const;
+const PDF_CDR_MODES = ['BYPASS', 'REQUIRED'] as const;
 
 type NodeEnvironment = (typeof NODE_ENVIRONMENTS)[number];
 type FileScanMode = (typeof FILE_SCAN_MODES)[number];
+type PdfCdrMode = (typeof PDF_CDR_MODES)[number];
 
 const DEFAULT_LOCAL_ORIGINS = ['http://localhost:5173', 'http://127.0.0.1:5173'];
 const INSECURE_JWT_SECRETS = new Set([
@@ -34,6 +36,14 @@ function parseFileScanMode(value: unknown, nodeEnv: NodeEnvironment): FileScanMo
     throw new Error('В production FILE_SCAN_MODE должен быть CLAMAV');
   }
   return normalized as FileScanMode;
+}
+
+function parsePdfCdrMode(value: unknown, nodeEnv: NodeEnvironment): PdfCdrMode {
+  const normalized = requiredString(value) || (nodeEnv === 'production' ? '' : 'BYPASS');
+  if (!PDF_CDR_MODES.includes(normalized as PdfCdrMode)) {
+    throw new Error(`Недопустимый PDF_CDR_MODE=${normalized || '<empty>'}. Допустимые значения: ${PDF_CDR_MODES.join(', ')}`);
+  }
+  return normalized as PdfCdrMode;
 }
 
 function parseInteger(name: string, value: unknown, fallback: number, min: number, max: number): number {
@@ -104,6 +114,7 @@ export function validateEnvironment(raw: Record<string, unknown>): Record<string
   const trustProxyHops = parseInteger('TRUST_PROXY_HOPS', raw.TRUST_PROXY_HOPS, 0, 0, 10);
   const uploadTtlHours = parseInteger('UPLOAD_TTL_HOURS', raw.UPLOAD_TTL_HOURS, 24, 1, 168);
   const fileScanMode = parseFileScanMode(raw.FILE_SCAN_MODE, nodeEnv);
+  const pdfCdrMode = parsePdfCdrMode(raw.PDF_CDR_MODE, nodeEnv);
   const clamavHost = requiredString(raw.CLAMAV_HOST) || '127.0.0.1';
   const clamavPort = parseInteger('CLAMAV_PORT', raw.CLAMAV_PORT, 3310, 1, 65535);
   const clamavTimeoutMs = parseInteger('CLAMAV_TIMEOUT_MS', raw.CLAMAV_TIMEOUT_MS, 15000, 1000, 120000);
@@ -122,6 +133,7 @@ export function validateEnvironment(raw: Record<string, unknown>): Record<string
     TRUST_PROXY_HOPS: trustProxyHops,
     UPLOAD_TTL_HOURS: uploadTtlHours,
     FILE_SCAN_MODE: fileScanMode,
+    PDF_CDR_MODE: pdfCdrMode,
     CLAMAV_HOST: clamavHost,
     CLAMAV_PORT: clamavPort,
     CLAMAV_TIMEOUT_MS: clamavTimeoutMs,
