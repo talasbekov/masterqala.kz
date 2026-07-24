@@ -112,11 +112,14 @@ describe('Persistent document quarantine (e2e)', () => {
       .attach('file', TEST_PNG_BYTES, { filename: 'evidence.png', contentType: 'image/png' })
       .expect(201);
 
+    expect(upload.body.id).toBe(dispute.id);
     expect(upload.body.scanStatus).toBe('CLEAN');
-    expect(upload.body.statusPath).toBe(`/disputes/${dispute.id}/evidence/${upload.body.id}/status`);
+    expect(upload.body.statusPath).toBe(
+      `/disputes/${dispute.id}/evidence/${upload.body.evidenceId}/status`,
+    );
 
     const evidenceRows = await prisma.$queryRaw<Array<{ scanStatus: string; path: string }>>`
-      SELECT "scanStatus", "path" FROM "DisputeEvidence" WHERE "id" = ${upload.body.id}
+      SELECT "scanStatus", "path" FROM "DisputeEvidence" WHERE "id" = ${upload.body.evidenceId}
     `;
     expect(evidenceRows[0].scanStatus).toBe('CLEAN');
 
