@@ -19,16 +19,17 @@ export class PhotoReferenceGuard {
       }
     }
 
-    const available = await this.prisma.pendingUpload.count({
-      where: {
-        userId,
-        path: { in: [...paths] },
-        consumedAt: null,
-        expiresAt: { gt: new Date() },
-      },
-    });
-    if (available !== paths.length) {
-      throw new BadRequestException('Фото недоступно, истекло или уже использовано');
+    const rows = await this.prisma.$queryRaw<Array<{ count: bigint }>>`
+      SELECT COUNT(*)::bigint AS "count"
+      FROM "PendingUpload"
+      WHERE "userId" = ${userId}
+        AND "path" = ANY(${paths as string[]})
+        AND "scanStatus" = 'CLEAN'
+        AND "consumedAt" IS NULL
+        AND "expiresAt" > CURRENT_TIMESTAMP
+    `;
+    if (Number(rows[0]?.count ?? 0) !== paths.length) {
+      throw new BadRequestException('Фото недоступно, не прошло проверку, истекло или уже использовано');
     }
 
     for (const path of paths) {

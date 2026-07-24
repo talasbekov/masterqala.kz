@@ -1,4 +1,13 @@
-import { BadRequestException, Controller, Post, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import {
+  BadRequestException,
+  Controller,
+  Get,
+  Param,
+  Post,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { User } from '@prisma/client';
 import { CurrentUser } from '../auth/current-user.decorator';
@@ -19,5 +28,10 @@ export class UploadsController {
     if (!file) throw new BadRequestException('Файл обязателен');
     const validated = validateUploadedFile(file, ['jpeg', 'png'], MAX_FILE_BYTES);
     return this.pendingUploads.register(user.id, file.buffer, validated);
+  }
+
+  @Get(':path/status')
+  status(@CurrentUser() user: User, @Param('path') path: string) {
+    return this.pendingUploads.getStatus(user.id, path);
   }
 }

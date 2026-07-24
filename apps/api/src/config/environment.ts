@@ -1,6 +1,8 @@
 const NODE_ENVIRONMENTS = ['development', 'test', 'production'] as const;
+const FILE_SCAN_MODES = ['DISABLED', 'CLAMAV'] as const;
 
 type NodeEnvironment = (typeof NODE_ENVIRONMENTS)[number];
+type FileScanMode = (typeof FILE_SCAN_MODES)[number];
 
 const DEFAULT_LOCAL_ORIGINS = ['http://localhost:5173', 'http://127.0.0.1:5173'];
 const INSECURE_JWT_SECRETS = new Set([
@@ -21,6 +23,17 @@ function parseNodeEnvironment(value: unknown): NodeEnvironment {
     throw new Error(`Недопустимый NODE_ENV=${normalized}. Допустимые значения: ${NODE_ENVIRONMENTS.join(', ')}`);
   }
   return normalized as NodeEnvironment;
+}
+
+function parseFileScanMode(value: unknown, nodeEnv: NodeEnvironment): FileScanMode {
+  const normalized = requiredString(value) || (nodeEnv === 'production' ? '' : 'DISABLED');
+  if (!FILE_SCAN_MODES.includes(normalized as FileScanMode)) {
+    throw new Error(`Недопустимый FILE_SCAN_MODE=${normalized || '<empty>'}. Допустимые значения: ${FILE_SCAN_MODES.join(', ')}`);
+  }
+  if (nodeEnv === 'production' && normalized !== 'CLAMAV') {
+    throw new Error('В production FILE_SCAN_MODE должен быть CLAMAV');
+  }
+  return normalized as FileScanMode;
 }
 
 function parseInteger(name: string, value: unknown, fallback: number, min: number, max: number): number {
@@ -90,6 +103,15 @@ export function validateEnvironment(raw: Record<string, unknown>): Record<string
   const port = parseInteger('PORT', raw.PORT, 3000, 1, 65535);
   const trustProxyHops = parseInteger('TRUST_PROXY_HOPS', raw.TRUST_PROXY_HOPS, 0, 0, 10);
   const uploadTtlHours = parseInteger('UPLOAD_TTL_HOURS', raw.UPLOAD_TTL_HOURS, 24, 1, 168);
+  const fileScanMode = parseFileScanMode(raw.FILE_SCAN_MODE, nodeEnv);
+  const clamavHost = requiredString(raw.CLAMAV_HOST) || '127.0.0.1';
+  const clamavPort = parseInteger('CLAMAV_PORT', raw.CLAMAV_PORT, 3310, 1, 65535);
+  const clamavTimeoutMs = parseInteger('CLAMAV_TIMEOUT_MS', raw.CLAMAV_TIMEOUT_MS, 15000, 1000, 120000);
+  const uploadScanMaxAttempts = parseInteger('UPLOAD_SCAN_MAX_ATTEMPTS', raw.UPLOAD_SCAN_MAX_ATTEMPTS, 3, 1, 10);
+
+  if (fileScanMode === 'CLAMAV' && !clamavHost) {
+    throw new Error('CLAMAV_HOST обязателен при FILE_SCAN_MODE=CLAMAV');
+  }
 
   return {
     ...raw,
@@ -99,6 +121,11 @@ export function validateEnvironment(raw: Record<string, unknown>): Record<string
     PORT: port,
     TRUST_PROXY_HOPS: trustProxyHops,
     UPLOAD_TTL_HOURS: uploadTtlHours,
+    FILE_SCAN_MODE: fileScanMode,
+    CLAMAV_HOST: clamavHost,
+    CLAMAV_PORT: clamavPort,
+    CLAMAV_TIMEOUT_MS: clamavTimeoutMs,
+    UPLOAD_SCAN_MAX_ATTEMPTS: uploadScanMaxAttempts,
   };
 }
 

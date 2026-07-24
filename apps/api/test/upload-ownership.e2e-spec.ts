@@ -97,7 +97,7 @@ describe('Upload ownership and TTL (e2e)', () => {
       .send(plannedPayload(path))
       .expect(400);
 
-    expect(response.body.message).toBe('Фото недоступно, истекло или уже использовано');
+    expect(response.body.message).toBe('Фото недоступно, не прошло проверку, истекло или уже использовано');
     expect(await prisma.plannedOrderPhoto.count({ where: { path } })).toBe(1);
   });
 
@@ -114,7 +114,7 @@ describe('Upload ownership and TTL (e2e)', () => {
       .send(plannedPayload(path))
       .expect(400);
 
-    expect(response.body.message).toBe('Фото недоступно, истекло или уже использовано');
+    expect(response.body.message).toBe('Фото недоступно, не прошло проверку, истекло или уже использовано');
     expect(await prisma.plannedOrderPhoto.count({ where: { path } })).toBe(0);
   });
 

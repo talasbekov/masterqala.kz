@@ -21,11 +21,45 @@ export async function api(path: string, options: RequestInit = {}) {
   return handle(res);
 }
 
+type UploadScanResponse = {
+  path: string;
+  scanStatus: 'PENDING_SCAN' | 'SCANNING' | 'CLEAN' | 'INFECTED' | 'SCAN_FAILED';
+  [key: string]: unknown;
+};
+
+function isUploadScanResponse(value: unknown): value is UploadScanResponse {
+  if (!value || typeof value !== 'object') return false;
+  const candidate = value as Record<string, unknown>;
+  return typeof candidate.path === 'string' && typeof candidate.scanStatus === 'string';
+}
+
+async function waitForUploadScan(initial: UploadScanResponse): Promise<UploadScanResponse> {
+  let current = initial;
+  const deadline = Date.now() + 30_000;
+
+  while (true) {
+    if (current.scanStatus === 'CLEAN') return current;
+    if (current.scanStatus === 'INFECTED') {
+      throw new Error('Файл отклонён проверкой безопасности');
+    }
+    if (current.scanStatus === 'SCAN_FAILED') {
+      throw new Error('Не удалось проверить файл. Повторите загрузку');
+    }
+    if (Date.now() >= deadline) {
+      throw new Error('Проверка файла занимает слишком много времени. Повторите попытку позже');
+    }
+
+    await new Promise((resolve) => window.setTimeout(resolve, 750));
+    current = await api(`/uploads/${encodeURIComponent(current.path)}/status`);
+  }
+}
+
 export async function apiUpload(path: string, formData: FormData) {
   const res = await fetch(`${API}${path}`, {
     method: 'POST',
     headers: authHeaders(),
     body: formData,
   });
-  return handle(res);
+  const result = await handle(res);
+  return isUploadScanResponse(result) ? waitForUploadScan(result) : result;
 }
