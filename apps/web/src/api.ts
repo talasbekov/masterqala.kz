@@ -23,6 +23,7 @@ export async function api(path: string, options: RequestInit = {}) {
 
 type UploadScanResponse = {
   path: string;
+  statusPath?: string;
   scanStatus: 'PENDING_SCAN' | 'SCANNING' | 'CLEAN' | 'INFECTED' | 'SCAN_FAILED';
   [key: string]: unknown;
 };
@@ -50,7 +51,8 @@ async function waitForUploadScan(initial: UploadScanResponse): Promise<UploadSca
     }
 
     await new Promise((resolve) => window.setTimeout(resolve, 750));
-    current = await api(`/uploads/${encodeURIComponent(current.path)}/status`);
+    const statusPath = current.statusPath ?? `/uploads/${encodeURIComponent(current.path)}/status`;
+    current = await api(statusPath);
   }
 }
 
