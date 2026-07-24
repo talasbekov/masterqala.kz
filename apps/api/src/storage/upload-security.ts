@@ -31,6 +31,8 @@ const UPLOAD_TYPES: Record<AllowedUploadKind, UploadTypeDefinition> = {
   },
 };
 
+const STORED_PHOTO_PATH = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.(jpg|png)$/i;
+
 export interface ValidatedUpload {
   kind: AllowedUploadKind;
   extension: string;
@@ -114,6 +116,10 @@ export function validateUploadedFile(
     originalName: sanitizeOriginalFilename(file.originalname, definition.extension),
     sizeBytes,
   };
+}
+
+export function isCanonicalStoredPhotoPath(path: string): boolean {
+  return STORED_PHOTO_PATH.test(path);
 }
 
 export function mimeTypeForStoredPath(path: string): string | null {
