@@ -33,7 +33,7 @@ export class HealthService {
     this.nodeEnv = this.config.get<string>('NODE_ENV') ?? 'development';
   }
 
-  async readiness() {
+  async readiness(includeDetails = false) {
     const [database, scanner, backlog] = await Promise.all([
       this.databaseHealth(),
       this.scannerHealth(),
@@ -45,15 +45,26 @@ export class HealthService {
     const scannerReady = scanner.status === 'UP' || (scanner.status === 'DISABLED' && this.nodeEnv !== 'production');
     const ready = database.status === 'UP' && queueReady && scannerReady;
 
+    const publicResult = {
+      status: ready ? 'ready' : 'not_ready',
+      ready,
+      checkedAt: new Date().toISOString(),
+      dependencies: {
+        database: { status: database.status, latencyMs: database.latencyMs },
+        queue: { status: queue.status, enabled: queue.enabled },
+        scanner: { status: scanner.status, mode: scanner.mode, latencyMs: scanner.latencyMs },
+      },
+    };
+
+    if (!includeDetails) return publicResult;
+
     const warnings: string[] = [];
     if (backlog.failedScans > 0) warnings.push('Есть файлы со статусом SCAN_FAILED');
     if (backlog.staleScanning > 0) warnings.push('Есть зависшие SCANNING старше пяти минут');
     if (backlog.openCriticalAlerts > 0) warnings.push('Есть открытые критические security alerts');
 
     return {
-      status: ready ? 'ready' : 'not_ready',
-      ready,
-      checkedAt: new Date().toISOString(),
+      ...publicResult,
       environment: this.nodeEnv,
       dependencies: {
         database,
