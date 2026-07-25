@@ -57,13 +57,13 @@ export default function MyOrdersPage() {
 
   return (
     <div className="flex flex-col gap-3 px-5 pb-3.5 pt-1.5">
-      <div className="text-[22px] font-extrabold text-c2-ink">{t('myOrders.title')}</div>
-      <div className="flex rounded-c2-pill bg-c2-fill p-1">
+      <div className="text-[22px] font-extrabold text-ink">{t('myOrders.title')}</div>
+      <div className="flex rounded-pill bg-fill p-1">
         <button
           type="button"
           onClick={() => setTab('active')}
-          className={`flex-1 rounded-c2-pill py-2 text-[13px] font-extrabold ${
-            tab === 'active' ? 'bg-c2-surface text-c2-ink shadow-c2-card' : 'text-c2-ink-soft'
+          className={`flex-1 rounded-pill py-2 text-[13px] font-extrabold ${
+            tab === 'active' ? 'bg-surface text-ink shadow-card' : 'text-ink-soft'
           }`}
         >
           {t('myOrders.active')}
@@ -71,16 +71,16 @@ export default function MyOrdersPage() {
         <button
           type="button"
           onClick={() => setTab('history')}
-          className={`flex-1 rounded-c2-pill py-2 text-[13px] font-extrabold ${
-            tab === 'history' ? 'bg-c2-surface text-c2-ink shadow-c2-card' : 'text-c2-ink-soft'
+          className={`flex-1 rounded-pill py-2 text-[13px] font-extrabold ${
+            tab === 'history' ? 'bg-surface text-ink shadow-card' : 'text-ink-soft'
           }`}
         >
           {t('myOrders.history')}
         </button>
       </div>
-      {error && <p className="text-sm font-semibold text-c2-danger">{error}</p>}
+      {error && <p className="text-sm font-semibold text-danger">{error}</p>}
       {!loading && shown.length === 0 && (
-        <div className="rounded-c2-lg border-[1.5px] border-dashed border-c2-border bg-c2-surface p-6 text-center text-sm font-semibold text-c2-ink-soft">
+        <div className="rounded-lg border-[1.5px] border-dashed border-border bg-surface p-6 text-center text-sm font-semibold text-ink-soft">
           {tab === 'active' ? t('myOrders.emptyActive') : t('myOrders.emptyHistory')}
         </div>
       )}
@@ -92,25 +92,25 @@ export default function MyOrdersPage() {
           <Link
             key={it.id}
             to={it.kind === 'urgent' ? `/order/${it.id}` : `/planned/${it.id}`}
-            className="rounded-c2-lg border border-c2-border bg-c2-surface p-3.5"
+            className="rounded-lg border border-border bg-surface p-3.5"
           >
             <div className="flex items-center justify-between">
-              <span className="truncate text-sm font-extrabold text-c2-ink">
+              <span className="truncate text-sm font-extrabold text-ink">
                 {it.kind === 'urgent' ? '⚡' : '📅'} {it.category?.name} · №{it.id.slice(0, 8)}
               </span>
               <span
-                className={`shrink-0 rounded-c2-pill px-2.5 py-1 text-[10.5px] font-extrabold ${
+                className={`shrink-0 rounded-pill px-2.5 py-1 text-[10.5px] font-extrabold ${
                   variant === 'success'
-                    ? 'bg-c2-success-bg text-c2-success-ink'
+                    ? 'bg-success-bg text-success-ink'
                     : variant === 'danger'
-                      ? 'bg-c2-danger-bg text-c2-danger-ink'
-                      : 'bg-c2-fill-soft text-c2-primary'
+                      ? 'bg-danger-bg text-danger-ink'
+                      : 'bg-fill-soft text-primary'
                 }`}
               >
                 {label}
               </span>
             </div>
-            <div className="mt-1 text-xs text-c2-ink-soft">
+            <div className="mt-1 text-xs text-ink-soft">
               {new Date(it.createdAt).toLocaleDateString('ru-RU')}
               {price != null && ` · ${price} ₸`}
               {it.master?.name && ` · ${it.master.name}`}
