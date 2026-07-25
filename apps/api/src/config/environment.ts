@@ -2,7 +2,7 @@ const NODE_ENVIRONMENTS = ['development', 'test', 'production'] as const;
 const FILE_SCAN_MODES = ['DISABLED', 'CLAMAV'] as const;
 const PDF_CDR_MODES = ['BYPASS', 'REQUIRED'] as const;
 
- type NodeEnvironment = (typeof NODE_ENVIRONMENTS)[number];
+type NodeEnvironment = (typeof NODE_ENVIRONMENTS)[number];
 type FileScanMode = (typeof FILE_SCAN_MODES)[number];
 type PdfCdrMode = (typeof PDF_CDR_MODES)[number];
 
@@ -61,6 +61,28 @@ function parseInteger(name: string, value: unknown, fallback: number, min: numbe
     throw new Error(`Недопустимый ${name}=${String(value)}. Ожидается целое число от ${min} до ${max}`);
   }
   return parsed;
+}
+
+function parseSecurityWebhookUrl(value: unknown, nodeEnv: NodeEnvironment): string {
+  const normalized = requiredString(value);
+  if (!normalized) return '';
+
+  let url: URL;
+  try {
+    url = new URL(normalized);
+  } catch {
+    throw new Error('SECURITY_ALERT_WEBHOOK_URL должен быть корректным URL');
+  }
+  if (!['http:', 'https:'].includes(url.protocol)) {
+    throw new Error('SECURITY_ALERT_WEBHOOK_URL должен использовать HTTP или HTTPS');
+  }
+  if (nodeEnv === 'production' && url.protocol !== 'https:') {
+    throw new Error('В production SECURITY_ALERT_WEBHOOK_URL должен использовать HTTPS');
+  }
+  if (url.username || url.password) {
+    throw new Error('SECURITY_ALERT_WEBHOOK_URL не должен содержать credentials');
+  }
+  return url.toString();
 }
 
 export function parseCorsOrigins(value: unknown, nodeEnv: NodeEnvironment): string[] {
@@ -137,12 +159,26 @@ export function validateEnvironment(raw: Record<string, unknown>): Record<string
   const consumedUploadMetadataRetentionDays = parseInteger(
     'CONSUMED_UPLOAD_METADATA_RETENTION_DAYS', raw.CONSUMED_UPLOAD_METADATA_RETENTION_DAYS, 30, 1, 365,
   );
+  const securityAlertWebhookUrl = parseSecurityWebhookUrl(raw.SECURITY_ALERT_WEBHOOK_URL, nodeEnv);
+  const securityAlertWebhookSecret = requiredString(raw.SECURITY_ALERT_WEBHOOK_SECRET);
+  const securityAlertWebhookTimeoutMs = parseInteger(
+    'SECURITY_ALERT_WEBHOOK_TIMEOUT_MS', raw.SECURITY_ALERT_WEBHOOK_TIMEOUT_MS, 5000, 1000, 30000,
+  );
+  const securityAlertDeliveryMaxAttempts = parseInteger(
+    'SECURITY_ALERT_DELIVERY_MAX_ATTEMPTS', raw.SECURITY_ALERT_DELIVERY_MAX_ATTEMPTS, 5, 1, 10,
+  );
 
   if (fileScanMode === 'CLAMAV' && !clamavHost) {
     throw new Error('CLAMAV_HOST обязателен при FILE_SCAN_MODE=CLAMAV');
   }
   if (nodeEnv === 'production' && pgBossDisabled === '1') {
     throw new Error('В production PGBOSS_DISABLED не может быть 1');
+  }
+  if (securityAlertWebhookUrl && securityAlertWebhookSecret.length < 32) {
+    throw new Error('SECURITY_ALERT_WEBHOOK_SECRET должен содержать не менее 32 символов');
+  }
+  if (!securityAlertWebhookUrl && securityAlertWebhookSecret) {
+    throw new Error('SECURITY_ALERT_WEBHOOK_URL обязателен, если задан SECURITY_ALERT_WEBHOOK_SECRET');
   }
 
   return {
@@ -163,6 +199,10 @@ export function validateEnvironment(raw: Record<string, unknown>): Record<string
     SECURITY_AUDIT_RETENTION_DAYS: securityAuditRetentionDays,
     FILE_QUARANTINE_RETENTION_DAYS: fileQuarantineRetentionDays,
     CONSUMED_UPLOAD_METADATA_RETENTION_DAYS: consumedUploadMetadataRetentionDays,
+    SECURITY_ALERT_WEBHOOK_URL: securityAlertWebhookUrl,
+    SECURITY_ALERT_WEBHOOK_SECRET: securityAlertWebhookSecret,
+    SECURITY_ALERT_WEBHOOK_TIMEOUT_MS: securityAlertWebhookTimeoutMs,
+    SECURITY_ALERT_DELIVERY_MAX_ATTEMPTS: securityAlertDeliveryMaxAttempts,
   };
 }
 
