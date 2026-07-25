@@ -61,8 +61,15 @@ pnpm --filter web dev                 # Web на :5173
 ## Тесты
 
 ```bash
-pnpm --filter api test                # unit
-pnpm --filter api test:e2e            # e2e, нужна db_test на :5433
+pnpm --filter api test                # unit — 46 тестов, ~4 с
+pnpm --filter api test:e2e            # e2e — 184 теста, ~100 с; нужна db_test на :5433
+```
+
+Перед первым прогоном e2e накатите схему на тестовую базу:
+
+```bash
+cd apps/api && DATABASE_URL=postgresql://masterqala:masterqala@localhost:5433/masterqala_test \
+  pnpm prisma migrate deploy
 ```
 
 E2E ходят в отдельную базу (`masterqala_test`) и запускаются последовательно
