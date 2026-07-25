@@ -7,7 +7,7 @@ describe('AdminMastersService', () => {
     return { service: new AdminMastersService(prisma, reviews), prisma, reviews };
   }
 
-  it('derives status priority: blocked > priority-penalized > online > offline', async () => {
+  it('derives status: blocked > online > offline', async () => {
     const { service, prisma } = build();
     const now = Date.now();
     prisma.masterProfile.findMany.mockResolvedValue([
@@ -19,9 +19,12 @@ describe('AdminMastersService', () => {
 
     const rows = await service.list();
 
+    // p2 со штрафом приоритета показывается как обычный активный мастер:
+    // понижения приоритета в матчинге не существует (волна рассылается всем
+    // одновременно), поэтому отдельный статус вводил бы оператора в заблуждение.
     expect(rows.map((r) => r.status)).toEqual([
       expect.stringContaining('блокирован до'),
-      expect.stringContaining('приоритет ↓ до'),
+      'активен · онлайн',
       'активен · онлайн',
       'активен · офлайн',
     ]);
