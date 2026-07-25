@@ -62,3 +62,10 @@ export class SecurityAlertTransitionDto {
   @MaxLength(1000)
   note?: string;
 }
+
+export class SecurityAlertAssignmentDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  assigneeUserId?: string | null;
+}
