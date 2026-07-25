@@ -14,4 +14,7 @@ export const JOBS = {
   DISPUTE_EVIDENCE_SCAN: 'dispute-evidence-scan',
   PERSISTENT_FILE_SCAN_SWEEP: 'persistent-file-scan-sweep',
   SECURITY_RETENTION: 'security-retention',
+  SECURITY_ALERT_DELIVERY: 'security-alert-delivery',
+  SECURITY_ALERT_DELIVERY_SWEEP: 'security-alert-delivery-sweep',
+  SECURITY_ALERT_SLA_SWEEP: 'security-alert-sla-sweep',
 } as const;
