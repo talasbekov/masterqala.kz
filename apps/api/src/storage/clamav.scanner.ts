@@ -1,6 +1,6 @@
 import { createReadStream } from 'fs';
 import { Socket } from 'net';
-import { FileScanResult, QuarantineScanner } from './quarantine-scanner.interface';
+import { FileScanResult, QuarantineScanner, ScannerHealth } from './quarantine-scanner.interface';
 
 export class ClamAvScanner implements QuarantineScanner {
   constructor(
@@ -9,15 +9,26 @@ export class ClamAvScanner implements QuarantineScanner {
     private readonly timeoutMs: number,
   ) {}
 
+  async healthCheck(): Promise<ScannerHealth> {
+    const startedAt = Date.now();
+    const response = await this.command('zPING\0');
+    if (response !== 'PONG') {
+      throw new Error(`Unexpected ClamAV PING response: ${response || '<empty>'}`);
+    }
+    return { status: 'UP', mode: 'CLAMAV', latencyMs: Date.now() - startedAt };
+  }
+
   async scan(absolutePath: string): Promise<FileScanResult> {
     return new Promise<FileScanResult>((resolve, reject) => {
       const socket = new Socket();
       let response = '';
       let settled = false;
+      let stream: ReturnType<typeof createReadStream> | null = null;
 
       const finish = (error?: Error, result?: FileScanResult) => {
         if (settled) return;
         settled = true;
+        stream?.destroy();
         socket.destroy();
         if (error) reject(error);
         else resolve(result!);
@@ -45,18 +56,43 @@ export class ClamAvScanner implements QuarantineScanner {
 
       socket.connect(this.port, this.host, () => {
         socket.write(Buffer.from('zINSTREAM\0'));
-        const stream = createReadStream(absolutePath, { highWaterMark: 64 * 1024 });
+        stream = createReadStream(absolutePath, { highWaterMark: 64 * 1024 });
         stream.on('error', (error) => finish(error));
         stream.on('data', (chunk: Buffer) => {
           const length = Buffer.allocUnsafe(4);
           length.writeUInt32BE(chunk.length, 0);
           const headerWritable = socket.write(length);
           const chunkWritable = socket.write(chunk);
-          if (!headerWritable || !chunkWritable) stream.pause();
+          if (!headerWritable || !chunkWritable) stream?.pause();
         });
-        socket.on('drain', () => stream.resume());
+        socket.on('drain', () => stream?.resume());
         stream.on('end', () => socket.end(Buffer.alloc(4)));
       });
+    });
+  }
+
+  private command(command: string): Promise<string> {
+    return new Promise<string>((resolve, reject) => {
+      const socket = new Socket();
+      let response = '';
+      let settled = false;
+
+      const finish = (error?: Error) => {
+        if (settled) return;
+        settled = true;
+        socket.destroy();
+        if (error) reject(error);
+        else resolve(response.replace(/\0/g, '').trim());
+      };
+
+      socket.setTimeout(this.timeoutMs, () => finish(new Error('ClamAV health check timeout')));
+      socket.on('error', (error) => finish(error));
+      socket.on('data', (chunk) => {
+        response += chunk.toString('utf8');
+        if (response.includes('\0') || response.includes('\n')) finish();
+      });
+      socket.on('close', () => finish());
+      socket.connect(this.port, this.host, () => socket.end(Buffer.from(command)));
     });
   }
 }
