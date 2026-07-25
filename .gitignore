@@ -4,6 +4,10 @@ dist/
 apps/api/uploads/
 *.log
 
+# Архивы дизайн-хендоффов и прочие выгрузки: содержимое коммитится распакованным
+# (см. apps/MasterQala/design_handoff_masterqala), сам архив в репозитории не нужен
+*.zip
+
 .worktrees/
 .superpowers/
 .claude/launch.json

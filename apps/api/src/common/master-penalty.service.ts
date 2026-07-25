@@ -14,7 +14,14 @@ const BLOCK_DURATION_MS = 7 * 24 * 3600 * 1000;
 export class MasterPenaltyService {
   constructor(private readonly prisma: PrismaService) {}
 
-  /** Ядро: −2 кредита + понижение приоритета. Не знает про отмены/окно блокировки. */
+  /**
+   * Ядро: −2 кредита + отметка о понижении приоритета. Не знает про отмены/окно блокировки.
+   *
+   * ВНИМАНИЕ: `priorityPenaltyUntil` сейчас никем не читается. Приоритета внутри волны
+   * не существует — она рассылается всем кандидатам одновременно, поэтому порядок
+   * подбора ненаблюдаем. Поле пишется как след наказания на будущее; реально действуют
+   * списание кредитов и `blockedUntil`. Подробности — docs/STATUS.md.
+   */
   async applyPenalty(tx: Tx, masterUserId: string): Promise<void> {
     await tx.leadCreditAccount.upsert({
       where: { masterUserId },

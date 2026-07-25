@@ -1,4 +1,4 @@
-import { BadRequestException, HttpException, Inject, Injectable } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, HttpException, Inject, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { randomInt } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
@@ -61,6 +61,7 @@ export class AuthService {
     await this.prisma.smsCode.update({ where: { id: record.id }, data: { usedAt: new Date() } });
 
     const user = await this.prisma.user.upsert({ where: { phone }, create: { phone }, update: {} });
+    if (user.isBlocked) throw new ForbiddenException('Аккаунт заблокирован');
     const accessToken = await this.jwt.signAsync({ sub: user.id, role: user.role });
     return {
       accessToken,
