@@ -6,10 +6,10 @@
 **Это документ о намерении, а не о состоянии кода.** Он отвечает на вопрос «что система
 должна делать и почему так решили». Что из этого уже реализовано и где код расходится
 со спекой — в [STATUS.md](../STATUS.md). Как это устроено технически — в
-[engineering/architecture.md](../engineering/architecture.md).
+[technical/CURRENT_ARCHITECTURE.md](../technical/CURRENT_ARCHITECTURE.md).
 
 Статусы заявок записаны здесь кириллицей исторически. Соответствие значениям enum
-в коде — в §5 и в [data-model.md](../engineering/data-model.md#статусы-заявок);
+в коде — в §5 и в [STATE_MACHINES.md](../technical/STATE_MACHINES.md#0-соответствие-названий-спеке);
 в коммитах и технических документах используйте значения enum.
 
 ---
@@ -425,7 +425,7 @@
 ## 5. Состояния заявки (state machine)
 
 Соответствие названиям в коде — в третьем столбце. Полный список enum с пояснениями —
-в [data-model.md](../engineering/data-model.md#статусы-заявок).
+в [STATE_MACHINES.md](../technical/STATE_MACHINES.md#0-соответствие-названий-спеке).
 
 ### 5.1 Срочная заявка
 

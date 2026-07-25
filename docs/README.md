@@ -1,16 +1,7 @@
 # Документация MasterQala.kz
 
-В каталоге два набора технической документации. Раньше они описывали разные ветки;
-с 26.07.2026 стек смержен, и **оба описывают `main`** — но по-разному подробно и
-местами противоречиво, потому что писались независимо. Сверка ещё не проведена, её
-план — в конце файла.
-
-| Набор | Чем полезен |
-|---|---|
-| [engineering/](engineering/architecture.md) + [STATUS.md](STATUS.md) | Короткое введение: как устроена система, чем занимается каждый модуль, где расходятся код и спека |
-| [technical/](technical/README.md) + [pilot/](pilot/) | Исчерпывающий справочник: payload событий, DTO, безопасность, деплой, тестовая стратегия, бесплатный пилот |
-
-При расхождении между ними опирайтесь на код — порядок приоритета ниже.
+Один набор технической документации. Раньше их было два — `engineering/` свёрнут
+в `technical/` 26.07.2026, дубли сведены.
 
 ## Источники истины
 
@@ -35,38 +26,60 @@ production-готовности.
 
 ---
 
+## С чего начать
+
+1. [product/spec.md](product/spec.md) §1–§3 — что за продукт и как работают оба режима.
+2. [STATUS.md](STATUS.md) — что из этого уже работает и где код расходится со спекой.
+3. [technical/CURRENT_ARCHITECTURE.md](technical/CURRENT_ARCHITECTURE.md) — как устроено.
+4. [technical/DEVELOPMENT.md](technical/DEVELOPMENT.md) — поднять у себя и потрогать.
+
 ## Продукт
 
 | Документ | О чём |
 |---|---|
 | [product/spec.md](product/spec.md) | Что система должна делать и почему так решили. Меняется только при изменении бизнес-решения |
-
-## Введение в систему
-
-| Документ | О чём |
-|---|---|
 | [STATUS.md](STATUS.md) | Что реализовано, расхождения код↔спека, прод-блокеры, пределы архитектуры |
-| [engineering/architecture.md](engineering/architecture.md) | Стек, карта модулей, сквозной поток заявки, разрешение гонок, джобы, realtime |
-| [engineering/data-model.md](engineering/data-model.md) | Сущности и инварианты, таблица статусов рус↔enum, риски схемы |
-| [engineering/api.md](engineering/api.md) | Справочник эндпоинтов по ролям, семантика кодов ответа |
-| [engineering/development.md](engineering/development.md) | Запуск, env-переменные, тесты, ручная проверка |
 
-## Подробный справочник
+## Система
 
 Указатель набора: [technical/README.md](technical/README.md).
 
-| Раздел | Документы |
+| Документ | О чём |
 |---|---|
-| Система | `CURRENT_ARCHITECTURE`, `DATA_MODEL`, `REST_API`, `STATE_MACHINES`, `WEBSOCKET_EVENTS` |
-| Безопасность | `SECURITY`, `FILE_UPLOAD_SECURITY`, `RATE_LIMITING_AND_HEADERS`, `SECURE_ENVIRONMENT`, `SECURITY_AUDIT_AND_RETENTION`, `SECURITY_OBSERVABILITY` |
-| Эксплуатация | `DEPLOYMENT_RUNBOOK`, `TESTING_STRATEGY`, `VERIFICATION_STATUS` |
-| Пилот | [pilot/](pilot/) — техспека, план реализации, выкатка |
+| [technical/CURRENT_ARCHITECTURE.md](technical/CURRENT_ARCHITECTURE.md) | Компоненты, модули, оба режима, разрешение гонок, джобы, хранение файлов |
+| [technical/DATA_MODEL.md](technical/DATA_MODEL.md) | Сущности, инварианты, коммерческий режим, пробелы схемы |
+| [technical/STATE_MACHINES.md](technical/STATE_MACHINES.md) | Переходы статусов, финансовые эффекты, соответствие названий спеке |
+| [technical/REST_API.md](technical/REST_API.md) | HTTP-контракт: маршруты, DTO, роли, ошибки |
+| [technical/WEBSOCKET_EVENTS.md](technical/WEBSOCKET_EVENTS.md) | Handshake, payload событий, требования к клиенту |
+| [technical/DEVELOPMENT.md](technical/DEVELOPMENT.md) | Запуск, env-переменные, тесты, ручная проверка |
 
-Все — в [technical/](technical/) и [pilot/](pilot/).
+## Безопасность и эксплуатация
 
-Оговорка про `VERIFICATION_STATUS.md`: он написан как чек-лист для PR #4 и ссылается
-на конкретный CI-run той ветки. PR смержен, ветки нет — документ читается как
-исторический снимок, а не как текущее состояние проверок.
+| Документ | О чём |
+|---|---|
+| [technical/SECURITY.md](technical/SECURITY.md) | Реализованные меры, риски, privacy, launch gate |
+| [technical/SECURE_ENVIRONMENT.md](technical/SECURE_ENVIRONMENT.md) | Секреты и конфигурация окружения |
+| [technical/RATE_LIMITING_AND_HEADERS.md](technical/RATE_LIMITING_AND_HEADERS.md) | Ограничение частоты и security-заголовки |
+| [technical/FILE_UPLOAD_SECURITY.md](technical/FILE_UPLOAD_SECURITY.md) | Проверка сигнатур, карантин, ClamAV, TTL |
+| [technical/SECURITY_AUDIT_AND_RETENTION.md](technical/SECURITY_AUDIT_AND_RETENTION.md) | Аудит и политика хранения |
+| [technical/SECURITY_OBSERVABILITY.md](technical/SECURITY_OBSERVABILITY.md) | Алерты, SLA, дашборд оператора |
+| [technical/DEPLOYMENT_RUNBOOK.md](technical/DEPLOYMENT_RUNBOOK.md) | CI, миграции, деплой, бэкапы, откат |
+| [technical/TESTING_STRATEGY.md](technical/TESTING_STRATEGY.md) | Покрытие и чего в нём нет |
+| [technical/VERIFICATION_STATUS.md](technical/VERIFICATION_STATUS.md) | Что ещё должно быть проверено руками |
+
+## Бесплатный пилот
+
+| Документ | О чём |
+|---|---|
+| [pilot/FREE_PILOT_TECHNICAL_SPEC.md](pilot/FREE_PILOT_TECHNICAL_SPEC.md) | Требования первой бесплатной версии |
+| [pilot/FREE_PILOT_IMPLEMENTATION_PLAN.md](pilot/FREE_PILOT_IMPLEMENTATION_PLAN.md) | План backend/frontend/data/testing/rollout |
+| [pilot/FREE_PILOT_ROLLOUT.md](pilot/FREE_PILOT_ROLLOUT.md) | Выкатка |
+
+**Ключевой принцип.** `MockPaymentProvider` и бесплатный пилот — разные вещи:
+`PAID_MOCK` имитирует платную систему и создаёт финансовые записи, `FREE_PILOT`
+не создаёт платежей, начислений, покупок кредитов и выводов. Номинальные суммы
+могут храниться для аналитики, но выручкой не являются. Поведение определяется
+режимом, сохранённым в самой заявке, а не текущим значением env.
 
 ## Архив
 
@@ -81,36 +94,7 @@ production-готовности.
 |---|---|
 | [research/2026-07-19-strategy.md](research/2026-07-19-strategy.md) | Аудит кода, экономика, GTM, юридический контур. В шапке — список утверждений, которые уже неверны |
 | [research/2026-07-19-project-analysis.md](research/2026-07-19-project-analysis.md) | Разбор репозитория и продукта, 281 источник |
-| [research/2026-07-19-market-crash-test.md](research/2026-07-19-market-crash-test.md) | Проверка модели на прочность против Naimi, Kaspi и досок объявлений, 698 источников |
-
-Последние два извлечены из JSON-дампов сессий исследования, которые лежали в `docs/`
-нечитаемыми машинными артефактами на 1,9 МБ.
-
----
-
-## Нерешённое: пять пар дублей
-
-Стек смержен, наборы больше не описывают разные ветки — и теперь пять пар описывают
-одно и то же дважды. Каждую нужно свести в один документ:
-
-| | |
-|---|---|
-| `technical/CURRENT_ARCHITECTURE.md` | `engineering/architecture.md` |
-| `technical/DATA_MODEL.md` + `STATE_MACHINES.md` | `engineering/data-model.md` |
-| `technical/REST_API.md` | `engineering/api.md` |
-| `technical/WEBSOCKET_EVENTS.md` | раздел «Realtime» в `engineering/architecture.md` |
-| `technical/VERIFICATION_STATUS.md` | `STATUS.md` |
-
-Что при этом стоит сохранить из каждого набора:
-
-- из `engineering/` — разбор гонок и идемпотентности, таблица статусов рус↔enum,
-  ссылки на строки кода, список расхождений код↔спека, хранение файлов, локальный запуск;
-- из `technical/` — payload-структуры WebSocket-событий, детали DTO, безопасность,
-  деплой и тестовая стратегия, финансовые инварианты режимов.
-
-Известная ловушка при сверке: версии `FILE_UPLOAD_SECURITY.md` расходились между
-этапами стека (198 → 268 → 328 → 414 строк). В `main` лежит самая полная; более
-короткие были промежуточными и уже не актуальны.
+| [research/2026-07-19-market-crash-test.md](research/2026-07-19-market-crash-test.md) | Проверка модели против Naimi, Kaspi и досок объявлений, 698 источников |
 
 ## Правило актуализации
 

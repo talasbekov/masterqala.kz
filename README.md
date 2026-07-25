@@ -36,7 +36,7 @@ pnpm --filter api test                # unit
 pnpm --filter api test:e2e            # e2e, нужна db_test на :5433
 ```
 
-Подробнее — [docs/engineering/development.md](docs/engineering/development.md).
+Подробнее — [docs/technical/DEVELOPMENT.md](docs/technical/DEVELOPMENT.md).
 
 ## Документация
 
@@ -45,4 +45,4 @@ pnpm --filter api test:e2e            # e2e, нужна db_test на :5433
 | [docs/README.md](docs/README.md) | Карта документации — начните отсюда |
 | [docs/product/spec.md](docs/product/spec.md) | Что система должна делать и почему так решили |
 | [docs/STATUS.md](docs/STATUS.md) | Что уже работает, чего нет, где код расходится со спекой |
-| [docs/engineering/](docs/engineering/architecture.md) | Архитектура, модель данных, API, локальная разработка |
+| [docs/technical/](docs/technical/CURRENT_ARCHITECTURE.md) | Архитектура, модель данных, API, локальная разработка |
