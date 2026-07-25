@@ -1,4 +1,5 @@
-import type { StatusVariant } from '@masterqala/ui';
+/** Семантика статуса для окраски бейджа в списке заявок. */
+export type StatusVariant = 'info' | 'active' | 'success' | 'danger';
 
 export const STATUS_LABELS: Record<string, string> = {
   CREATED: 'Создана',

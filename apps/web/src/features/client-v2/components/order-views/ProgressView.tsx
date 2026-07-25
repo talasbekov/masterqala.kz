@@ -9,7 +9,7 @@ export default function ProgressView({ order }: { order: OrderDetail }) {
 
   return (
     <div className="flex flex-col gap-3.5 px-5 pb-3.5 pt-1.5">
-      <div className="text-lg font-extrabold text-c2-ink">{t('orderDetail.orderNumber', { id: order.id.slice(0, 8) })}</div>
+      <div className="text-lg font-extrabold text-ink">{t('orderDetail.orderNumber', { id: order.id.slice(0, 8) })}</div>
       <div className="flex flex-col">
         {STEPPER_STEPS.map((s, i) => {
           const done = i < currentIdx || (i === currentIdx && order.status !== s.status);
@@ -19,15 +19,15 @@ export default function ProgressView({ order }: { order: OrderDetail }) {
               <div className="flex flex-col items-center">
                 <div
                   className={`flex h-5.5 w-5.5 items-center justify-center rounded-full border-2 text-[11px] text-white ${
-                    done || active ? 'border-c2-primary bg-c2-primary' : 'border-c2-border bg-c2-surface'
+                    done || active ? 'border-primary bg-primary' : 'border-border bg-surface'
                   }`}
                 >
                   {done ? '✓' : ''}
                 </div>
-                {i < STEPPER_STEPS.length - 1 && <div className="min-h-4.5 w-0.5 flex-1 bg-c2-border" />}
+                {i < STEPPER_STEPS.length - 1 && <div className="min-h-4.5 w-0.5 flex-1 bg-border" />}
               </div>
               <div className="pb-3.5">
-                <div className={`text-[13.5px] ${active ? 'font-extrabold text-c2-ink' : 'font-semibold text-c2-ink-soft'}`}>
+                <div className={`text-[13.5px] ${active ? 'font-extrabold text-ink' : 'font-semibold text-ink-soft'}`}>
                   {s.label}
                 </div>
               </div>
@@ -35,13 +35,13 @@ export default function ProgressView({ order }: { order: OrderDetail }) {
           );
         })}
       </div>
-      <div className="rounded-c2-md bg-c2-fill p-3.5 text-xs font-semibold leading-relaxed text-c2-ink">
+      <div className="rounded-md bg-fill p-3.5 text-xs font-semibold leading-relaxed text-ink">
         {t('orderDetail.progressNote', { price: order.calloutPrice + (order.workPrice ?? 0) })}
       </div>
       <div className="mt-auto" />
       <Link
         to="/support"
-        className="rounded-c2-pill border-[1.5px] border-c2-border p-3.5 text-center text-sm font-extrabold text-c2-ink"
+        className="rounded-pill border-[1.5px] border-border p-3.5 text-center text-sm font-extrabold text-ink"
       >
         {t('orderDetail.support')}
       </Link>

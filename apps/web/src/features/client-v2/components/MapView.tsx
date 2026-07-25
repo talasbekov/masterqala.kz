@@ -80,14 +80,14 @@ export default function MapView({ mode, center, onCenterChange, masterPosition, 
 
   if (mode === 'pulse') {
     return (
-      <div style={{ height }} className={`relative overflow-hidden rounded-c2-lg bg-c2-fill ${className}`}>
+      <div style={{ height }} className={`relative overflow-hidden rounded-lg bg-fill ${className}`}>
         <div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-          <div className="absolute left-1/2 top-1/2 h-32 w-32 -translate-x-1/2 -translate-y-1/2 animate-ping rounded-full bg-c2-primary/25" />
-          <div className="relative h-4.5 w-4.5 rounded-full border-[3px] border-white bg-c2-primary shadow-c2-card" />
+          <div className="absolute left-1/2 top-1/2 h-32 w-32 -translate-x-1/2 -translate-y-1/2 animate-ping rounded-full bg-primary/25" />
+          <div className="relative h-4.5 w-4.5 rounded-full border-[3px] border-white bg-primary shadow-card" />
         </div>
       </div>
     );
   }
 
-  return <div ref={containerRef} style={{ height }} className={`overflow-hidden rounded-c2-lg ${className}`} />;
+  return <div ref={containerRef} style={{ height }} className={`overflow-hidden rounded-lg ${className}`} />;
 }

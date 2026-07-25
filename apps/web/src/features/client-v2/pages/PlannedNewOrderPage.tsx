@@ -104,17 +104,17 @@ export default function PlannedNewOrderPage() {
 
   const header = (title: string, back: () => void, n: number) => (
     <div className="flex items-center gap-2.5">
-      <button type="button" onClick={back} className="text-xl text-c2-primary">
+      <button type="button" onClick={back} className="text-xl text-primary">
         ←
       </button>
-      <span className="flex-1 text-lg font-extrabold text-c2-ink">{title}</span>
-      <span className="text-xs font-bold text-c2-ink-soft">{t('common.stepOf', { n, total: 3 })}</span>
+      <span className="flex-1 text-lg font-extrabold text-ink">{title}</span>
+      <span className="text-xs font-bold text-ink-soft">{t('common.stepOf', { n, total: 3 })}</span>
     </div>
   );
   const progress = (n: number) => (
     <div className="flex gap-1.5">
       {[1, 2, 3].map((s) => (
-        <div key={s} className={`h-1.5 flex-1 rounded-full ${s <= n ? 'bg-c2-primary' : 'bg-c2-border'}`} />
+        <div key={s} className={`h-1.5 flex-1 rounded-full ${s <= n ? 'bg-primary' : 'bg-border'}`} />
       ))}
     </div>
   );
@@ -133,8 +133,8 @@ export default function PlannedNewOrderPage() {
                 key={c.id}
                 type="button"
                 onClick={() => setCategoryId(c.id)}
-                className={`rounded-c2-pill border-2 px-3.5 py-2 text-sm font-bold ${
-                  active ? 'border-c2-primary bg-c2-primary text-white' : 'border-c2-border bg-c2-surface text-c2-ink'
+                className={`rounded-pill border-2 px-3.5 py-2 text-sm font-bold ${
+                  active ? 'border-primary bg-primary text-white' : 'border-border bg-surface text-ink'
                 }`}
               >
                 {meta.icon} {c.name}
@@ -146,14 +146,14 @@ export default function PlannedNewOrderPage() {
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           placeholder={t('newOrder.step2Placeholder')}
-          className="min-h-24 rounded-c2-md border-[1.5px] border-c2-border bg-c2-surface p-3.5 text-sm text-c2-ink outline-none placeholder:text-c2-muted"
+          className="min-h-24 rounded-md border-[1.5px] border-border bg-surface p-3.5 text-sm text-ink outline-none placeholder:text-muted"
         />
         <div className="flex flex-wrap gap-2.5">
           {photoPaths.map((p) => (
-            <div key={p} className="h-16 w-16 rounded-c2-md bg-c2-fill" />
+            <div key={p} className="h-16 w-16 rounded-md bg-fill" />
           ))}
           {photoPaths.length < 5 && (
-            <label className="flex h-16 w-16 cursor-pointer items-center justify-center rounded-c2-md border-[1.5px] border-dashed border-c2-primary text-xl text-c2-primary">
+            <label className="flex h-16 w-16 cursor-pointer items-center justify-center rounded-md border-[1.5px] border-dashed border-primary text-xl text-primary">
               ＋
               <input
                 type="file"
@@ -169,21 +169,21 @@ export default function PlannedNewOrderPage() {
           value={address}
           onChange={(e) => setAddress(e.target.value)}
           placeholder={t('plannedNew.addressLabel')}
-          className="rounded-c2-md border-[1.5px] border-c2-border bg-c2-surface p-3 text-sm text-c2-ink outline-none placeholder:text-c2-muted"
+          className="rounded-md border-[1.5px] border-border bg-surface p-3 text-sm text-ink outline-none placeholder:text-muted"
         />
         <input
           value={district}
           onChange={(e) => setDistrict(e.target.value)}
           placeholder={t('plannedNew.districtLabel')}
-          className="rounded-c2-md border-[1.5px] border-c2-border bg-c2-surface p-3 text-sm text-c2-ink outline-none placeholder:text-c2-muted"
+          className="rounded-md border-[1.5px] border-border bg-surface p-3 text-sm text-ink outline-none placeholder:text-muted"
         />
-        {error && <p className="text-sm font-semibold text-c2-danger">{error}</p>}
+        {error && <p className="text-sm font-semibold text-danger">{error}</p>}
         <div className="mt-auto" />
         <button
           type="button"
           onClick={() => setStep(2)}
           disabled={!categoryId || !description || !address || !district}
-          className="rounded-c2-pill bg-c2-primary p-4 text-[15px] font-extrabold text-white disabled:opacity-40"
+          className="rounded-pill bg-primary p-4 text-[15px] font-extrabold text-white disabled:opacity-40"
         >
           {t('common.next')}
         </button>
@@ -202,46 +202,46 @@ export default function PlannedNewOrderPage() {
               key={i}
               type="button"
               onClick={() => setDateIdx(i)}
-              className={`flex-none rounded-c2-md border-2 px-0 py-2.5 text-center ${
-                i === dateIdx ? 'border-c2-primary bg-c2-fill-soft' : 'border-c2-border bg-c2-surface'
+              className={`flex-none rounded-md border-2 px-0 py-2.5 text-center ${
+                i === dateIdx ? 'border-primary bg-fill-soft' : 'border-border bg-surface'
               }`}
               style={{ width: 64 }}
             >
-              <div className="text-[10.5px] font-bold text-c2-ink-soft">{DOW[d.getDay()]}</div>
-              <div className="text-base font-extrabold text-c2-ink">{d.getDate()}</div>
+              <div className="text-[10.5px] font-bold text-ink-soft">{DOW[d.getDay()]}</div>
+              <div className="text-base font-extrabold text-ink">{d.getDate()}</div>
             </button>
           ))}
         </div>
-        <div className="text-sm font-extrabold text-c2-ink">{t('plannedNew.step2Slot')}</div>
+        <div className="text-sm font-extrabold text-ink">{t('plannedNew.step2Slot')}</div>
         <div className="grid grid-cols-2 gap-2">
           {TIME_SLOTS.map((s, i) => (
             <button
               key={i}
               type="button"
               onClick={() => setSlotIdx(i)}
-              className={`rounded-c2-md border-2 p-2.5 text-center text-[13px] font-bold ${
-                i === slotIdx ? 'border-c2-primary bg-c2-fill-soft text-c2-primary' : 'border-c2-border text-c2-ink-soft'
+              className={`rounded-md border-2 p-2.5 text-center text-[13px] font-bold ${
+                i === slotIdx ? 'border-primary bg-fill-soft text-primary' : 'border-border text-ink-soft'
               }`}
             >
               {s.label}
             </button>
           ))}
         </div>
-        <div className="text-sm font-extrabold text-c2-ink">
-          {t('plannedNew.step2Budget')} <span className="text-xs font-semibold text-c2-ink-soft">{t('plannedNew.step2BudgetHint')}</span>
+        <div className="text-sm font-extrabold text-ink">
+          {t('plannedNew.step2Budget')} <span className="text-xs font-semibold text-ink-soft">{t('plannedNew.step2BudgetHint')}</span>
         </div>
         <input
           value={budget}
           onChange={(e) => setBudget(e.target.value.replace(/\D/g, ''))}
           inputMode="numeric"
           placeholder={t('plannedNew.step2BudgetPlaceholder')}
-          className="rounded-c2-md border-[1.5px] border-c2-border bg-c2-surface p-3 text-sm font-extrabold text-c2-ink outline-none placeholder:text-c2-muted placeholder:font-normal"
+          className="rounded-md border-[1.5px] border-border bg-surface p-3 text-sm font-extrabold text-ink outline-none placeholder:text-muted placeholder:font-normal"
         />
         <div className="mt-auto" />
         <button
           type="button"
           onClick={() => setStep(3)}
-          className="rounded-c2-pill bg-c2-primary p-4 text-[15px] font-extrabold text-white"
+          className="rounded-pill bg-primary p-4 text-[15px] font-extrabold text-white"
         >
           {t('plannedNew.step2Next')}
         </button>
@@ -257,32 +257,32 @@ export default function PlannedNewOrderPage() {
     <div className="flex flex-col gap-3 px-5 pb-3.5 pt-1.5">
       {header(t('plannedNew.step3Title'), () => setStep(2), 3)}
       {progress(3)}
-      <p className="text-xs leading-relaxed text-c2-ink-soft">{t('plannedNew.step3Note')}</p>
-      <div className="rounded-c2-lg border border-c2-border bg-c2-surface p-3.5 shadow-c2-card">
+      <p className="text-xs leading-relaxed text-ink-soft">{t('plannedNew.step3Note')}</p>
+      <div className="rounded-lg border border-border bg-surface p-3.5 shadow-card">
         <div className="flex items-center justify-between">
-          <span className="text-sm font-extrabold text-c2-ink">
+          <span className="text-sm font-extrabold text-ink">
             {meta.icon} {categories.find((c) => c.id === categoryId)?.name}
           </span>
-          <span className="rounded-c2-pill bg-c2-fill-soft px-2.5 py-1 text-[11px] font-extrabold text-c2-primary">
+          <span className="rounded-pill bg-fill-soft px-2.5 py-1 text-[11px] font-extrabold text-primary">
             {t('plannedNew.step3Offers', { n: 0 })}
           </span>
         </div>
-        <div className="mt-1.5 text-[12.5px] leading-relaxed text-c2-on-fill">
+        <div className="mt-1.5 text-[12.5px] leading-relaxed text-on-fill">
           «{description}» {photoPaths.length > 0 && `· ${t('common.photosCount', { n: photoPaths.length })}`}
         </div>
-        <div className="mt-1.5 text-xs text-c2-ink-soft">
+        <div className="mt-1.5 text-xs text-ink-soft">
           📍 {district} · 🗓 {DOW[day.getDay()]}, {day.getDate()} · {slot.label}
           {budget && ` · бюджет ~${budget} ₸`}
         </div>
       </div>
-      <div className="rounded-c2-md bg-c2-fill p-3 text-xs font-semibold leading-relaxed text-c2-ink">{t('plannedNew.step3Footer')}</div>
-      {error && <p className="text-sm font-semibold text-c2-danger">{error}</p>}
+      <div className="rounded-md bg-fill p-3 text-xs font-semibold leading-relaxed text-ink">{t('plannedNew.step3Footer')}</div>
+      {error && <p className="text-sm font-semibold text-danger">{error}</p>}
       <div className="mt-auto" />
       <button
         type="button"
         onClick={submit}
         disabled={submitting}
-        className="rounded-c2-pill bg-c2-primary p-4 text-[15.5px] font-extrabold text-white disabled:opacity-40"
+        className="rounded-pill bg-primary p-4 text-[15.5px] font-extrabold text-white disabled:opacity-40"
       >
         {t('plannedNew.publish')}
       </button>

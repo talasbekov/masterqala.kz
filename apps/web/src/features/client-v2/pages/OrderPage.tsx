@@ -67,16 +67,16 @@ export default function OrderPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  if (loading) return <div className="p-6 text-c2-ink-soft">{t('common.loading')}</div>;
+  if (loading) return <div className="p-6 text-ink-soft">{t('common.loading')}</div>;
 
   if (error || !order || !id) {
     return (
       <div className="flex flex-col gap-3 p-6">
-        <p className="text-sm font-semibold text-c2-danger">{error || t('orderDetail.notFound')}</p>
+        <p className="text-sm font-semibold text-danger">{error || t('orderDetail.notFound')}</p>
         <button
           type="button"
           onClick={load}
-          className="rounded-c2-pill border-[1.5px] border-c2-primary p-3 text-sm font-extrabold text-c2-primary"
+          className="rounded-pill border-[1.5px] border-primary p-3 text-sm font-extrabold text-primary"
         >
           {t('common.retry')}
         </button>
