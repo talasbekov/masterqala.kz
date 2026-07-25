@@ -74,25 +74,25 @@ export default function LoginPage() {
       <button
         type="button"
         onClick={() => setStep('phone')}
-        className="flex min-h-screen w-full flex-col items-center justify-center gap-4.5 bg-c2-primary"
+        className="flex min-h-screen w-full flex-col items-center justify-center gap-4.5 bg-primary"
       >
-        <div className="flex h-22 w-22 items-center justify-center rounded-c2-lg bg-white text-4xl font-extrabold text-c2-primary">
+        <div className="flex h-22 w-22 items-center justify-center rounded-lg bg-white text-4xl font-extrabold text-primary">
           M
         </div>
         <div className="text-[28px] font-extrabold tracking-tight text-white">MasterQala</div>
-        <div className="text-sm text-c2-fill">{t('auth.splashTagline')}</div>
-        <div className="mt-3 h-6.5 w-6.5 animate-spin rounded-full border-[3px] border-c2-fill border-t-white" />
+        <div className="text-sm text-fill">{t('auth.splashTagline')}</div>
+        <div className="mt-3 h-6.5 w-6.5 animate-spin rounded-full border-[3px] border-fill border-t-white" />
       </button>
     );
   }
 
   return (
-    <div className="flex min-h-screen flex-col gap-3.5 bg-c2-bg px-6 py-5.5">
+    <div className="flex min-h-screen flex-col gap-3.5 bg-background px-6 py-5.5">
       {step === 'sms' && (
         <button
           type="button"
           onClick={() => setStep('phone')}
-          className="self-start text-sm font-extrabold text-c2-primary"
+          className="self-start text-sm font-extrabold text-primary"
         >
           ← {t('auth.changeNumber')}
         </button>
@@ -100,12 +100,12 @@ export default function LoginPage() {
 
       {step === 'phone' && (
         <>
-          <div className="mt-6 text-[26px] font-extrabold leading-tight text-c2-ink">{t('auth.phoneTitle')}</div>
-          <div className="text-sm text-c2-ink-soft">{t('auth.phoneSubtitle')}</div>
-          <div className="mt-2 flex items-center gap-2 rounded-c2-md border-[1.5px] border-c2-border bg-c2-surface px-4 py-3.5">
-            <span className="text-[17px] font-extrabold text-c2-ink">+7</span>
+          <div className="mt-6 text-[26px] font-extrabold leading-tight text-ink">{t('auth.phoneTitle')}</div>
+          <div className="text-sm text-ink-soft">{t('auth.phoneSubtitle')}</div>
+          <div className="mt-2 flex items-center gap-2 rounded-md border-[1.5px] border-border bg-surface px-4 py-3.5">
+            <span className="text-[17px] font-extrabold text-ink">+7</span>
             <input
-              className="flex-1 bg-transparent text-[17px] font-bold text-c2-ink outline-none placeholder:text-c2-muted"
+              className="flex-1 bg-transparent text-[17px] font-bold text-ink outline-none placeholder:text-muted"
               placeholder={t('auth.phonePlaceholder')}
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
@@ -113,16 +113,16 @@ export default function LoginPage() {
               autoFocus
             />
           </div>
-          <div className="text-xs leading-normal text-c2-ink-soft">
-            {t('auth.termsPrefix')} <span className="font-bold text-c2-primary">{t('auth.termsLink')}</span>
+          <div className="text-xs leading-normal text-ink-soft">
+            {t('auth.termsPrefix')} <span className="font-bold text-primary">{t('auth.termsLink')}</span>
           </div>
-          {error && <p className="text-sm font-semibold text-c2-danger">{error}</p>}
+          {error && <p className="text-sm font-semibold text-danger">{error}</p>}
           <div className="mt-auto" />
           <button
             type="button"
             onClick={requestCode}
             disabled={submitting || phone.replace(/\D/g, '').length < 10}
-            className="rounded-c2-pill bg-c2-primary p-4 text-base font-extrabold text-white disabled:opacity-40"
+            className="rounded-pill bg-primary p-4 text-base font-extrabold text-white disabled:opacity-40"
           >
             {t('auth.getCodeButton')}
           </button>
@@ -131,15 +131,15 @@ export default function LoginPage() {
 
       {step === 'sms' && (
         <>
-          <div className="mt-2.5 text-[26px] font-extrabold leading-tight text-c2-ink">{t('auth.smsTitle')}</div>
-          <div className="text-sm text-c2-ink-soft">{t('auth.smsSubtitle', { phone: `+7 ${phone}` })}</div>
+          <div className="mt-2.5 text-[26px] font-extrabold leading-tight text-ink">{t('auth.smsTitle')}</div>
+          <div className="text-sm text-ink-soft">{t('auth.smsSubtitle', { phone: `+7 ${phone}` })}</div>
           <div className="relative mt-2 w-fit" onClick={() => codeInputRef.current?.focus()}>
             <div className="flex gap-1.5">
               {[0, 1, 2, 3, 4, 5].map((i) => (
                 <div
                   key={i}
-                  className={`flex h-14 w-10 items-center justify-center rounded-c2-md border-[1.5px] bg-c2-surface text-xl font-extrabold text-c2-ink ${
-                    code[i] ? 'border-c2-primary' : 'border-c2-border'
+                  className={`flex h-14 w-10 items-center justify-center rounded-md border-[1.5px] bg-surface text-xl font-extrabold text-ink ${
+                    code[i] ? 'border-primary' : 'border-border'
                   }`}
                 >
                   {code[i] ?? ''}
@@ -157,22 +157,22 @@ export default function LoginPage() {
               className="absolute inset-0 opacity-0"
             />
           </div>
-          <div className="text-[13px] text-c2-ink-soft">
+          <div className="text-[13px] text-ink-soft">
             {resendIn > 0 ? (
               t('auth.resendIn', { time: formatTime(resendIn) })
             ) : (
-              <button type="button" onClick={requestCode} className="font-bold text-c2-primary">
+              <button type="button" onClick={requestCode} className="font-bold text-primary">
                 {t('auth.resendNow')}
               </button>
             )}
           </div>
-          {error && <p className="text-sm font-semibold text-c2-danger">{error}</p>}
+          {error && <p className="text-sm font-semibold text-danger">{error}</p>}
           <div className="mt-auto" />
           <button
             type="button"
             onClick={verify}
             disabled={submitting || code.length < 6}
-            className="rounded-c2-pill bg-c2-primary p-4 text-base font-extrabold text-white disabled:opacity-40"
+            className="rounded-pill bg-primary p-4 text-base font-extrabold text-white disabled:opacity-40"
           >
             {t('auth.loginButton')}
           </button>

@@ -12,6 +12,7 @@ import { PaymentsModule } from './payments/payments.module';
 import { RoutingModule } from './routing/routing.module';
 import { PricingModule } from './pricing/pricing.module';
 import { QueueModule } from './queue/queue.module';
+import { AuditLogModule } from './audit-log/audit-log.module';
 import { RealtimeModule } from './realtime/realtime.module';
 import { LeadCreditsModule } from './lead-credits/lead-credits.module';
 import { OrdersModule } from './orders/orders.module';
@@ -22,6 +23,9 @@ import { AddressesModule } from './addresses/addresses.module';
 import { ReviewsModule } from './reviews/reviews.module';
 import { CommercialModeModule } from './commercial-mode/commercial-mode.module';
 import { validateEnvironment } from './config/environment';
+import { AdminUsersModule } from './admin-users/admin-users.module';
+import { AdminMastersModule } from './admin-masters/admin-masters.module';
+import { AdminOrdersModule } from './admin-orders/admin-orders.module';
 
 @Module({
   imports: [
@@ -30,11 +34,15 @@ import { validateEnvironment } from './config/environment';
     PrismaModule,
     CommonModule,
     QueueModule,
+    AuditLogModule,
     AuthModule,
     UsersModule,
     MastersModule,
     UploadsModule,
     AdminModule,
+    AdminUsersModule,
+    AdminMastersModule,
+    AdminOrdersModule,
     PaymentsModule,
     RoutingModule,
     PricingModule,
