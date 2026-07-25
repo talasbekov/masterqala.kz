@@ -28,22 +28,25 @@ export default function AdminListPage() {
   }, [status]);
 
   return (
-    <div className="mx-auto max-w-2xl p-6 space-y-4">
+    <div className="mx-auto max-w-2xl space-y-4 p-6">
       <Link to="/" className="text-sm text-gray-500">← Назад</Link>
-      <div className="flex items-center justify-between">
+      <div className="space-y-3">
         <h1 className="text-2xl font-bold">Заявки мастеров</h1>
-        <Link to="/admin/withdrawals" className="text-sm text-teal-700 underline">Заявки на вывод</Link>
-        <Link to="/admin/disputes" className="text-sm text-teal-700 underline">Споры</Link>
+        <nav className="flex flex-wrap gap-3 text-sm">
+          <Link to="/admin/withdrawals" className="text-teal-700 underline">Заявки на вывод</Link>
+          <Link to="/admin/disputes" className="text-teal-700 underline">Споры</Link>
+          <Link to="/admin/security" className="font-medium text-red-700 underline">Безопасность</Link>
+        </nav>
       </div>
       <select className="rounded border p-2" value={status} onChange={(e) => setStatus(e.target.value)}>
-        {STATUSES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+        {STATUSES.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
       </select>
       <ul className="divide-y rounded border">
-        {rows.map((r) => (
-          <li key={r.id}>
-            <Link to={`/admin/${r.id}`} className="block p-3 hover:bg-gray-50">
-              <span className="font-semibold">{r.fullName}</span> · {r.user.phone} · {r.district} ·{' '}
-              {r.categories.map((c) => c.category.name).join(', ')}
+        {rows.map((row) => (
+          <li key={row.id}>
+            <Link to={`/admin/${row.id}`} className="block p-3 hover:bg-gray-50">
+              <span className="font-semibold">{row.fullName}</span> · {row.user.phone} · {row.district} ·{' '}
+              {row.categories.map((category) => category.category.name).join(', ')}
             </Link>
           </li>
         ))}
