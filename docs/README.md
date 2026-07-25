@@ -1,9 +1,18 @@
 # Документация MasterQala.kz
 
-> **Внимание: в каталоге сейчас два набора документации**, созданных параллельно
-> и частично покрывающих одни темы. Они сведены в этом указателе, но **не сверены
-> между собой** — см. «Требует сверки» в конце. До сверки при расхождении
-> опирайтесь на код; порядок приоритета — ниже.
+В каталоге два набора технической документации. Они **описывают разные состояния
+кода** — это не дублирование по недосмотру, и сливать их до мержа PR #4 нельзя.
+
+| Набор | Что описывает | Когда станет неактуальным |
+|---|---|---|
+| [engineering/](engineering/architecture.md) + [STATUS.md](STATUS.md) | Ветку `main` — то, что работает прямо сейчас | При изменении кода `main` |
+| [technical/](technical/README.md) + [pilot/](pilot/) | Ветку `feat/free-pilot-mode` (PR #4) — режим бесплатного пилота | Станет описанием `main` после мержа PR #4 |
+
+Набор `technical/` предупреждает об этом сам: «до объединения PR #4 ветка `main`
+может не содержать часть описанных capability-флагов и поведения `FREE_PILOT`».
+Конкретно: `CommercialMode`, `Order.commercialMode`, `GET /config/public`, поля
+`freePilot`/`commercialMode` в WebSocket-payload и CI в `.github/workflows/`
+**в `main` отсутствуют**.
 
 ## Источники истины
 
@@ -15,7 +24,7 @@
 4. realtime gateway/matching;
 5. `apps/web/src/**`;
 6. CI workflow и фактические результаты run;
-7. `product/spec.md` как продуктовая целевая модель.
+7. [product/spec.md](product/spec.md) как продуктовая целевая модель.
 
 ## Статусы утверждений
 
@@ -34,55 +43,29 @@ production-готовности.
 |---|---|
 | [product/spec.md](product/spec.md) | Что система должна делать и почему так решили. Меняется только при изменении бизнес-решения |
 
-## Техническое описание системы
+## Ветка `main` — актуальное состояние
 
 | Документ | О чём |
 |---|---|
-| [CURRENT_ARCHITECTURE.md](CURRENT_ARCHITECTURE.md) | Компоненты, зависимости, фактическая архитектура |
-| [DATA_MODEL.md](DATA_MODEL.md) | Prisma/PostGIS, `CommercialMode`, финансовые инварианты, пробелы constraints |
-| [REST_API.md](REST_API.md) | HTTP-маршруты, DTO, роли, ошибки, коммерческое поведение |
-| [STATE_MACHINES.md](STATE_MACHINES.md) | Статусы и переходы срочных и плановых заявок |
-| [WEBSOCKET_EVENTS.md](WEBSOCKET_EVENTS.md) | Handshake, realtime payload, правила режима заявки |
-| [engineering/architecture.md](engineering/architecture.md) | Стек, карта модулей, сквозной поток заявки, разрешение гонок, джобы |
-| [engineering/data-model.md](engineering/data-model.md) | Сущности и инварианты, таблица статусов рус↔enum |
+| [STATUS.md](STATUS.md) | Что реализовано, расхождения код↔спека, прод-блокеры, пределы архитектуры |
+| [engineering/architecture.md](engineering/architecture.md) | Стек, карта модулей, сквозной поток заявки, разрешение гонок, джобы, realtime |
+| [engineering/data-model.md](engineering/data-model.md) | Сущности и инварианты, таблица статусов рус↔enum, риски схемы |
 | [engineering/api.md](engineering/api.md) | Справочник эндпоинтов по ролям, семантика кодов ответа |
 | [engineering/development.md](engineering/development.md) | Запуск, env-переменные, тесты, ручная проверка |
 
-## Безопасность и эксплуатация
+## Ветка PR #4 — бесплатный пилот
 
-| Документ | О чём |
+Указатель набора: [technical/README.md](technical/README.md).
+
+| Раздел | Документы |
 |---|---|
-| [SECURITY.md](SECURITY.md) | Реализованные меры, риски P0/P1, privacy, launch gate |
-| [FILE_UPLOAD_SECURITY.md](FILE_UPLOAD_SECURITY.md) | Безопасность загрузки файлов |
-| [RATE_LIMITING_AND_HEADERS.md](RATE_LIMITING_AND_HEADERS.md) | Ограничение частоты и security-заголовки |
-| [SECURE_ENVIRONMENT.md](SECURE_ENVIRONMENT.md) | Секреты и конфигурация окружения |
-| [SECURITY_AUDIT_AND_RETENTION.md](SECURITY_AUDIT_AND_RETENTION.md) | Аудит и политика хранения |
-| [SECURITY_OBSERVABILITY.md](SECURITY_OBSERVABILITY.md) | Наблюдаемость |
-| [DEPLOYMENT_RUNBOOK.md](DEPLOYMENT_RUNBOOK.md) | CI, накатывание миграций, деплой, бэкапы, мониторинг, откат |
-| [TESTING_STRATEGY.md](TESTING_STRATEGY.md) | Фактические тесты и недостающее покрытие |
+| Система | `CURRENT_ARCHITECTURE`, `DATA_MODEL`, `REST_API`, `STATE_MACHINES`, `WEBSOCKET_EVENTS` |
+| Безопасность | `SECURITY`, `FILE_UPLOAD_SECURITY`, `RATE_LIMITING_AND_HEADERS`, `SECURE_ENVIRONMENT`, `SECURITY_AUDIT_AND_RETENTION`, `SECURITY_OBSERVABILITY` |
+| Эксплуатация | `DEPLOYMENT_RUNBOOK`, `TESTING_STRATEGY`, `VERIFICATION_STATUS` |
+| Пилот | [pilot/](pilot/) — техспека, план реализации, выкатка |
 
-## Состояние готовности
-
-| Документ | О чём |
-|---|---|
-| [VERIFICATION_STATUS.md](VERIFICATION_STATUS.md) | Последний подтверждённый CI run и остающиеся ручные gates |
-| [STATUS.md](STATUS.md) | Что реализовано, расхождения код↔спека, прод-блокеры, пределы архитектуры |
-
-## Бесплатный пилот
-
-| Документ | О чём |
-|---|---|
-| [FREE_PILOT_TECHNICAL_SPEC.md](FREE_PILOT_TECHNICAL_SPEC.md) | Требования первой бесплатной версии |
-| [FREE_PILOT_IMPLEMENTATION_PLAN.md](FREE_PILOT_IMPLEMENTATION_PLAN.md) | План backend/frontend/data/testing/rollout |
-| [FREE_PILOT_ROLLOUT.md](FREE_PILOT_ROLLOUT.md) | Выкатка |
-
-Реализация — в PR #4 `feat/free-pilot-mode`.
-
-**Ключевой принцип.** `MockPaymentProvider` и бесплатный пилот — разные режимы:
-`PAID_MOCK` имитирует платную систему и создаёт финансовые записи; `FREE_PILOT`
-не создаёт платежи, начисления, покупки кредитов и выводы. Номинальные суммы могут
-храниться для аналитики, но выручкой не являются. Коммерческое поведение определяется
-неизменяемым режимом конкретной заявки.
+Все — в [technical/](technical/) и [pilot/](pilot/). Документы безопасности
+соответствуют открытым PR #6–#13, каждый из которых приносит свой файл.
 
 ## Архив
 
@@ -90,28 +73,32 @@ production-готовности.
 |---|---|
 | [research/](research/) | Стратегический анализ на конкретную дату. Не редактируется: устаревшее заменяется новым датированным файлом |
 | [superpowers/](superpowers/) | Дизайн-доки и планы этапов, пополняются SDD-циклом |
-| Аналитические отчёты | «Аналитический отчёт по проекту MasterQala.kz», «Краш-тест MasterQala.kz для рынка Казахстана» |
+
+Отдельно в корне каталога — два аналитических отчёта: «Аналитический отчёт по проекту
+MasterQala.kz» и «Краш-тест MasterQala.kz для рынка Казахстана». Они не входят ни в
+один PR.
 
 ---
 
-## Требует сверки
+## Что делать после мержа PR #4
 
-Два набора документов писались независимо и описывают одно и то же по-разному.
-Пары, которые нужно свести в один документ или явно разделить по назначению:
+Наборы перестанут описывать разные состояния, и пять пар нужно будет свести в один
+документ каждую:
 
 | | |
 |---|---|
-| `CURRENT_ARCHITECTURE.md` | `engineering/architecture.md` |
-| `DATA_MODEL.md` + `STATE_MACHINES.md` | `engineering/data-model.md` |
-| `REST_API.md` | `engineering/api.md` |
-| `WEBSOCKET_EVENTS.md` | раздел «Realtime» в `engineering/architecture.md` |
-| `VERIFICATION_STATUS.md` | `STATUS.md` |
+| `technical/CURRENT_ARCHITECTURE.md` | `engineering/architecture.md` |
+| `technical/DATA_MODEL.md` + `STATE_MACHINES.md` | `engineering/data-model.md` |
+| `technical/REST_API.md` | `engineering/api.md` |
+| `technical/WEBSOCKET_EVENTS.md` | раздел «Realtime» в `engineering/architecture.md` |
+| `technical/VERIFICATION_STATUS.md` | `STATUS.md` |
 
-Известное противоречие: `STATUS.md` фиксирует отсутствие CI и открытые проблемы
-безопасности (`JWT_SECRET` с dev-фолбэком, `CORS origin: true`, rate-limit только на
-SMS) — это верно **для `main`**, но соответствующая работа ведётся в открытых PR
-(#4 — CI и режим пилота, #6–#13 — security). При сверке это надо учесть, иначе
-документы будут противоречить друг другу, оставаясь каждый по-своему правдивым.
+Что при этом стоит сохранить из каждого набора:
+
+- из `engineering/` — разбор гонок и идемпотентности, таблица статусов рус↔enum,
+  ссылки на строки кода, список расхождений код↔спека, хранение файлов, локальный запуск;
+- из `technical/` — payload-структуры WebSocket-событий, детали DTO, безопасность,
+  деплой и тестовая стратегия, финансовые инварианты режимов.
 
 ## Правило актуализации
 
