@@ -28,10 +28,13 @@ export class AdminMastersService {
     const now = new Date();
     const base = profiles.map((p) => {
       let status: string;
+      // priorityPenaltyUntil сознательно не показываем: волна рассылается всем
+      // кандидатам одновременно, порядок кандидатов ни на что не влияет — значит
+      // понижения приоритета фактически не существует, и статус вводил бы
+      // оператора в заблуждение. Действующие санкции — списание кредитов и
+      // blockedUntil. См. docs/STATUS.md.
       if (p.blockedUntil && p.blockedUntil > now) {
         status = `блокирован до ${p.blockedUntil.toISOString()}`;
-      } else if (p.priorityPenaltyUntil && p.priorityPenaltyUntil > now) {
-        status = `приоритет ↓ до ${p.priorityPenaltyUntil.toISOString()}`;
       } else {
         status = p.user.presence?.isOnline ? 'активен · онлайн' : 'активен · офлайн';
       }
