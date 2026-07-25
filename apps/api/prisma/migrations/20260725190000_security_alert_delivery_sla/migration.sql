@@ -1,7 +1,8 @@
 ALTER TABLE "SecurityAlert"
   ADD COLUMN "responseDueAt" TIMESTAMP(3),
   ADD COLUMN "escalatedAt" TIMESTAMP(3),
-  ADD COLUMN "lastDeliveryAt" TIMESTAMP(3);
+  ADD COLUMN "lastDeliveryAt" TIMESTAMP(3),
+  ADD COLUMN "resolvedDeliveryAt" TIMESTAMP(3);
 
 UPDATE "SecurityAlert"
 SET "responseDueAt" = "firstSeenAt" + CASE "severity"
@@ -17,6 +18,10 @@ ALTER TABLE "SecurityAlert"
 CREATE INDEX "SecurityAlert_status_responseDueAt_idx"
   ON "SecurityAlert"("status", "responseDueAt")
   WHERE "status" = 'OPEN';
+
+CREATE INDEX "SecurityAlert_resolved_delivery_idx"
+  ON "SecurityAlert"("resolvedAt")
+  WHERE "status" = 'RESOLVED' AND "resolvedDeliveryAt" IS NULL;
 
 CREATE TABLE "SecurityAlertDelivery" (
   "id" TEXT NOT NULL DEFAULT gen_random_uuid()::text,
