@@ -1,7 +1,9 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { HealthService } from '../health.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { SecurityAlertDeliveryService } from './security-alert-delivery.service';
 import {
+  SecurityAlertAssignmentDto,
   SecurityAlertQueryDto,
   SecurityAlertStatus,
   SecurityAlertTransitionDto,
@@ -23,6 +25,12 @@ type AlertRow = {
   acknowledgedByUserId: string | null;
   resolvedAt: Date | null;
   resolvedByUserId: string | null;
+  assignedToUserId: string | null;
+  assignedAt: Date | null;
+  acknowledgeBy: Date | null;
+  resolveBy: Date | null;
+  escalatedAt: Date | null;
+  escalationLevel: number;
   operatorNote: string | null;
   createdAt: Date;
   updatedAt: Date;
@@ -37,6 +45,10 @@ type DashboardMetricsRow = {
   criticalAlerts: bigint;
   highAlerts: bigint;
   warningAlerts: bigint;
+  overdueAcknowledgementAlerts: bigint;
+  overdueResolutionAlerts: bigint;
+  pendingDeliveries: bigint;
+  exhaustedDeliveries: bigint;
   oldestOpenAlertAt: Date | null;
 };
 
@@ -57,6 +69,7 @@ export class SecurityObservabilityService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly health: HealthService,
+    private readonly delivery: SecurityAlertDeliveryService,
   ) {}
 
   async dashboard() {
@@ -72,6 +85,10 @@ export class SecurityObservabilityService {
           (SELECT COUNT(*) FROM "SecurityAlert" WHERE "status" != 'RESOLVED' AND "severity" = 'CRITICAL') AS "criticalAlerts",
           (SELECT COUNT(*) FROM "SecurityAlert" WHERE "status" != 'RESOLVED' AND "severity" = 'HIGH') AS "highAlerts",
           (SELECT COUNT(*) FROM "SecurityAlert" WHERE "status" != 'RESOLVED' AND "severity" = 'WARNING') AS "warningAlerts",
+          (SELECT COUNT(*) FROM "SecurityAlert" WHERE "status" = 'OPEN' AND "acknowledgeBy" <= CURRENT_TIMESTAMP) AS "overdueAcknowledgementAlerts",
+          (SELECT COUNT(*) FROM "SecurityAlert" WHERE "status" = 'ACKNOWLEDGED' AND "resolveBy" <= CURRENT_TIMESTAMP) AS "overdueResolutionAlerts",
+          (SELECT COUNT(*) FROM "SecurityAlertDelivery" WHERE "status" IN ('PENDING', 'SENDING', 'FAILED')) AS "pendingDeliveries",
+          (SELECT COUNT(*) FROM "SecurityAlertDelivery" WHERE "status" = 'EXHAUSTED') AS "exhaustedDeliveries",
           (SELECT MIN("firstSeenAt") FROM "SecurityAlert" WHERE "status" = 'OPEN') AS "oldestOpenAlertAt"
       `,
       this.list({ status: SecurityAlertStatus.OPEN, limit: 10 }),
@@ -88,6 +105,7 @@ export class SecurityObservabilityService {
     return {
       generatedAt: new Date().toISOString(),
       readiness,
+      delivery: this.delivery.health(),
       metrics: {
         events24h: Number(metrics?.events24h ?? 0),
         infected24h: Number(metrics?.infected24h ?? 0),
@@ -97,6 +115,10 @@ export class SecurityObservabilityService {
         criticalAlerts: Number(metrics?.criticalAlerts ?? 0),
         highAlerts: Number(metrics?.highAlerts ?? 0),
         warningAlerts: Number(metrics?.warningAlerts ?? 0),
+        overdueAcknowledgementAlerts: Number(metrics?.overdueAcknowledgementAlerts ?? 0),
+        overdueResolutionAlerts: Number(metrics?.overdueResolutionAlerts ?? 0),
+        pendingDeliveries: Number(metrics?.pendingDeliveries ?? 0),
+        exhaustedDeliveries: Number(metrics?.exhaustedDeliveries ?? 0),
         oldestOpenAlertAt: metrics?.oldestOpenAlertAt ?? null,
       },
       alerts: alerts.items,
@@ -117,7 +139,8 @@ export class SecurityObservabilityService {
         "id", "ruleKey", "severity", "title", "resourceType", "resourceId",
         "sourceEventId", "status", "occurrenceCount", "firstSeenAt", "lastSeenAt",
         "acknowledgedAt", "acknowledgedByUserId", "resolvedAt", "resolvedByUserId",
-        "operatorNote", "createdAt", "updatedAt"
+        "assignedToUserId", "assignedAt", "acknowledgeBy", "resolveBy",
+        "escalatedAt", "escalationLevel", "operatorNote", "createdAt", "updatedAt"
       FROM "SecurityAlert"
       WHERE (${status}::text IS NULL OR "status" = ${status})
         AND (${severity}::text IS NULL OR "severity" = ${severity})
@@ -159,6 +182,8 @@ export class SecurityObservabilityService {
             SET "status" = 'ACKNOWLEDGED',
                 "acknowledgedAt" = CURRENT_TIMESTAMP,
                 "acknowledgedByUserId" = ${operatorId},
+                "assignedToUserId" = COALESCE("assignedToUserId", ${operatorId}),
+                "assignedAt" = COALESCE("assignedAt", CURRENT_TIMESTAMP),
                 "operatorNote" = COALESCE(${note}, "operatorNote"),
                 "updatedAt" = CURRENT_TIMESTAMP
             WHERE "id" = ${alertId} AND "status" = 'OPEN'
@@ -203,6 +228,46 @@ export class SecurityObservabilityService {
         )
       `;
 
+      return changed;
+    });
+  }
+
+  async assign(operatorId: string, alertId: string, dto: SecurityAlertAssignmentDto) {
+    const assigneeUserId = dto.assigneeUserId?.trim() || null;
+    return this.prisma.$transaction(async (tx) => {
+      if (assigneeUserId) {
+        const users = await tx.$queryRaw<Array<{ id: string }>>`
+          SELECT "id" FROM "User" WHERE "id" = ${assigneeUserId} AND "role" = 'OPERATOR' LIMIT 1
+        `;
+        if (!users[0]) throw new BadRequestException('Назначить можно только действующего оператора');
+      }
+
+      const rows = await tx.$queryRaw<AlertRow[]>`
+        UPDATE "SecurityAlert"
+        SET "assignedToUserId" = ${assigneeUserId},
+            "assignedAt" = CASE WHEN ${assigneeUserId}::text IS NULL THEN NULL ELSE CURRENT_TIMESTAMP END,
+            "updatedAt" = CURRENT_TIMESTAMP
+        WHERE "id" = ${alertId} AND "status" != 'RESOLVED'
+        RETURNING *
+      `;
+      const changed = rows[0];
+      if (!changed) {
+        const existing = await tx.$queryRaw<Array<{ id: string; status: string }>>`
+          SELECT "id", "status" FROM "SecurityAlert" WHERE "id" = ${alertId} LIMIT 1
+        `;
+        if (!existing[0]) throw new NotFoundException('Security alert не найден');
+        throw new ConflictException('Закрытый security alert нельзя переназначить');
+      }
+
+      await tx.$executeRaw`
+        INSERT INTO "SecurityAuditEvent" (
+          "action", "severity", "outcome", "resourceType", "resourceId", "actorUserId", "metadata"
+        ) VALUES (
+          ${assigneeUserId ? 'SECURITY_ALERT_ASSIGNED' : 'SECURITY_ALERT_UNASSIGNED'},
+          'INFO', 'SUCCESS', 'SECURITY_ALERT', ${alertId}, ${operatorId},
+          jsonb_strip_nulls(jsonb_build_object('assigneeUserId', ${assigneeUserId}, 'ruleKey', ${changed.ruleKey}))
+        )
+      `;
       return changed;
     });
   }
