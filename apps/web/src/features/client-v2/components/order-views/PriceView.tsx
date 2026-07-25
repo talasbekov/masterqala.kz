@@ -44,50 +44,50 @@ export default function PriceView({ order, orderId, onChanged }: { order: OrderD
   return (
     <div className="flex flex-col gap-3 px-5 pb-3.5 pt-1.5">
       <div className="flex items-center justify-between">
-        <span className="text-lg font-extrabold text-c2-ink">{t('orderDetail.priceTitle')}</span>
-        <span className="rounded-c2-pill bg-c2-primary px-3 py-1.5 text-[13px] font-extrabold text-white">
+        <span className="text-lg font-extrabold text-ink">{t('orderDetail.priceTitle')}</span>
+        <span className="rounded-pill bg-primary px-3 py-1.5 text-[13px] font-extrabold text-white">
           ⏱ {mm}:{String(ss).padStart(2, '0')}
         </span>
       </div>
-      <div className="text-sm font-semibold text-c2-ink">{t('orderDetail.priceOffered', { name: order.master?.name })}</div>
-      <div className="rounded-c2-md border border-c2-border bg-c2-surface p-3.5">
+      <div className="text-sm font-semibold text-ink">{t('orderDetail.priceOffered', { name: order.master?.name })}</div>
+      <div className="rounded-md border border-border bg-surface p-3.5">
         {paymentsEnabled && (
-          <div className="flex justify-between text-[13.5px] font-semibold text-c2-ink-soft">
+          <div className="flex justify-between text-[13.5px] font-semibold text-ink-soft">
             <span>{t('orderDetail.priceCalloutLabel')}</span>
             <span>{order.calloutPrice} ₸</span>
           </div>
         )}
-        <div className={`${paymentsEnabled ? 'mt-1.5' : ''} flex justify-between text-sm font-extrabold text-c2-ink`}>
+        <div className={`${paymentsEnabled ? 'mt-1.5' : ''} flex justify-between text-sm font-extrabold text-ink`}>
           <span>{t('orderDetail.priceWorkLabel')}</span>
           <span>{order.workPrice} ₸</span>
         </div>
-        <div className="my-2.5 border-t border-dashed border-c2-border" />
+        <div className="my-2.5 border-t border-dashed border-border" />
         <div className="flex justify-between text-lg font-extrabold">
           <span>{t('orderDetail.priceTotalLabel')}</span>
-          <span className="text-c2-primary">{total} ₸</span>
+          <span className="text-primary">{total} ₸</span>
         </div>
       </div>
       {order.workComment && (
-        <div className="rounded-c2-md bg-c2-fill p-3 text-[13px] leading-relaxed text-c2-ink">«{order.workComment}»</div>
+        <div className="rounded-md bg-fill p-3 text-[13px] leading-relaxed text-ink">«{order.workComment}»</div>
       )}
-      <p className="text-xs leading-relaxed text-c2-ink-soft">
+      <p className="text-xs leading-relaxed text-ink-soft">
         {paymentsEnabled
           ? t('orderDetail.priceRejectNote')
           : 'В бесплатном пилоте платформа не списывает деньги. После подтверждения вы рассчитываетесь с мастером напрямую; при отклонении заявка отменится.'}
       </p>
-      {error && <p className="text-sm font-semibold text-c2-danger">{error}</p>}
+      {error && <p className="text-sm font-semibold text-danger">{error}</p>}
       <div className="mt-auto" />
       <button
         type="button"
         onClick={confirm}
-        className="rounded-c2-pill bg-c2-primary p-4 text-[15.5px] font-extrabold text-white"
+        className="rounded-pill bg-primary p-4 text-[15.5px] font-extrabold text-white"
       >
         {t('orderDetail.priceConfirm', { price: order.workPrice })}
       </button>
       <button
         type="button"
         onClick={reject}
-        className="rounded-c2-pill border-[1.5px] border-c2-danger p-3.5 text-sm font-extrabold text-c2-danger"
+        className="rounded-pill border-[1.5px] border-danger p-3.5 text-sm font-extrabold text-danger"
       >
         {t('orderDetail.priceReject')}
       </button>

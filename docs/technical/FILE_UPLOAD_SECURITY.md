@@ -2,197 +2,413 @@
 
 ## Назначение
 
-Этот документ фиксирует текущий security baseline для файлов бесплатного пилота MasterQala.kz.
+Документ фиксирует текущий security baseline файлов бесплатного пилота MasterQala.kz.
 
 Он покрывает:
 
 - фотографии срочных и плановых заявок;
 - документы заявки мастера;
 - доказательства в споре;
-- локальное хранение файлов API.
+- magic-byte validation;
+- закрытое локальное storage;
+- ownership, TTL и одноразовую привязку фотографий;
+- fail-closed quarantine lifecycle;
+- ClamAV scanning;
+- явную PDF/CDR policy.
 
-## Разрешённые форматы
+## Классы файлов
 
-| Контекст | Форматы | Максимальный размер |
-|---|---|---:|
-| Фото заявки | JPEG, PNG | 10 МБ |
-| Доказательство спора | JPEG, PNG | 10 МБ |
-| Документ мастера | JPEG, PNG, PDF | 10 МБ |
+| Контекст | Форматы | Максимальный размер | Модель metadata |
+|---|---|---:|---|
+| Фото заявки | JPEG, PNG | 10 МБ | `PendingUpload` |
+| Доказательство спора | JPEG, PNG | 10 МБ | `DisputeEvidence` |
+| Документ мастера | JPEG, PNG, PDF | 10 МБ | `MasterDocument` |
 
-Тип определяется не только по заголовку `Content-Type`, переданному клиентом.
+## Проверка типа до сохранения
 
-API сверяет одновременно:
+API не доверяет только `Content-Type`, переданному клиентом. Одновременно проверяются:
 
-1. фактическую сигнатуру первых байтов;
+1. сигнатура первых байтов;
 2. заявленный MIME;
 3. последнее расширение исходного имени;
-4. allowlist конкретного endpoint.
+4. allowlist конкретного endpoint;
+5. максимальный размер.
 
-Проверяемые сигнатуры:
+Поддерживаемые сигнатуры:
 
 - JPEG: `FF D8 FF`;
 - PNG: `89 50 4E 47 0D 0A 1A 0A`;
 - PDF: `%PDF-`.
 
-Несоответствие любого слоя возвращает `400 Bad Request`.
+Несоответствие возвращает `400 Bad Request` до создания бизнес-записи.
 
 ## Имена и пути
 
-Исходное имя пользователя не используется как имя файла на диске.
-
-Файл сохраняется как:
+Имя пользователя не используется как имя файла на диске. Storage создаёт канонический путь:
 
 ```text
 <random UUID>.<canonical extension>
 ```
 
-Примеры:
-
-```text
-7632082e-cd46-441a-b184-bd6cc0a42e09.jpg
-28fe54a5-bf55-4f5d-98df-44f351358e94.pdf
-```
-
-Исходное имя документа мастера сохраняется только как метаданные и предварительно очищается:
+Исходное имя документа мастера сохраняется только как очищенные metadata:
 
 - удаляются `/` и `\`;
-- удаляются управляющие символы;
-- удаляются bidi override/isolate символы;
+- удаляются управляющие и bidi-символы;
 - опасные символы заменяются;
-- длина ограничивается 180 символами;
-- пустое имя заменяется на `file.<ext>`.
+- длина ограничивается;
+- пустое имя заменяется на безопасное имя.
 
-## Хранение
+## Закрытое storage
 
 `LocalDiskStorage`:
 
 - создаёт каталог с режимом `0700`;
 - создаёт файлы с режимом `0600`;
-- использует `writeFile(..., { flag: "wx" })`;
+- использует exclusive create;
 - не перезаписывает существующий файл;
-- принимает только короткое alphanumeric расширение;
 - блокирует пустой путь и path traversal;
-- умеет безопасно проверять наличие и удалять файл.
+- принимает только каноническое расширение;
+- умеет проверять наличие и удалять файл.
 
-`UPLOAD_DIR` должен находиться вне каталога со статической раздачей frontend и не должен напрямую публиковаться Nginx.
+`UPLOAD_DIR` должен находиться вне frontend static root. Nginx не должен публиковать этот каталог напрямую.
 
-Файл выдаётся только через авторизованный API endpoint после проверки участника заявки или роли оператора.
+Чтение выполняется только через авторизованные API endpoints после проверки владельца, участника заявки или роли оператора.
 
-## Привязка фотографий к заявкам
+## Единая quarantine state machine
 
-`photoPaths` ограничен:
+Для новых файлов применяются состояния:
 
-- максимум пятью значениями;
-- уникальными значениями;
-- форматом `UUID.jpg` или `UUID.png`;
-- существующим файлом в configured storage.
+```text
+PENDING_SCAN
+SCANNING
+CLEAN
+INFECTED
+SCAN_FAILED
+```
 
-Произвольный путь, PDF, path traversal и отсутствующий файл не могут быть привязаны к заявке.
+Переходы:
 
-## Откат при ошибке БД
+```text
+PENDING_SCAN -> SCANNING -> CLEAN
+PENDING_SCAN -> SCANNING -> INFECTED
+PENDING_SCAN -> SCANNING -> SCAN_FAILED
+SCAN_FAILED  -> SCANNING
+SCANNING     -> SCAN_FAILED  # истёк scan lease
+```
 
-Для документов мастера и доказательств спора используется последовательность:
+Правила:
 
-1. файл проходит validation;
-2. файл сохраняется;
-3. создаётся или обновляется запись БД;
-4. если БД вернула ошибку, записанный файл удаляется;
-5. ошибка БД возвращается вызывающему коду.
+- только `CLEAN` может использоваться бизнес-функциями;
+- `INFECTED` является terminal-статусом, файл удаляется;
+- `SCAN_FAILED` остаётся fail-closed и допускает retry;
+- число попыток ограничено `UPLOAD_SCAN_MAX_ATTEMPTS`;
+- duplicate jobs не сканируют одну запись одновременно;
+- `scanError` ограничивается по длине и не возвращается обычному пользователю.
 
-Ошибка удаления orphan-файла логируется и не маскирует исходную ошибку БД.
+## Scanner configuration
 
-Multer использует memory storage, поэтому временные файлы до validation на диске не создаются.
+```env
+FILE_SCAN_MODE="CLAMAV"
+CLAMAV_HOST="clamav"
+CLAMAV_PORT="3310"
+CLAMAV_TIMEOUT_MS="15000"
+UPLOAD_SCAN_MAX_ATTEMPTS="3"
+```
 
-## Content-Type при скачивании
+Режимы:
 
-API не доверяет историческому `mimeType` из БД для HTTP-ответа.
+- `DISABLED` — только development/test, scanner синхронно возвращает `CLEAN`;
+- `CLAMAV` — обязательный production-режим.
 
-Content-Type определяется по каноническому сохранённому расширению:
+Production startup отклоняет отсутствующий режим или `DISABLED`.
+
+Допустимые пределы:
+
+- ClamAV port: 1–65535;
+- timeout: 1–120 секунд;
+- scan attempts: 1–10.
+
+## ClamAV protocol
+
+`ClamAvScanner` использует TCP `INSTREAM`:
+
+1. открывает соединение с `clamd`;
+2. отправляет `zINSTREAM\0`;
+3. передаёт файл чанками с 4-byte big-endian length;
+4. завершает поток chunk длины zero;
+5. принимает `OK` или `<signature> FOUND`;
+6. timeout, network error и неизвестный ответ считаются ошибкой scan.
+
+Scanner получает абсолютный путь только от доверенного storage adapter.
+
+## Фотографии заявок: PendingUpload
+
+`POST /api/v1/uploads` создаёт `PendingUpload` с:
+
+```text
+id
+userId
+path
+mimeType
+sizeBytes
+expiresAt
+consumedAt
+scanStatus
+scanAttempts
+scannedAt
+scanError
+createdAt
+```
+
+### Ownership и TTL
+
+- `userId` берётся из проверенного JWT;
+- `path` уникален;
+- default TTL — 24 часа;
+- `UPLOAD_TTL_HOURS` допускает 1–168;
+- после TTL path нельзя использовать;
+- чужой, истёкший, заражённый и использованный path возвращают одинаковую безопасную ошибку.
+
+### Привязка к заявке
+
+`photoPaths` допускает только:
+
+- максимум пять уникальных значений;
+- `UUID.jpg` или `UUID.png`;
+- запись владельца заявки;
+- `scanStatus = CLEAN`;
+- действующий TTL;
+- `consumedAt IS NULL`;
+- существующий файл.
+
+PostgreSQL `BEFORE INSERT` triggers на `OrderPhoto` и `PlannedOrderPhoto` атомарно выставляют `consumedAt` в транзакции создания заявки. Это закрывает повторное использование и race между API precheck и insert.
+
+### Status API
+
+```http
+GET /api/v1/uploads/:path/status
+```
+
+Endpoint доступен только владельцу. Для чужого UUID возвращается `404`.
+
+## Документы мастера: MasterDocument
+
+Новые `MasterDocument` создаются с:
+
+```text
+scanStatus = PENDING_SCAN
+scanAttempts = 0
+cdrStatus = NOT_REQUIRED | BYPASSED
+```
+
+Security metadata:
+
+```text
+scanStatus
+scanAttempts
+scannedAt
+scanError
+cdrStatus
+```
+
+Исторические документы при миграции сохраняют доступность:
+
+- изображения получают `CLEAN` и `NOT_REQUIRED`;
+- PDF получают `CLEAN` и `BYPASSED`.
+
+Это осознанная migration policy: старые файлы не пересканируются автоматически.
+
+### Owner status API
+
+```http
+GET /api/v1/masters/application/documents/:id/status
+```
+
+Endpoint доступен только владельцу `MasterProfile`.
+
+### Operator gates
+
+Оператор не может скачать документ, если:
+
+- `scanStatus != CLEAN`;
+- `cdrStatus` не входит в `NOT_REQUIRED`, `SANITIZED`, `BYPASSED`;
+- файл отсутствует.
+
+Решение по заявке мастера также блокируется, пока хотя бы один документ не прошёл security gate.
+
+## PDF и CDR policy
+
+```env
+PDF_CDR_MODE="BYPASS"
+# или
+PDF_CDR_MODE="REQUIRED"
+```
+
+### BYPASS
+
+- PDF проходит magic-byte validation и ClamAV;
+- после `CLEAN` доступен оператору;
+- `cdrStatus = BYPASSED` явно фиксирует, что active content не обезвреживался.
+
+### REQUIRED
+
+- PDF отклоняется до записи на диск;
+- API возвращает `503 Service Unavailable`;
+- изображения JPEG/PNG продолжают работать;
+- режим предназначен для production, где PDF нельзя принимать без CDR provider.
+
+CDR provider в текущем PR не реализован. Статус `SANITIZED` зарезервирован для следующего слоя.
+
+## Доказательства спора: DisputeEvidence
+
+Evidence больше не публикуется напрямую в `Dispute.evidenceDocIds`.
+
+Сначала создаётся запись:
+
+```text
+id
+disputeId
+uploadedByUserId
+path
+mimeType
+sizeBytes
+scanStatus
+scanAttempts
+scannedAt
+scanError
+createdAt
+```
+
+Только после атомарного перехода в `CLEAN` worker добавляет path в legacy-массив `Dispute.evidenceDocIds`.
+
+Следствия:
+
+- pending evidence не отображается участникам и оператору;
+- infected evidence никогда не попадает в спор;
+- старый API чтения остаётся совместимым;
+- повторный clean update не дублирует path.
+
+### Participant status API
+
+```http
+GET /api/v1/disputes/:id/evidence/:evidenceId/status
+```
+
+Endpoint доступен только клиенту или мастеру соответствующей заявки. Посторонний пользователь получает `403`.
+
+Upload response сохраняет прежний объект спора и добавляет:
+
+```text
+evidenceId
+path
+mimeType
+sizeBytes
+scanStatus
+scannedAt
+statusPath
+```
+
+Поле `id` остаётся ID спора для обратной совместимости.
+
+## Queue workers
+
+### Временные фотографии
+
+```text
+pending-upload-scan
+pending-upload-scan-sweep
+pending-upload-cleanup
+```
+
+### Постоянные файлы
+
+```text
+master-document-scan
+dispute-evidence-scan
+persistent-file-scan-sweep
+```
+
+Оба sweep выполняются каждые пять минут:
+
+```text
+*/5 * * * *
+```
+
+Sweep:
+
+1. переводит stale `SCANNING` старше пяти минут в `SCAN_FAILED`;
+2. выбирает pending/failed записи до лимита попыток;
+3. повторно ставит их в соответствующую очередь.
+
+При `PGBOSS_DISABLED=1` автоматический scan/retry не выполняется. Этот режим допустим только в test/local workflows.
+
+## Frontend polling
+
+Общий `apiUpload` распознаёт response с `scanStatus`.
+
+Для временного upload status endpoint вычисляется по path. Для master documents и evidence API возвращает entity-specific `statusPath`.
+
+Frontend:
+
+- ожидает `CLEAN`;
+- завершает upload при `INFECTED`;
+- показывает retry-сообщение при `SCAN_FAILED`;
+- прекращает polling через 30 секунд;
+- не передаёт pending path в следующий бизнес-запрос.
+
+## Ошибки и orphan files
+
+Если business metadata не создались, уже записанный файл удаляется компенсирующим cleanup.
+
+Если metadata созданы, но scanner временно недоступен, файл сохраняется fail-closed для retry.
+
+Filesystem и PostgreSQL не образуют общую физическую транзакцию. Авария процесса между записью файла и insert metadata всё ещё может оставить filesystem orphan без строки БД.
+
+## HTTP Content-Type
+
+Content-Type определяется по каноническому расширению сохранённого path:
 
 - `.jpg` → `image/jpeg`;
 - `.png` → `image/png`;
 - `.pdf` → `application/pdf`.
 
-Неизвестное расширение не выдаётся.
+Неизвестное расширение не выдаётся. PDF документов мастера скачивается как `attachment`.
 
-PDF документов мастера скачивается как `attachment`, а не открывается inline.
+## Оставшиеся ограничения
 
-## Что этот baseline не решает
+ClamAV не гарантирует обнаружение:
 
-Magic-byte validation не является антивирусом.
-
-Она не гарантирует обнаружение:
-
-- polyglot-файлов;
-- вредоносного содержимого внутри корректного PDF;
-- PDF JavaScript и embedded files;
-- специально подготовленных parser exploits;
+- zero-day malware;
+- сложных polyglot-файлов;
+- parser exploits;
 - image decompression bombs;
-- новых сигнатур вредоносного ПО.
+- неизвестного active content в PDF;
+- embedded files и JavaScript, не распознанных сигнатурами.
 
-До загрузки высокого риска необходимо добавить асинхронный quarantine pipeline:
+Текущий `PDF_CDR_MODE=REQUIRED` только запрещает PDF. Фактическая sanitization/CDR ещё не реализована.
 
-1. сохранить файл в закрытый quarantine storage;
-2. создать запись со статусом `PENDING_SCAN`;
-3. проверить ClamAV или внешним malware scanner;
-4. для PDF применить Content Disarm and Reconstruction при необходимости;
-5. только после `CLEAN` переносить в доступное storage;
-6. `INFECTED` удалять и фиксировать security audit event.
+Local disk остаётся single-node storage. Для нескольких API replicas нужен private S3-compatible bucket или общее защищённое storage.
 
-## Оставшийся риск photo ownership
+Отдельно требуется retention policy для:
 
-Текущий путь фотографии является случайным capability identifier. UUID практически невозможно подобрать, но отдельной записи `PendingUpload(userId, path, expiresAt, consumedAt)` пока нет.
+- consumed `PendingUpload` metadata;
+- infected/failed `MasterDocument`;
+- infected/failed `DisputeEvidence`;
+- security audit events.
 
-Перед публичным масштабированием следует:
+## Staging smoke
 
-- связать каждый upload с пользователем;
-- разрешать consume только владельцу;
-- делать consume атомарно с созданием заявки;
-- запрещать повторное использование, если продукт этого не требует;
-- удалять неиспользованные uploads по TTL;
-- вести audit событий upload/consume/delete.
+Проверить:
 
-## Ограничения эксплуатации
-
-- размер файла ограничивается API и должен дополнительно ограничиваться reverse proxy;
-- memory storage означает расход RAM до 10 МБ на одновременный upload;
-- для пилота следует ограничить upload concurrency на Nginx;
-- local disk подходит только для одного API instance;
-- при нескольких replicas нужен S3-compatible private bucket или общий защищённый storage;
-- резервная копия БД должна быть согласована с резервной копией файлов.
-
-## Smoke-проверки staging
-
-### MIME spoofing
-
-PNG с заголовком `Content-Type: image/jpeg` должен вернуть `400`.
-
-### Двойное расширение
-
-JPEG с именем `photo.jpg.exe` должен вернуть `400`.
-
-### Path traversal
-
-Создание заявки с:
-
-```json
-{
-  "photoPaths": ["../../etc/passwd"]
-}
-```
-
-должно завершиться validation error.
-
-### Отсутствующий файл
-
-Канонический, но несуществующий UUID path должен вернуть `400` до создания заявки.
-
-### Content-Type
-
-- PNG фотографии должен возвращаться как `image/png`;
-- JPEG — как `image/jpeg`;
-- PDF документа мастера — как `application/pdf` и `attachment`.
-
-### Orphan rollback
-
-При искусственной ошибке создания `MasterDocument` или обновления `Dispute` файл не должен оставаться в `UPLOAD_DIR`.
+1. production startup требует `FILE_SCAN_MODE=CLAMAV`;
+2. production startup требует явный `PDF_CDR_MODE`;
+3. чистый PNG фотографии получает `CLEAN`;
+4. чистый документ мастера получает `CLEAN` и доступен оператору;
+5. clean evidence после scan появляется в `evidenceDocIds`;
+6. EICAR для каждого endpoint получает `INFECTED` и удаляется;
+7. остановленный clamd приводит к `SCAN_FAILED`;
+8. stale `SCANNING` возвращается в retry sweep;
+9. pending master document нельзя скачать или одобрить;
+10. pending evidence нельзя скачать;
+11. `PDF_CDR_MODE=REQUIRED` отклоняет PDF до записи;
+12. `PDF_CDR_MODE=BYPASS` фиксирует `cdrStatus=BYPASSED`.

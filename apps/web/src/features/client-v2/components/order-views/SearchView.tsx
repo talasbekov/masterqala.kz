@@ -34,19 +34,19 @@ export default function SearchView({ order, onChanged }: { order: OrderDetail; o
   return (
     <div className="flex flex-col">
       <MapView mode="pulse" center={{ lat: 0, lng: 0 }} height={undefined} className="flex-1 rounded-none" />
-      <div className="rounded-t-c2-sheet bg-c2-surface px-5 pb-4.5 pt-4 shadow-c2-sheet">
-        <div className="mx-auto mb-3 h-1 w-9.5 rounded-full bg-c2-border" />
+      <div className="rounded-t-sheet bg-surface px-5 pb-4.5 pt-4 shadow-sheet">
+        <div className="mx-auto mb-3 h-1 w-9.5 rounded-full bg-border" />
         <div className="flex items-baseline justify-between">
-          <div className="text-lg font-extrabold text-c2-ink">{WAVE_TEXTS[order.wave] ?? WAVE_TEXTS[0]}</div>
-          <div className="text-sm font-extrabold text-c2-primary">
+          <div className="text-lg font-extrabold text-ink">{WAVE_TEXTS[order.wave] ?? WAVE_TEXTS[0]}</div>
+          <div className="text-sm font-extrabold text-primary">
             {mm}:{String(ss).padStart(2, '0')}
           </div>
         </div>
-        {error && <p className="mt-2 text-sm font-semibold text-c2-danger">{error}</p>}
+        {error && <p className="mt-2 text-sm font-semibold text-danger">{error}</p>}
         <button
           type="button"
           onClick={cancel}
-          className="mt-3 w-full rounded-c2-pill border-[1.5px] border-c2-danger p-3.5 text-sm font-extrabold text-c2-danger"
+          className="mt-3 w-full rounded-pill border-[1.5px] border-danger p-3.5 text-sm font-extrabold text-danger"
         >
           {t('orderDetail.cancelFree')}
         </button>

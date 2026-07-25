@@ -9,17 +9,17 @@ export default function PaymentsPage() {
   return (
     <div className="flex min-h-screen flex-col gap-3 px-5 pb-3.5 pt-1.5">
       <div className="flex items-center gap-2.5">
-        <Link to="/profile" className="text-xl text-c2-primary">
+        <Link to="/profile" className="text-xl text-primary">
           ←
         </Link>
-        <span className="text-xl font-extrabold text-c2-ink">{t('payments.title')}</span>
+        <span className="text-xl font-extrabold text-ink">{t('payments.title')}</span>
       </div>
       <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
         <div className="text-4xl">{paymentsEnabled ? '💳' : '🎁'}</div>
-        <div className="text-base font-extrabold text-c2-ink">
+        <div className="text-base font-extrabold text-ink">
           {paymentsEnabled ? t('payments.comingSoon') : 'Бесплатный пилот'}
         </div>
-        <p className="max-w-[280px] text-xs leading-relaxed text-c2-ink-soft">
+        <p className="max-w-[280px] text-xs leading-relaxed text-ink-soft">
           {paymentsEnabled
             ? t('payments.note')
             : 'Платформа не списывает оплату за выезд и сервисный сбор. Стоимость работ согласуется с мастером после осмотра, расчёт происходит напрямую.'}

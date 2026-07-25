@@ -66,7 +66,7 @@ export default function ProfilePage() {
   return (
     <div className="flex flex-col gap-3 px-5 pb-3.5 pt-1.5">
       <div className="flex items-center gap-3">
-        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-c2-primary text-lg font-extrabold text-white">
+        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-primary text-lg font-extrabold text-white">
           {(me?.name || user?.phone || '?').slice(0, 1).toUpperCase()}
         </div>
         <div className="min-w-0 flex-1">
@@ -75,20 +75,20 @@ export default function ProfilePage() {
               <input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="min-w-0 flex-1 rounded-c2-md border-[1.5px] border-c2-border bg-c2-surface px-2.5 py-1.5 text-sm font-extrabold text-c2-ink outline-none"
+                className="min-w-0 flex-1 rounded-md border-[1.5px] border-border bg-surface px-2.5 py-1.5 text-sm font-extrabold text-ink outline-none"
                 autoFocus
               />
-              <button type="button" onClick={saveName} disabled={saving} className="shrink-0 text-sm font-extrabold text-c2-primary">
+              <button type="button" onClick={saveName} disabled={saving} className="shrink-0 text-sm font-extrabold text-primary">
                 {t('profile.save')}
               </button>
             </div>
           ) : (
             <button type="button" onClick={() => setEditing(true)} className="block text-left">
-              <span className="text-lg font-extrabold text-c2-ink">{me?.name || t('profile.noName')}</span>
-              <span className="ml-1.5 text-xs font-bold text-c2-primary">{t('profile.editName')}</span>
+              <span className="text-lg font-extrabold text-ink">{me?.name || t('profile.noName')}</span>
+              <span className="ml-1.5 text-xs font-bold text-primary">{t('profile.editName')}</span>
             </button>
           )}
-          <div className="text-xs font-semibold text-c2-ink-soft">{me?.phone ?? user?.phone}</div>
+          <div className="text-xs font-semibold text-ink-soft">{me?.phone ?? user?.phone}</div>
         </div>
       </div>
       <div className="flex gap-1.5">
@@ -97,17 +97,17 @@ export default function ProfilePage() {
             key={l.code}
             type="button"
             onClick={() => i18n.changeLanguage(l.code)}
-            className={`rounded-c2-pill border-[1.5px] px-3.5 py-1.5 text-xs font-extrabold ${
-              i18n.language === l.code ? 'border-c2-primary bg-c2-primary text-white' : 'border-c2-border text-c2-ink-soft'
+            className={`rounded-pill border-[1.5px] px-3.5 py-1.5 text-xs font-extrabold ${
+              i18n.language === l.code ? 'border-primary bg-primary text-white' : 'border-border text-ink-soft'
             }`}
           >
             {l.label}
           </button>
         ))}
       </div>
-      {error && <p className="text-sm font-semibold text-c2-danger">{error}</p>}
+      {error && <p className="text-sm font-semibold text-danger">{error}</p>}
       {blocked && me?.masterProfile?.blockedUntil && (
-        <div className="rounded-c2-md bg-c2-danger-bg p-3 text-xs font-semibold text-c2-danger-ink">
+        <div className="rounded-md bg-danger-bg p-3 text-xs font-semibold text-danger-ink">
           {t('profile.blockedUntil', { date: new Date(me.masterProfile.blockedUntil).toLocaleDateString('ru-RU') })}
         </div>
       )}
@@ -115,30 +115,30 @@ export default function ProfilePage() {
         <Link
           key={item.key}
           to={item.to}
-          className="flex items-center justify-between rounded-c2-md border border-c2-border bg-c2-surface px-3.5 py-3.5"
+          className="flex items-center justify-between rounded-md border border-border bg-surface px-3.5 py-3.5"
         >
-          <span className="text-sm font-extrabold text-c2-ink">
+          <span className="text-sm font-extrabold text-ink">
             {item.icon} {t(`profile.items.${item.key}`)}
           </span>
-          <span className="text-c2-ink-soft">›</span>
+          <span className="text-ink-soft">›</span>
         </Link>
       ))}
-      <div className="rounded-c2-lg bg-c2-fill p-3.5">
-        <div className="text-sm font-extrabold text-c2-ink">🔧 {t('profile.becomeMasterTitle')}</div>
-        <div className="mt-1 text-xs font-semibold leading-relaxed text-c2-on-fill">{t('profile.becomeMasterSubtitle')}</div>
-        <Link to="/become-master" className="mt-2 inline-block text-xs font-extrabold text-c2-primary">
+      <div className="rounded-lg bg-fill p-3.5">
+        <div className="text-sm font-extrabold text-ink">🔧 {t('profile.becomeMasterTitle')}</div>
+        <div className="mt-1 text-xs font-semibold leading-relaxed text-on-fill">{t('profile.becomeMasterSubtitle')}</div>
+        <Link to="/become-master" className="mt-2 inline-block text-xs font-extrabold text-primary">
           {t('profile.becomeMasterLink')} →
         </Link>
       </div>
-      <Link to="/wallet" className="text-center text-sm font-bold text-c2-primary underline">
+      <Link to="/wallet" className="text-center text-sm font-bold text-primary underline">
         {t('profile.wallet')}
       </Link>
       {user?.role === 'OPERATOR' && (
-        <Link to="/admin" className="text-center text-sm font-bold text-c2-primary underline">
+        <Link to="/admin" className="text-center text-sm font-bold text-primary underline">
           {t('profile.adminPanel')}
         </Link>
       )}
-      <button type="button" onClick={doLogout} className="p-2 text-center text-[13.5px] font-extrabold text-c2-danger">
+      <button type="button" onClick={doLogout} className="p-2 text-center text-[13.5px] font-extrabold text-danger">
         {t('profile.logout')}
       </button>
     </div>
