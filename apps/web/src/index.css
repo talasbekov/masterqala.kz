@@ -1,10 +1,9 @@
 @import "tailwindcss";
 @import "@masterqala/ui/tokens.css";
-@import "@masterqala/ui/tokens-client-v2.css";
 @source "../../../packages/ui/src";
 
 body {
   background: var(--color-background);
-  color: var(--color-foreground);
+  color: var(--color-ink);
   font-family: var(--font-sans);
 }
