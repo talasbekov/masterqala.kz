@@ -33,6 +33,7 @@ describe('environment security validation', () => {
     expect(env.UPLOAD_TTL_HOURS).toBe(24);
     expect(env.FILE_SCAN_MODE).toBe('DISABLED');
     expect(env.PDF_CDR_MODE).toBe('BYPASS');
+    expect(env.PGBOSS_DISABLED).toBe('0');
     expect(env.CLAMAV_HOST).toBe('127.0.0.1');
     expect(env.CLAMAV_PORT).toBe(3310);
     expect(env.CLAMAV_TIMEOUT_MS).toBe(15000);
@@ -82,6 +83,20 @@ describe('environment security validation', () => {
     expect(validateEnvironment({ ...productionBase, PDF_CDR_MODE: 'REQUIRED' }).PDF_CDR_MODE).toBe('REQUIRED');
     expect(validateEnvironment({ ...productionBase, PDF_CDR_MODE: 'BYPASS' }).PDF_CDR_MODE).toBe('BYPASS');
     expect(() => validateEnvironment({ ...productionBase, PDF_CDR_MODE: 'UNKNOWN' })).toThrow('PDF_CDR_MODE');
+  });
+
+  it('запрещает отключать pg-boss workers в production', () => {
+    const productionBase = {
+      NODE_ENV: 'production',
+      JWT_SECRET: secureSecret,
+      CORS_ORIGINS: 'https://masterqala.kz',
+      FILE_SCAN_MODE: 'CLAMAV',
+      PDF_CDR_MODE: 'REQUIRED',
+    };
+
+    expect(() => validateEnvironment({ ...productionBase, PGBOSS_DISABLED: '1' })).toThrow('PGBOSS_DISABLED');
+    expect(validateEnvironment({ ...productionBase, PGBOSS_DISABLED: '0' }).PGBOSS_DISABLED).toBe('0');
+    expect(() => validateEnvironment({ ...productionBase, PGBOSS_DISABLED: 'yes' })).toThrow('PGBOSS_DISABLED');
   });
 
   it('отклоняет wildcard, path и неизвестный протокол', () => {
@@ -134,6 +149,7 @@ describe('environment security validation', () => {
       UPLOAD_TTL_HOURS: '12',
       FILE_SCAN_MODE: 'CLAMAV',
       PDF_CDR_MODE: 'REQUIRED',
+      PGBOSS_DISABLED: '0',
       CLAMAV_HOST: 'clamav.internal',
       CLAMAV_PORT: '3311',
       CLAMAV_TIMEOUT_MS: '20000',
@@ -152,6 +168,7 @@ describe('environment security validation', () => {
     expect(env.UPLOAD_TTL_HOURS).toBe(12);
     expect(env.FILE_SCAN_MODE).toBe('CLAMAV');
     expect(env.PDF_CDR_MODE).toBe('REQUIRED');
+    expect(env.PGBOSS_DISABLED).toBe('0');
     expect(env.CLAMAV_HOST).toBe('clamav.internal');
     expect(env.CLAMAV_PORT).toBe(3311);
     expect(env.CLAMAV_TIMEOUT_MS).toBe(20000);
