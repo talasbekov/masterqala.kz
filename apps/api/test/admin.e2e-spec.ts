@@ -1,6 +1,6 @@
 import { INestApplication } from '@nestjs/common';
 import * as request from 'supertest';
-import { createTestApp, resetDb, loginAs, seedCategories } from './helpers';
+import { createTestApp, resetDb, loginAs, seedCategories, TEST_PNG_BYTES } from './helpers';
 
 describe('Admin: applications', () => {
   let app: INestApplication;
@@ -59,7 +59,7 @@ describe('Admin: applications', () => {
       .post('/api/v1/masters/application/documents')
       .set('Authorization', `Bearer ${masterToken}`)
       .field('type', 'ID_CARD')
-      .attach('file', Buffer.from([0x89, 0x50]), { filename: 'udo.png', contentType: 'image/png' })
+      .attach('file', TEST_PNG_BYTES, { filename: 'udo.png', contentType: 'image/png' })
       .expect(201);
 
     const { token: opToken } = await loginAs(app, '+77000000001', 'OPERATOR');

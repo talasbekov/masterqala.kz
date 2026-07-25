@@ -3,6 +3,7 @@ import { Logger, ServiceUnavailableException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { PAYMENT_PROVIDER, PaymentProvider } from '../payments/payment.interface';
 import { FILE_STORAGE } from '../storage/storage.interface';
+import { PersistentFileScansService } from '../storage/persistent-file-scans.service';
 import { MasterPenaltyService } from '../common/master-penalty.service';
 import { CompensationService } from '../common/compensation.service';
 import { DisputesService } from './disputes.service';
@@ -31,6 +32,7 @@ describe('DisputesService.resolve — коммерческий режим воз
         DisputesService,
         { provide: PrismaService, useValue: prisma },
         { provide: FILE_STORAGE, useValue: {} },
+        { provide: PersistentFileScansService, useValue: { enqueueDisputeEvidence: jest.fn() } },
         { provide: PAYMENT_PROVIDER, useValue: payments },
         { provide: MasterPenaltyService, useValue: { applyPenalty: jest.fn() } },
         { provide: CompensationService, useValue: { accrueCallout: jest.fn() } },

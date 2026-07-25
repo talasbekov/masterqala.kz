@@ -13,6 +13,7 @@ import AdminDetailPage from './pages/AdminDetailPage';
 import AdminWithdrawalsPage from './pages/AdminWithdrawalsPage';
 import AdminDisputesPage from './pages/AdminDisputesPage';
 import AdminDisputeDetailPage from './pages/AdminDisputeDetailPage';
+import AdminSecurityPage from './pages/AdminSecurityPage';
 import NewOrderPage from './features/client-v2/pages/NewOrderPage';
 import OrderPage from './features/client-v2/pages/OrderPage';
 import DisputePage from './features/client-v2/pages/DisputePage';
@@ -69,10 +70,11 @@ export default function App() {
             <Route path="/become-master" element={<BecomeMasterPage />} />
             <Route element={<RequireOperator />}>
               <Route path="/admin" element={<AdminListPage />} />
-              <Route path="/admin/:id" element={<AdminDetailPage />} />
+              <Route path="/admin/security" element={<AdminSecurityPage />} />
               <Route path="/admin/withdrawals" element={<AdminWithdrawalsPage />} />
               <Route path="/admin/disputes" element={<AdminDisputesPage />} />
               <Route path="/admin/disputes/:id" element={<AdminDisputeDetailPage />} />
+              <Route path="/admin/:id" element={<AdminDetailPage />} />
             </Route>
           </Route>
         </Routes>

@@ -16,12 +16,12 @@
     "start:prod": "node dist/main",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "pretest": "prisma generate",
-    "test": "jest",
-    "test:watch": "jest --watch",
-    "test:cov": "jest --coverage",
-    "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
+    "test": "NODE_ENV=test JWT_SECRET=test-only-secret-with-at-least-32-characters jest",
+    "test:watch": "NODE_ENV=test JWT_SECRET=test-only-secret-with-at-least-32-characters jest --watch",
+    "test:cov": "NODE_ENV=test JWT_SECRET=test-only-secret-with-at-least-32-characters jest --coverage",
+    "test:debug": "NODE_ENV=test JWT_SECRET=test-only-secret-with-at-least-32-characters node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "pretest:e2e": "prisma generate",
-    "test:e2e": "DATABASE_URL=postgresql://masterqala:masterqala@localhost:5433/masterqala_test jest --config ./test/jest-e2e.json --runInBand"
+    "test:e2e": "NODE_ENV=test JWT_SECRET=test-only-secret-with-at-least-32-characters DATABASE_URL=postgresql://masterqala:masterqala@localhost:5433/masterqala_test jest --config ./test/jest-e2e.json --runInBand"
   },
   "dependencies": {
     "@nestjs/common": "^10.0.0",

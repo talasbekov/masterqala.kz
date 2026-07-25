@@ -1,6 +1,6 @@
 import { INestApplication } from '@nestjs/common';
 import * as request from 'supertest';
-import { createTestApp, resetDb, loginAs, seedCategories } from './helpers';
+import { createTestApp, resetDb, loginAs, seedCategories, TEST_PNG_BYTES } from './helpers';
 
 describe('Masters: documents', () => {
   let app: INestApplication;
@@ -32,7 +32,7 @@ describe('Masters: documents', () => {
       .post('/api/v1/masters/application/documents')
       .set('Authorization', `Bearer ${token}`)
       .field('type', 'ID_CARD')
-      .attach('file', Buffer.from([0x89, 0x50, 0x4e, 0x47]), { filename: 'udo.png', contentType: 'image/png' })
+      .attach('file', TEST_PNG_BYTES, { filename: 'udo.png', contentType: 'image/png' })
       .expect(201);
     expect(res.body.type).toBe('ID_CARD');
     expect(res.body.originalName).toBe('udo.png');
@@ -57,7 +57,7 @@ describe('Masters: documents', () => {
       .post('/api/v1/masters/application/documents')
       .set('Authorization', `Bearer ${token}`)
       .field('type', 'ID_CARD')
-      .attach('file', Buffer.from([0x89]), { filename: 'x.png', contentType: 'image/png' })
+      .attach('file', TEST_PNG_BYTES, { filename: 'x.png', contentType: 'image/png' })
       .expect(404);
   });
 
@@ -66,7 +66,7 @@ describe('Masters: documents', () => {
     const { token } = await loginAs(app, '+77071234567');
     await createApplication(token, plumbing.id);
 
-    const big = Buffer.alloc(10 * 1024 * 1024 + 1, 1);
+    const big = Buffer.concat([TEST_PNG_BYTES, Buffer.alloc(10 * 1024 * 1024 + 1, 1)]);
     const res = await request(app.getHttpServer())
       .post('/api/v1/masters/application/documents')
       .set('Authorization', `Bearer ${token}`)

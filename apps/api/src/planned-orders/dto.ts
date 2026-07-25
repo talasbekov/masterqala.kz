@@ -1,4 +1,17 @@
-import { ArrayMaxSize, IsISO8601, IsInt, IsNotEmpty, IsOptional, IsString, IsUUID, Max, MaxLength, Min } from 'class-validator';
+import {
+  ArrayMaxSize,
+  ArrayUnique,
+  IsISO8601,
+  IsInt,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Matches,
+  MaxLength,
+  Min,
+} from 'class-validator';
+import { STORED_PHOTO_PATH_PATTERN } from '../storage/upload-security';
 
 export class CreatePlannedOrderDto {
   @IsUUID()
@@ -52,7 +65,9 @@ export class CreatePlannedOrderDto {
 
   @IsOptional()
   @ArrayMaxSize(5)
+  @ArrayUnique()
   @IsString({ each: true })
+  @Matches(STORED_PHOTO_PATH_PATTERN, { each: true, message: 'Некорректная ссылка на фото' })
   photoPaths?: string[];
 }
 

@@ -32,6 +32,7 @@ model User {
   clientOrders           Order[]                 @relation("ClientOrders")
   masterOrders           Order[]                 @relation("MasterOrders")
   offers                 OrderOffer[]
+  pendingUploads         PendingUpload[]
   clientPlannedOrders    PlannedOrder[]          @relation("ClientPlannedOrders")
   masterPlannedOrders    PlannedOrder[]          @relation("MasterPlannedOrders")
   plannedOrderBids       PlannedOrderBid[]
@@ -39,6 +40,21 @@ model User {
   reviewsReceived        Review[]                @relation("ReviewsReceived")
   decisions              VerificationDecision[]
   withdrawalRequests     WithdrawalRequest[]
+}
+
+model PendingUpload {
+  id         String    @id @default(uuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  path       String    @unique
+  mimeType   String
+  sizeBytes  Int
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([userId, consumedAt, expiresAt])
+  @@index([expiresAt, consumedAt])
 }
 
 model SmsCode {

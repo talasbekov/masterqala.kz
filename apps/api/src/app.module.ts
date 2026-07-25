@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { HealthController } from './health.controller';
 import { PrismaModule } from './prisma/prisma.module';
 import { CommonModule } from './common/common.module';
 import { AuthModule } from './auth/auth.module';
@@ -22,17 +21,20 @@ import { DisputesModule } from './disputes/disputes.module';
 import { AddressesModule } from './addresses/addresses.module';
 import { ReviewsModule } from './reviews/reviews.module';
 import { CommercialModeModule } from './commercial-mode/commercial-mode.module';
+import { HealthModule } from './health.module';
+import { validateEnvironment } from './config/environment';
 import { AdminUsersModule } from './admin-users/admin-users.module';
 import { AdminMastersModule } from './admin-masters/admin-masters.module';
 import { AdminOrdersModule } from './admin-orders/admin-orders.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({ isGlobal: true, validate: validateEnvironment }),
     CommercialModeModule,
     PrismaModule,
     CommonModule,
     QueueModule,
+    HealthModule,
     AuditLogModule,
     AuthModule,
     UsersModule,
@@ -54,7 +56,7 @@ import { AdminOrdersModule } from './admin-orders/admin-orders.module';
     AddressesModule,
     ReviewsModule,
   ],
-  controllers: [HealthController],
+  controllers: [],
   providers: [],
 })
 export class AppModule {}

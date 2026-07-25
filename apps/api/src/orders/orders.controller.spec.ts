@@ -1,5 +1,6 @@
 import { User } from '@prisma/client';
 import { CommercialModeService } from '../commercial-mode/commercial-mode.service';
+import { PhotoReferenceGuard } from '../storage/photo-reference.guard';
 import { OrdersController } from './orders.controller';
 import { OrdersService } from './orders.service';
 
@@ -15,9 +16,12 @@ function setup(currentFreePilot: boolean) {
   const commercialMode = {
     isFreePilot: jest.fn().mockReturnValue(currentFreePilot),
   } as unknown as CommercialModeService;
+  const photoReferences = {
+    assertAvailable: jest.fn(),
+  } as unknown as PhotoReferenceGuard;
 
   return {
-    controller: new OrdersController(orders as unknown as OrdersService, commercialMode),
+    controller: new OrdersController(orders as unknown as OrdersService, commercialMode, photoReferences),
     orders,
   };
 }

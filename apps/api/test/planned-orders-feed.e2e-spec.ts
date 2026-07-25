@@ -1,6 +1,15 @@
 import { INestApplication } from '@nestjs/common';
 import * as request from 'supertest';
-import { createTestApp, resetDb, seedCategories, loginAs, createActiveMaster, createPlannedOrderViaApi, grantLeadCredits } from './helpers';
+import {
+  createTestApp,
+  resetDb,
+  seedCategories,
+  loginAs,
+  createActiveMaster,
+  createPlannedOrderViaApi,
+  grantLeadCredits,
+  uploadPngViaApi,
+} from './helpers';
 import { PrismaService } from '../src/prisma/prisma.service';
 
 describe('Лента и просмотр плановой заявки (e2e)', () => {
@@ -58,9 +67,10 @@ describe('Лента и просмотр плановой заявки (e2e)', (
   });
 
   it('мастер без ставки не видит детали адреса и фото до просмотра — только после отклика', async () => {
+    const photoPath = await uploadPngViaApi(app, client.token);
     const order = await createPlannedOrderViaApi(app, client.token, plumbingId, {
-      photoPaths: ['planned/photo-1.jpg'],
-    } as any);
+      photoPaths: [photoPath],
+    });
     await prisma.plannedOrder.update({
       where: { id: order.id },
       data: { entrance: '2', floor: '5', apartment: '42', addressComment: 'домофон не работает, звонить заранее' },
@@ -100,9 +110,10 @@ describe('Лента и просмотр плановой заявки (e2e)', (
   });
 
   it('выбранный мастер видит адрес, детали и фото; чужой мастер — по-прежнему нет', async () => {
+    const photoPath = await uploadPngViaApi(app, client.token);
     const order = await createPlannedOrderViaApi(app, client.token, plumbingId, {
-      photoPaths: ['planned/photo-1.jpg'],
-    } as any);
+      photoPaths: [photoPath],
+    });
     const anotherPlumber = await createActiveMaster(app, '+77070000004', plumbingId);
 
     await prisma.plannedOrder.update({
