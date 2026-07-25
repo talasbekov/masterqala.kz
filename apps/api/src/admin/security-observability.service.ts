@@ -152,60 +152,58 @@ export class SecurityObservabilityService {
     }
 
     const note = dto.note?.trim() || null;
-    const rows = dto.status === SecurityAlertStatus.ACKNOWLEDGED
-      ? await this.prisma.$queryRaw<AlertRow[]>`
-          UPDATE "SecurityAlert"
-          SET "status" = 'ACKNOWLEDGED',
-              "acknowledgedAt" = CURRENT_TIMESTAMP,
-              "acknowledgedByUserId" = ${operatorId},
-              "operatorNote" = COALESCE(${note}, "operatorNote"),
-              "updatedAt" = CURRENT_TIMESTAMP
-          WHERE "id" = ${alertId} AND "status" = 'OPEN'
-          RETURNING *
-        `
-      : await this.prisma.$queryRaw<AlertRow[]>`
-          UPDATE "SecurityAlert"
-          SET "status" = 'RESOLVED',
-              "resolvedAt" = CURRENT_TIMESTAMP,
-              "resolvedByUserId" = ${operatorId},
-              "operatorNote" = COALESCE(${note}, "operatorNote"),
-              "updatedAt" = CURRENT_TIMESTAMP
-          WHERE "id" = ${alertId} AND "status" IN ('OPEN', 'ACKNOWLEDGED')
-          RETURNING *
+    return this.prisma.$transaction(async (tx) => {
+      const rows = dto.status === SecurityAlertStatus.ACKNOWLEDGED
+        ? await tx.$queryRaw<AlertRow[]>`
+            UPDATE "SecurityAlert"
+            SET "status" = 'ACKNOWLEDGED',
+                "acknowledgedAt" = CURRENT_TIMESTAMP,
+                "acknowledgedByUserId" = ${operatorId},
+                "operatorNote" = COALESCE(${note}, "operatorNote"),
+                "updatedAt" = CURRENT_TIMESTAMP
+            WHERE "id" = ${alertId} AND "status" = 'OPEN'
+            RETURNING *
+          `
+        : await tx.$queryRaw<AlertRow[]>`
+            UPDATE "SecurityAlert"
+            SET "status" = 'RESOLVED',
+                "resolvedAt" = CURRENT_TIMESTAMP,
+                "resolvedByUserId" = ${operatorId},
+                "operatorNote" = COALESCE(${note}, "operatorNote"),
+                "updatedAt" = CURRENT_TIMESTAMP
+            WHERE "id" = ${alertId} AND "status" IN ('OPEN', 'ACKNOWLEDGED')
+            RETURNING *
+          `;
+
+      const changed = rows[0];
+      if (!changed) {
+        const existingRows = await tx.$queryRaw<AlertRow[]>`
+          SELECT * FROM "SecurityAlert" WHERE "id" = ${alertId} LIMIT 1
         `;
-
-    const changed = rows[0];
-    if (!changed) {
-      const existing = await this.findById(alertId);
-      if (!existing) throw new NotFoundException('Security alert не найден');
-      if (existing.status === dto.status) return existing;
-      if (existing.status === SecurityAlertStatus.RESOLVED) {
-        throw new ConflictException('Security alert уже закрыт');
+        const existing = existingRows[0];
+        if (!existing) throw new NotFoundException('Security alert не найден');
+        if (existing.status === dto.status) return existing;
+        if (existing.status === SecurityAlertStatus.RESOLVED) {
+          throw new ConflictException('Security alert уже закрыт');
+        }
+        throw new ConflictException('Недопустимый переход состояния security alert');
       }
-      throw new ConflictException('Недопустимый переход состояния security alert');
-    }
 
-    await this.prisma.$executeRaw`
-      INSERT INTO "SecurityAuditEvent" (
-        "action", "severity", "outcome", "resourceType", "resourceId", "actorUserId", "metadata"
-      ) VALUES (
-        ${dto.status === SecurityAlertStatus.ACKNOWLEDGED ? 'SECURITY_ALERT_ACKNOWLEDGED' : 'SECURITY_ALERT_RESOLVED'},
-        'INFO',
-        'SUCCESS',
-        'SECURITY_ALERT',
-        ${alertId},
-        ${operatorId},
-        jsonb_strip_nulls(jsonb_build_object('ruleKey', ${changed.ruleKey}, 'note', ${note}))
-      )
-    `;
+      await tx.$executeRaw`
+        INSERT INTO "SecurityAuditEvent" (
+          "action", "severity", "outcome", "resourceType", "resourceId", "actorUserId", "metadata"
+        ) VALUES (
+          ${dto.status === SecurityAlertStatus.ACKNOWLEDGED ? 'SECURITY_ALERT_ACKNOWLEDGED' : 'SECURITY_ALERT_RESOLVED'},
+          'INFO',
+          'SUCCESS',
+          'SECURITY_ALERT',
+          ${alertId},
+          ${operatorId},
+          jsonb_strip_nulls(jsonb_build_object('ruleKey', ${changed.ruleKey}, 'note', ${note}))
+        )
+      `;
 
-    return changed;
-  }
-
-  private async findById(id: string): Promise<AlertRow | null> {
-    const rows = await this.prisma.$queryRaw<AlertRow[]>`
-      SELECT * FROM "SecurityAlert" WHERE "id" = ${id} LIMIT 1
-    `;
-    return rows[0] ?? null;
+      return changed;
+    });
   }
 }
