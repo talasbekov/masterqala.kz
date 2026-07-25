@@ -34,6 +34,7 @@ import { SecurityRetentionService } from './security-retention.service';
   ],
   exports: [
     FILE_STORAGE,
+    QUARANTINE_SCANNER,
     PhotoReferenceGuard,
     PendingUploadsService,
     PersistentFileScansService,
