@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api';
+import { useAuth } from '../auth';
 
 type Dependency = {
   status: 'UP' | 'DOWN' | 'DISABLED';
@@ -21,6 +22,12 @@ type SecurityAlert = {
   occurrenceCount: number;
   firstSeenAt: string;
   lastSeenAt: string;
+  assignedToUserId: string | null;
+  assignedAt: string | null;
+  acknowledgeBy: string | null;
+  resolveBy: string | null;
+  escalatedAt: string | null;
+  escalationLevel: number;
   operatorNote: string | null;
 };
 
@@ -53,6 +60,12 @@ type Dashboard = {
     };
     warnings: string[];
   };
+  delivery: {
+    enabled: boolean;
+    channel: 'WEBHOOK';
+    maxAttempts: number;
+    timeoutMs: number;
+  };
   metrics: {
     events24h: number;
     infected24h: number;
@@ -62,6 +75,10 @@ type Dashboard = {
     criticalAlerts: number;
     highAlerts: number;
     warningAlerts: number;
+    overdueAcknowledgementAlerts: number;
+    overdueResolutionAlerts: number;
+    pendingDeliveries: number;
+    exhaustedDeliveries: number;
     oldestOpenAlertAt: string | null;
   };
   alerts: SecurityAlert[];
@@ -80,6 +97,10 @@ function formatDate(value: string | null) {
     dateStyle: 'short',
     timeStyle: 'medium',
   }).format(new Date(value));
+}
+
+function isOverdue(value: string | null) {
+  return Boolean(value && new Date(value).getTime() <= Date.now());
 }
 
 function DependencyCard({ title, dependency }: { title: string; dependency: Dependency }) {
@@ -102,6 +123,7 @@ function DependencyCard({ title, dependency }: { title: string; dependency: Depe
 }
 
 export default function AdminSecurityPage() {
+  const { user } = useAuth();
   const [dashboard, setDashboard] = useState<Dashboard | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -132,7 +154,7 @@ export default function AdminSecurityPage() {
     );
     if (note === null) return;
 
-    setActionId(alert.id);
+    setActionId(`${alert.id}:${status}`);
     try {
       await api(`/admin/security/alerts/${alert.id}`, {
         method: 'PATCH',
@@ -146,6 +168,33 @@ export default function AdminSecurityPage() {
     }
   }
 
+  async function assign(alert: SecurityAlert, assigneeUserId: string | null) {
+    setActionId(`${alert.id}:assign`);
+    try {
+      await api(`/admin/security/alerts/${alert.id}/assignment`, {
+        method: 'PATCH',
+        body: JSON.stringify({ assigneeUserId }),
+      });
+      await load();
+    } catch (assignError) {
+      setError((assignError as Error).message);
+    } finally {
+      setActionId(null);
+    }
+  }
+
+  async function retryDelivery(alert: SecurityAlert) {
+    setActionId(`${alert.id}:retry`);
+    try {
+      await api(`/admin/security/alerts/${alert.id}/deliveries/retry`, { method: 'POST' });
+      await load();
+    } catch (retryError) {
+      setError((retryError as Error).message);
+    } finally {
+      setActionId(null);
+    }
+  }
+
   if (loading) return <div className="mx-auto max-w-6xl p-6 text-gray-500">Загрузка security dashboard…</div>;
 
   return (
@@ -154,7 +203,7 @@ export default function AdminSecurityPage() {
         <div>
           <Link to="/admin" className="text-sm text-gray-500">← Заявки мастеров</Link>
           <h1 className="mt-2 text-2xl font-bold">Безопасность платформы</h1>
-          <p className="text-sm text-gray-500">Состояние инфраструктуры, файловые инциденты и audit trail.</p>
+          <p className="text-sm text-gray-500">Инфраструктура, SLA инцидентов, внешняя доставка и audit trail.</p>
         </div>
         <button className="rounded-lg border px-4 py-2 text-sm hover:bg-gray-50" onClick={() => void load()}>
           Обновить
@@ -173,10 +222,19 @@ export default function AdminSecurityPage() {
               </span>
               <span className="text-xs text-gray-500">{dashboard.readiness.environment}</span>
             </div>
-            <div className="grid gap-3 md:grid-cols-3">
+            <div className="grid gap-3 md:grid-cols-4">
               <DependencyCard title="PostgreSQL" dependency={dashboard.readiness.dependencies.database} />
               <DependencyCard title="pg-boss" dependency={dashboard.readiness.dependencies.queue} />
               <DependencyCard title="ClamAV" dependency={dashboard.readiness.dependencies.scanner} />
+              <div className="rounded-xl border bg-white p-4 shadow-sm">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="font-medium">Alert webhook</span>
+                  <span className={`rounded-full px-2 py-1 text-xs font-semibold ${dashboard.delivery.enabled ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-700'}`}>
+                    {dashboard.delivery.enabled ? 'ENABLED' : 'DISABLED'}
+                  </span>
+                </div>
+                <p className="mt-2 text-sm text-gray-500">{dashboard.delivery.timeoutMs} мс · {dashboard.delivery.maxAttempts} попыток</p>
+              </div>
             </div>
             {dashboard.readiness.warnings.length > 0 && (
               <ul className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
@@ -188,12 +246,12 @@ export default function AdminSecurityPage() {
           <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {[
               ['Открытые alerts', dashboard.metrics.openAlerts],
-              ['Критические', dashboard.metrics.criticalAlerts],
+              ['Просрочено подтверждение', dashboard.metrics.overdueAcknowledgementAlerts],
+              ['Просрочено решение', dashboard.metrics.overdueResolutionAlerts],
+              ['Исчерпана доставка', dashboard.metrics.exhaustedDeliveries],
               ['Заражено за 24 ч', dashboard.metrics.infected24h],
               ['Ошибки scan за 24 ч', dashboard.metrics.scanFailed24h],
-              ['Ожидают scan', dashboard.readiness.backlog.pendingScans],
-              ['SCAN_FAILED', dashboard.readiness.backlog.failedScans],
-              ['Зависшие SCANNING', dashboard.readiness.backlog.staleScanning],
+              ['Ожидают webhook', dashboard.metrics.pendingDeliveries],
               ['Audit events за 24 ч', dashboard.metrics.events24h],
             ].map(([label, value]) => (
               <div key={label} className="rounded-xl border bg-white p-4 shadow-sm">
@@ -209,40 +267,78 @@ export default function AdminSecurityPage() {
               <span className="text-xs text-gray-500">Старейший: {formatDate(dashboard.metrics.oldestOpenAlertAt)}</span>
             </div>
             <div className="space-y-3">
-              {dashboard.alerts.map((alert) => (
-                <article key={alert.id} className={`rounded-xl border p-4 ${SEVERITY_CLASS[alert.severity]}`}>
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="rounded-full bg-white/70 px-2 py-1 text-xs font-bold">{alert.severity}</span>
-                        <span className="rounded-full bg-white/70 px-2 py-1 text-xs">{alert.status}</span>
-                        {alert.occurrenceCount > 1 && <span className="text-xs">Повторений: {alert.occurrenceCount}</span>}
+              {dashboard.alerts.map((alert) => {
+                const actionPending = actionId?.startsWith(`${alert.id}:`) ?? false;
+                const ackOverdue = alert.status === 'OPEN' && isOverdue(alert.acknowledgeBy);
+                const resolveOverdue = alert.status === 'ACKNOWLEDGED' && isOverdue(alert.resolveBy);
+                return (
+                  <article key={alert.id} className={`rounded-xl border p-4 ${SEVERITY_CLASS[alert.severity]}`}>
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="rounded-full bg-white/70 px-2 py-1 text-xs font-bold">{alert.severity}</span>
+                          <span className="rounded-full bg-white/70 px-2 py-1 text-xs">{alert.status}</span>
+                          {alert.escalationLevel > 0 && <span className="rounded-full bg-red-700 px-2 py-1 text-xs text-white">ESC L{alert.escalationLevel}</span>}
+                          {alert.occurrenceCount > 1 && <span className="text-xs">Повторений: {alert.occurrenceCount}</span>}
+                        </div>
+                        <h3 className="mt-2 font-semibold">{alert.title}</h3>
+                        <p className="mt-1 break-all text-xs opacity-80">{alert.resourceType} · {alert.resourceId}</p>
+                        <div className="mt-3 grid gap-1 text-xs opacity-90 sm:grid-cols-2">
+                          <span>Ответственный: {alert.assignedToUserId === user?.id ? 'Вы' : alert.assignedToUserId ?? 'не назначен'}</span>
+                          <span>Последнее событие: {formatDate(alert.lastSeenAt)}</span>
+                          <span className={ackOverdue ? 'font-bold text-red-800' : ''}>Принять до: {formatDate(alert.acknowledgeBy)}</span>
+                          <span className={resolveOverdue ? 'font-bold text-red-800' : ''}>Решить до: {formatDate(alert.resolveBy)}</span>
+                        </div>
                       </div>
-                      <h3 className="mt-2 font-semibold">{alert.title}</h3>
-                      <p className="mt-1 break-all text-xs opacity-80">{alert.resourceType} · {alert.resourceId}</p>
-                      <p className="mt-1 text-xs opacity-80">Последнее событие: {formatDate(alert.lastSeenAt)}</p>
-                    </div>
-                    <div className="flex gap-2">
-                      {alert.status === 'OPEN' && (
+                      <div className="flex flex-wrap justify-end gap-2">
+                        {alert.assignedToUserId !== user?.id && user && (
+                          <button
+                            disabled={actionPending}
+                            className="rounded-lg border border-current bg-white/70 px-3 py-2 text-sm disabled:opacity-50"
+                            onClick={() => void assign(alert, user.id)}
+                          >
+                            Назначить себе
+                          </button>
+                        )}
+                        {alert.assignedToUserId === user?.id && (
+                          <button
+                            disabled={actionPending}
+                            className="rounded-lg border border-current bg-white/70 px-3 py-2 text-sm disabled:opacity-50"
+                            onClick={() => void assign(alert, null)}
+                          >
+                            Снять
+                          </button>
+                        )}
+                        {alert.status === 'OPEN' && (
+                          <button
+                            disabled={actionPending}
+                            className="rounded-lg border border-current bg-white/70 px-3 py-2 text-sm disabled:opacity-50"
+                            onClick={() => void transition(alert, 'ACKNOWLEDGED')}
+                          >
+                            Принять
+                          </button>
+                        )}
+                        {dashboard.delivery.enabled && (
+                          <button
+                            disabled={actionPending}
+                            className="rounded-lg border border-current bg-white/70 px-3 py-2 text-sm disabled:opacity-50"
+                            onClick={() => void retryDelivery(alert)}
+                          >
+                            Повторить webhook
+                          </button>
+                        )}
                         <button
-                          disabled={actionId === alert.id}
+                          disabled={actionPending}
                           className="rounded-lg border border-current bg-white/70 px-3 py-2 text-sm disabled:opacity-50"
-                          onClick={() => void transition(alert, 'ACKNOWLEDGED')}
+                          onClick={() => void transition(alert, 'RESOLVED')}
                         >
-                          Принять
+                          Закрыть
                         </button>
-                      )}
-                      <button
-                        disabled={actionId === alert.id}
-                        className="rounded-lg border border-current bg-white/70 px-3 py-2 text-sm disabled:opacity-50"
-                        onClick={() => void transition(alert, 'RESOLVED')}
-                      >
-                        Закрыть
-                      </button>
+                      </div>
                     </div>
-                  </div>
-                </article>
-              ))}
+                  </article>
+                );
+              })}
               {dashboard.alerts.length === 0 && <div className="rounded-xl border p-6 text-center text-gray-500">Открытых alerts нет</div>}
             </div>
           </section>
