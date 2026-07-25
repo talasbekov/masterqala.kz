@@ -2,7 +2,7 @@ const NODE_ENVIRONMENTS = ['development', 'test', 'production'] as const;
 const FILE_SCAN_MODES = ['DISABLED', 'CLAMAV'] as const;
 const PDF_CDR_MODES = ['BYPASS', 'REQUIRED'] as const;
 
-type NodeEnvironment = (typeof NODE_ENVIRONMENTS)[number];
+ type NodeEnvironment = (typeof NODE_ENVIRONMENTS)[number];
 type FileScanMode = (typeof FILE_SCAN_MODES)[number];
 type PdfCdrMode = (typeof PDF_CDR_MODES)[number];
 
@@ -44,6 +44,14 @@ function parsePdfCdrMode(value: unknown, nodeEnv: NodeEnvironment): PdfCdrMode {
     throw new Error(`Недопустимый PDF_CDR_MODE=${normalized || '<empty>'}. Допустимые значения: ${PDF_CDR_MODES.join(', ')}`);
   }
   return normalized as PdfCdrMode;
+}
+
+function parseBinaryFlag(name: string, value: unknown, fallback: '0' | '1'): '0' | '1' {
+  const normalized = requiredString(value) || fallback;
+  if (normalized !== '0' && normalized !== '1') {
+    throw new Error(`Недопустимый ${name}=${String(value)}. Допустимые значения: 0, 1`);
+  }
+  return normalized;
 }
 
 function parseInteger(name: string, value: unknown, fallback: number, min: number, max: number): number {
@@ -115,6 +123,7 @@ export function validateEnvironment(raw: Record<string, unknown>): Record<string
   const uploadTtlHours = parseInteger('UPLOAD_TTL_HOURS', raw.UPLOAD_TTL_HOURS, 24, 1, 168);
   const fileScanMode = parseFileScanMode(raw.FILE_SCAN_MODE, nodeEnv);
   const pdfCdrMode = parsePdfCdrMode(raw.PDF_CDR_MODE, nodeEnv);
+  const pgBossDisabled = parseBinaryFlag('PGBOSS_DISABLED', raw.PGBOSS_DISABLED, '0');
   const clamavHost = requiredString(raw.CLAMAV_HOST) || '127.0.0.1';
   const clamavPort = parseInteger('CLAMAV_PORT', raw.CLAMAV_PORT, 3310, 1, 65535);
   const clamavTimeoutMs = parseInteger('CLAMAV_TIMEOUT_MS', raw.CLAMAV_TIMEOUT_MS, 15000, 1000, 120000);
@@ -132,6 +141,9 @@ export function validateEnvironment(raw: Record<string, unknown>): Record<string
   if (fileScanMode === 'CLAMAV' && !clamavHost) {
     throw new Error('CLAMAV_HOST обязателен при FILE_SCAN_MODE=CLAMAV');
   }
+  if (nodeEnv === 'production' && pgBossDisabled === '1') {
+    throw new Error('В production PGBOSS_DISABLED не может быть 1');
+  }
 
   return {
     ...raw,
@@ -143,6 +155,7 @@ export function validateEnvironment(raw: Record<string, unknown>): Record<string
     UPLOAD_TTL_HOURS: uploadTtlHours,
     FILE_SCAN_MODE: fileScanMode,
     PDF_CDR_MODE: pdfCdrMode,
+    PGBOSS_DISABLED: pgBossDisabled,
     CLAMAV_HOST: clamavHost,
     CLAMAV_PORT: clamavPort,
     CLAMAV_TIMEOUT_MS: clamavTimeoutMs,
