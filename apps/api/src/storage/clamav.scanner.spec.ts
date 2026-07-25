@@ -35,6 +35,21 @@ async function startFakeClamAv(response: string): Promise<{ server: Server; port
   return { server, port: (server.address() as AddressInfo).port };
 }
 
+async function startFakeClamAvPing(response = 'PONG'): Promise<{ server: Server; port: number }> {
+  const server = createServer((socket) => {
+    let command = '';
+    socket.on('data', (chunk) => {
+      command += chunk.toString('utf8');
+      if (!command.includes('\0')) return;
+      expect(command.replace(/\0/g, '')).toBe('zPING');
+      socket.end(`${response}\0`);
+    });
+  });
+
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+  return { server, port: (server.address() as AddressInfo).port };
+}
+
 describe('ClamAvScanner', () => {
   let dir: string;
   let file: string;
@@ -47,6 +62,30 @@ describe('ClamAvScanner', () => {
 
   afterEach(async () => {
     await rm(dir, { recursive: true, force: true });
+  });
+
+  it('проверяет readiness через PING/PONG', async () => {
+    const { server, port } = await startFakeClamAvPing();
+    try {
+      await expect(new ClamAvScanner('127.0.0.1', port, 2000).healthCheck()).resolves.toMatchObject({
+        status: 'UP',
+        mode: 'CLAMAV',
+        latencyMs: expect.any(Number),
+      });
+    } finally {
+      server.close();
+    }
+  });
+
+  it('fail-closed отклоняет неожиданный PING response', async () => {
+    const { server, port } = await startFakeClamAvPing('ERROR');
+    try {
+      await expect(new ClamAvScanner('127.0.0.1', port, 2000).healthCheck()).rejects.toThrow(
+        'Unexpected ClamAV PING response',
+      );
+    } finally {
+      server.close();
+    }
   });
 
   it('передаёт файл через INSTREAM и принимает OK', async () => {
