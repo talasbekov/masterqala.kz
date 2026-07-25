@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { HealthController } from './health.controller';
+import { HealthService } from './health.service';
 import { PrismaModule } from './prisma/prisma.module';
 import { CommonModule } from './common/common.module';
 import { AuthModule } from './auth/auth.module';
@@ -21,6 +22,7 @@ import { DisputesModule } from './disputes/disputes.module';
 import { AddressesModule } from './addresses/addresses.module';
 import { ReviewsModule } from './reviews/reviews.module';
 import { CommercialModeModule } from './commercial-mode/commercial-mode.module';
+import { StorageModule } from './storage/storage.module';
 import { validateEnvironment } from './config/environment';
 
 @Module({
@@ -30,6 +32,7 @@ import { validateEnvironment } from './config/environment';
     PrismaModule,
     CommonModule,
     QueueModule,
+    StorageModule,
     AuthModule,
     UsersModule,
     MastersModule,
@@ -48,6 +51,6 @@ import { validateEnvironment } from './config/environment';
     ReviewsModule,
   ],
   controllers: [HealthController],
-  providers: [],
+  providers: [HealthService],
 })
 export class AppModule {}
