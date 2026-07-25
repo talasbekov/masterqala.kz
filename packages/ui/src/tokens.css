@@ -1,20 +1,49 @@
+/*
+ * Дизайн-токены MasterQala.kz.
+ *
+ * Палитра утверждена заказчиком 19.07.2026 (правило 60/30/10), источник —
+ * apps/MasterQala/design_handoff_masterqala/README.md. Заменила исходную
+ * сине-оранжевую палитру; отдельного набора tokens-client-v2.css больше нет.
+ */
 @theme {
-  --color-primary: #1E40AF;
-  --color-primary-light: #3B82F6;
-  --color-accent: #EA580C;
-  --color-background: #FFFCF5;
+  /* 60% — фон */
+  --color-background: #F2F7FA;
   --color-surface: #FFFFFF;
-  --color-foreground: #1B1B1F;
-  --color-muted: #8A8A8F;
-  --color-border: #F0EAE0;
+
+  /* 30% — поверхности и границы */
+  --color-border: #C0D6DF;
+  --color-fill: #CFE0E8;
+  --color-fill-soft: #EAF2F6;
+  --color-fill-faint: #F6FAFC;
+
+  /* 10% — акцент */
+  --color-primary: #166088;
+  --color-primary-hover: #134F73;
+
+  /* Текст */
+  --color-ink: #14303C;
+  --color-ink-soft: #5B7B8A;
+  --color-muted: #8FAAB8;
+  --color-on-fill: #38596A;
+
+  /* Семантика */
   --color-success: #059669;
-  --color-destructive: #DC2626;
+  --color-success-bg: #E5F3EE;
+  --color-success-ink: #065F46;
+  --color-danger: #DC2626;
+  --color-danger-bg: #FBECEC;
+  --color-danger-ink: #991B1B;
+  --color-warning-bg: #FFF1E8;
+  --color-warning-ink: #B4530A;
 
   --radius-sm: 10px;
   --radius-md: 14px;
   --radius-lg: 18px;
+  --radius-pill: 999px;
+  --radius-sheet: 22px;
 
-  --shadow-card: 0 2px 8px rgba(20, 20, 30, 0.06);
+  --shadow-card: 0 2px 8px rgba(20, 48, 60, 0.06);
+  --shadow-sheet: 0 -6px 24px rgba(20, 48, 60, 0.12);
 
   --font-sans: 'Manrope', ui-sans-serif, system-ui, sans-serif;
 }
