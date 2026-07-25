@@ -5,6 +5,7 @@ import type { OrderDetail } from '../../pages/OrderPage';
 
 export default function PriceView({ order, orderId, onChanged }: { order: OrderDetail; orderId: string; onChanged: () => void }) {
   const { t } = useTranslation();
+  const paymentsEnabled = order.commercialMode !== 'FREE_PILOT' && order.freePilot !== true;
   const [remaining, setRemaining] = useState(0);
   const [error, setError] = useState('');
 
@@ -50,11 +51,13 @@ export default function PriceView({ order, orderId, onChanged }: { order: OrderD
       </div>
       <div className="text-sm font-semibold text-ink">{t('orderDetail.priceOffered', { name: order.master?.name })}</div>
       <div className="rounded-md border border-border bg-surface p-3.5">
-        <div className="flex justify-between text-[13.5px] font-semibold text-ink-soft">
-          <span>{t('orderDetail.priceCalloutLabel')}</span>
-          <span>{order.calloutPrice} ₸</span>
-        </div>
-        <div className="mt-1.5 flex justify-between text-sm font-extrabold text-ink">
+        {paymentsEnabled && (
+          <div className="flex justify-between text-[13.5px] font-semibold text-ink-soft">
+            <span>{t('orderDetail.priceCalloutLabel')}</span>
+            <span>{order.calloutPrice} ₸</span>
+          </div>
+        )}
+        <div className={`${paymentsEnabled ? 'mt-1.5' : ''} flex justify-between text-sm font-extrabold text-ink`}>
           <span>{t('orderDetail.priceWorkLabel')}</span>
           <span>{order.workPrice} ₸</span>
         </div>
@@ -67,7 +70,11 @@ export default function PriceView({ order, orderId, onChanged }: { order: OrderD
       {order.workComment && (
         <div className="rounded-md bg-fill p-3 text-[13px] leading-relaxed text-ink">«{order.workComment}»</div>
       )}
-      <p className="text-xs leading-relaxed text-ink-soft">{t('orderDetail.priceRejectNote')}</p>
+      <p className="text-xs leading-relaxed text-ink-soft">
+        {paymentsEnabled
+          ? t('orderDetail.priceRejectNote')
+          : 'В бесплатном пилоте платформа не списывает деньги. После подтверждения вы рассчитываетесь с мастером напрямую; при отклонении заявка отменится.'}
+      </p>
       {error && <p className="text-sm font-semibold text-danger">{error}</p>}
       <div className="mt-auto" />
       <button

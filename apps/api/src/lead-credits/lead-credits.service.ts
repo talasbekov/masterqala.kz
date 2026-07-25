@@ -1,4 +1,5 @@
-import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Inject, Injectable } from '@nestjs/common';
+import { CommercialModeService } from '../commercial-mode/commercial-mode.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { PAYMENT_PROVIDER, PaymentProvider } from '../payments/payment.interface';
 import { LEAD_CREDIT_PACKAGES } from './lead-credits.config';
@@ -8,14 +9,20 @@ export class LeadCreditsService {
   constructor(
     private readonly prisma: PrismaService,
     @Inject(PAYMENT_PROVIDER) private readonly payments: PaymentProvider,
+    private readonly commercialMode: CommercialModeService,
   ) {}
 
   async getBalance(masterUserId: string): Promise<number> {
+    if (!this.commercialMode.leadCreditsEnabled()) return 0;
     const acc = await this.prisma.leadCreditAccount.findUnique({ where: { masterUserId } });
     return acc?.balance ?? 0;
   }
 
   async purchase(masterUserId: string, packageId: string): Promise<{ masterUserId: string; balance: number }> {
+    if (!this.commercialMode.leadCreditsEnabled()) {
+      throw new ForbiddenException('Покупка lead-кредитов недоступна в бесплатном пилоте');
+    }
+
     const pkg = LEAD_CREDIT_PACKAGES.find((p) => p.id === packageId);
     if (!pkg) throw new BadRequestException('Неизвестный пакет кредитов');
 

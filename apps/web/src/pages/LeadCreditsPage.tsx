@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api';
+import { useCommercialMode } from '../commercial-mode';
 
 export default function LeadCreditsPage() {
+  const { leadCreditsEnabled } = useCommercialMode();
   const [balance, setBalance] = useState(0);
   const [packages, setPackages] = useState<any[]>([]);
   const [error, setError] = useState('');
@@ -12,7 +14,9 @@ export default function LeadCreditsPage() {
     api('/lead-credits/packages').then(setPackages);
   }
 
-  useEffect(load, []);
+  useEffect(() => {
+    if (leadCreditsEnabled) load();
+  }, [leadCreditsEnabled]);
 
   async function purchase(id: string) {
     setPurchasing(id);
@@ -25,6 +29,20 @@ export default function LeadCreditsPage() {
     } finally {
       setPurchasing('');
     }
+  }
+
+  if (!leadCreditsEnabled) {
+    return (
+      <div className="mx-auto max-w-sm space-y-4 p-6">
+        <h1 className="text-2xl font-bold">Lead-кредиты</h1>
+        <div className="rounded-xl border border-teal-200 bg-teal-50 p-5 text-center">
+          <div className="text-lg font-bold text-teal-800">Отклики бесплатны</div>
+          <p className="mt-2 text-sm text-gray-600">
+            В период бесплатного пилота мастеру не нужны кредиты для отклика на плановые заявки.
+          </p>
+        </div>
+      </div>
+    );
   }
 
   return (

@@ -121,6 +121,7 @@ model Order {
   address         String
   location        Unsupported("geography(Point, 4326)")?
   status          OrderStatus               @default(CREATED)
+  commercialMode  CommercialMode            @default(PAID_MOCK)
   masterId        String?
   wave            Int                       @default(0)
   searchAttempt   Int                       @default(1)
@@ -153,6 +154,7 @@ model Order {
 
   @@index([clientId, status])
   @@index([masterId, status])
+  @@index([commercialMode, createdAt])
 }
 
 model OrderOffer {
@@ -211,6 +213,7 @@ model PlannedOrder {
   address        String
   district       String
   status         PlannedOrderStatus  @default(CREATED)
+  commercialMode CommercialMode      @default(PAID_MOCK)
   masterId       String?
   selectedBidId  String?             @unique
   workPrice      Int?
@@ -241,6 +244,7 @@ model PlannedOrder {
   @@index([clientId, status])
   @@index([masterId, status])
   @@index([categoryId, status])
+  @@index([commercialMode, createdAt])
 }
 
 model PlannedOrderBid {
@@ -433,6 +437,12 @@ enum DecisionType {
   APPROVE
   REJECT
   REQUEST_INFO
+}
+
+enum CommercialMode {
+  FREE_PILOT
+  PAID_MOCK
+  PAID_LIVE
 }
 
 enum AuditActorType {

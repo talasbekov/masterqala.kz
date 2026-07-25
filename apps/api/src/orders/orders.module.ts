@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { CommercialModeModule } from '../commercial-mode/commercial-mode.module';
 import { PricingModule } from '../pricing/pricing.module';
 import { PaymentsModule } from '../payments/payments.module';
 import { RealtimeModule } from '../realtime/realtime.module';
@@ -11,7 +12,16 @@ import { OrdersController } from './orders.controller';
 import { MatchingService } from './matching.service';
 
 @Module({
-  imports: [PricingModule, PaymentsModule, RealtimeModule, CommonModule, DisputesModule, StorageModule, ReviewsModule],
+  imports: [
+    CommercialModeModule,
+    PricingModule,
+    PaymentsModule,
+    RealtimeModule,
+    CommonModule,
+    DisputesModule,
+    StorageModule,
+    ReviewsModule,
+  ],
   providers: [OrdersService, MatchingService],
   controllers: [OrdersController],
   exports: [OrdersService, MatchingService],

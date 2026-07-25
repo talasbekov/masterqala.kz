@@ -146,9 +146,17 @@ export class DisputesService {
 
     const orderId = dispute.orderId;
     const plannedOrderId = dispute.plannedOrderId;
-    // Возврат сервисного сбора физически возможен только для срочных заявок (PlannedOrder не имеет serviceFee) —
-    // для планового спора флаг всегда игнорируется и сохраняется как false, независимо от запроса оператора.
-    const refundServiceFee = orderId ? dto.refundServiceFee : false;
+    const urgentOrder = orderId
+      ? await this.prisma.order.findUniqueOrThrow({
+          where: { id: orderId },
+          select: { commercialMode: true, serviceFee: true },
+        })
+      : null;
+    // Возврат возможен только для срочной платной заявки. В FREE_PILOT платформа
+    // не принимала деньги, поэтому флаг принудительно сохраняется как false.
+    const refundServiceFee = Boolean(
+      urgentOrder && urgentOrder.commercialMode !== 'FREE_PILOT' && dto.refundServiceFee,
+    );
 
     await this.prisma.$transaction(async (tx) => {
       const gated = await tx.dispute.updateMany({
@@ -169,8 +177,7 @@ export class DisputesService {
         if (dto.penalizeMaster && order.masterId) await this.penalties.applyPenalty(tx, order.masterId);
         if (order.status === 'DONE') {
           await tx.order.updateMany({ where: { id: orderId, status: 'DONE' }, data: { status: 'CLOSED', closedAt: new Date() } });
-          // Компенсация начисляется всегда при фактическом закрытии срочной заявки через спор,
-          // независимо от санкции (penalizeMaster) — это отдельное, независимое от штрафа начисление.
+          // CompensationService самостоятельно учитывает сохранённый commercialMode заявки.
           await this.compensation.accrueCallout(tx, order);
         }
       } else if (plannedOrderId) {
@@ -182,16 +189,15 @@ export class DisputesService {
       }
     });
 
-    if (refundServiceFee && orderId) {
-      const order = await this.prisma.order.findUniqueOrThrow({ where: { id: orderId } });
+    if (refundServiceFee && orderId && urgentOrder) {
       // Спор уже сохранён RESOLVED в транзакции выше — откатить это здесь нельзя.
       // Исход неизвестен при исключении провайдера: громкий лог для ручной сверки
       // оператором, тот же fail-safe принцип, что и в WalletService.request().
       try {
-        await this.payments.refund(orderId, order.serviceFee);
+        await this.payments.refund(orderId, urgentOrder.serviceFee);
       } catch (e) {
         this.logger.error(
-          `refund() упал для disputeId=${disputeId} orderId=${orderId} amount=${order.serviceFee}: ${(e as Error).message}`,
+          `refund() упал для disputeId=${disputeId} orderId=${orderId} amount=${urgentOrder.serviceFee}: ${(e as Error).message}`,
         );
         throw new ServiceUnavailableException('Спор разрешён, но возврат сбора не удался — требуется ручная сверка');
       }

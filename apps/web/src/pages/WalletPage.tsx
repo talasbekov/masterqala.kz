@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api';
+import { useCommercialMode } from '../commercial-mode';
 
 const STATUS_LABELS: Record<string, string> = {
   PENDING: 'В обработке',
@@ -8,6 +9,7 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 export default function WalletPage() {
+  const { payoutsEnabled } = useCommercialMode();
   const [balance, setBalance] = useState(0);
   const [history, setHistory] = useState<any[]>([]);
   const [amount, setAmount] = useState('');
@@ -19,7 +21,9 @@ export default function WalletPage() {
     api('/wallet/withdrawals').then(setHistory);
   }
 
-  useEffect(load, []);
+  useEffect(() => {
+    if (payoutsEnabled) load();
+  }, [payoutsEnabled]);
 
   async function submit() {
     setSubmitting(true);
@@ -33,6 +37,20 @@ export default function WalletPage() {
     } finally {
       setSubmitting(false);
     }
+  }
+
+  if (!payoutsEnabled) {
+    return (
+      <div className="mx-auto max-w-sm space-y-4 p-6">
+        <h1 className="text-2xl font-bold">Кошелёк</h1>
+        <div className="rounded-xl border border-teal-200 bg-teal-50 p-5 text-center">
+          <div className="text-lg font-bold text-teal-800">Расчёт напрямую с клиентом</div>
+          <p className="mt-2 text-sm text-gray-600">
+            В бесплатном пилоте платформа не принимает деньги и не формирует баланс для вывода.
+          </p>
+        </div>
+      </div>
+    );
   }
 
   return (

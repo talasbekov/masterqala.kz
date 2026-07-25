@@ -7,7 +7,7 @@ type Tx = Prisma.TransactionClient;
 export class CompensationService {
   /** Начисление компенсации мастеру за выполненный вызов; идемпотентно за счёт unique(orderId) на Accrual. */
   async accrueCallout(tx: Tx, order: Order): Promise<void> {
-    if (!order.masterId) return;
+    if (order.commercialMode === 'FREE_PILOT' || !order.masterId) return;
     const amount = order.calloutPrice - order.serviceFee;
     const res = await tx.accrual.createMany({
       data: [

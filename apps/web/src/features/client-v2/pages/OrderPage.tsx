@@ -21,6 +21,8 @@ export interface OrderMaster {
 export interface OrderDetail {
   id: string;
   status: string;
+  commercialMode: 'FREE_PILOT' | 'PAID_MOCK' | 'PAID_LIVE';
+  freePilot?: boolean;
   wave: number;
   category: { name: string } | null;
   master: OrderMaster | null;
@@ -84,8 +86,10 @@ export default function OrderPage() {
     );
   }
 
+  const freePilot = order.commercialMode === 'FREE_PILOT' || order.freePilot === true;
+
   if (order.status === 'SEARCHING') return <SearchView order={order} onChanged={load} />;
-  if (order.status === 'NO_MASTERS') return <NoMastersView orderId={id} onChanged={load} />;
+  if (order.status === 'NO_MASTERS') return <NoMastersView orderId={id} freePilot={freePilot} onChanged={load} />;
   if (TRACK_STATUSES.includes(order.status)) return <TrackView order={order} orderId={id} />;
   if (order.status === 'AWAITING_PRICE_CONFIRM') return <PriceView order={order} orderId={id} onChanged={load} />;
   if (order.status === 'IN_PROGRESS') return <ProgressView order={order} />;

@@ -8,6 +8,7 @@ interface Detail {
   id: string;
   orderId: string | null;
   plannedOrderId: string | null;
+  commercialMode: 'FREE_PILOT' | 'PAID_MOCK' | 'PAID_LIVE' | null;
   openedByRole: string;
   reason: string;
   counterStatement: string | null;
@@ -54,6 +55,8 @@ export default function AdminDisputeDetailPage() {
 
   if (!detail) return <p className="p-6">Загрузка…</p>;
 
+  const canRefundServiceFee = Boolean(detail.orderId && detail.commercialMode !== 'FREE_PILOT');
+
   return (
     <div className="mx-auto max-w-2xl p-6 space-y-4">
       <Link to="/admin/disputes" className="text-sm text-gray-500">← К списку</Link>
@@ -61,6 +64,7 @@ export default function AdminDisputeDetailPage() {
       <div className="rounded border p-4 space-y-1">
         <p>Открыл: {detail.openedByRole === 'CLIENT' ? 'клиент' : 'мастер'}</p>
         <p>Причина: {detail.reason}</p>
+        <p>Режим заявки: {detail.commercialMode ?? 'не определён'}</p>
         {detail.counterStatement && <p>Пояснение второй стороны: {detail.counterStatement}</p>}
       </div>
       {detail.evidenceDocIds.length > 0 && (
@@ -77,12 +81,16 @@ export default function AdminDisputeDetailPage() {
       )}
       {detail.status === 'OPEN' && (
         <div className="rounded border p-4 space-y-3">
-          {detail.orderId && (
+          {canRefundServiceFee ? (
             <label className="flex items-center gap-2">
               <input type="checkbox" checked={refundServiceFee} onChange={(e) => setRefundServiceFee(e.target.checked)} />
               Вернуть сервисный сбор клиенту
             </label>
-          )}
+          ) : detail.orderId ? (
+            <p className="rounded bg-gray-50 p-2 text-sm text-gray-600">
+              В бесплатном пилоте сервисный сбор не взимался, поэтому возврат через платформу недоступен.
+            </p>
+          ) : null}
           <label className="flex items-center gap-2">
             <input type="checkbox" checked={penalizeMaster} onChange={(e) => setPenalizeMaster(e.target.checked)} />
             Оштрафовать мастера
