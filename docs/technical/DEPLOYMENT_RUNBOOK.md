@@ -161,7 +161,7 @@ SERVICE_FEE_MIN=...
 
 ### 6.1 Незакрытый риск конфигурации
 
-Централизованная startup-schema есть (`config/environment.ts`, ~18 переменных), включая fail-fast `PAID_LIVE`. Вне схемы остаются: `DATABASE_URL`, `UPLOAD_DIR` (читается напрямую с тихим fallback `./uploads`), production-блокировка `ConsoleSmsSender`, проверка доступности каталога uploads на старте.
+Централизованная startup-schema есть (`config/environment.ts`, ~18 переменных), включая fail-fast `PAID_LIVE`. Вне схемы остаются: `DATABASE_URL`, `UPLOAD_DIR` (читается напрямую с тихим fallback `./uploads`), проверка доступности каталога uploads на старте. `ConsoleSmsSender` в production маскирует текст SMS (код в логи не попадает), но доставки нет — вход в production без реального шлюза невозможен.
 
 До запуска API должен завершаться с ошибкой при:
 

@@ -17,4 +17,5 @@ export const JOBS = {
   SECURITY_ALERT_DELIVERY: 'security-alert-delivery',
   SECURITY_ALERT_DELIVERY_SWEEP: 'security-alert-delivery-sweep',
   SECURITY_ALERT_SLA_SWEEP: 'security-alert-sla-sweep',
+  SECURITY_DEPENDENCY_SWEEP: 'security-dependency-sweep',
 } as const;

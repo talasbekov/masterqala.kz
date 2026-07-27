@@ -27,7 +27,7 @@
 | `POST /auth/verify-code` | 30 | 10 минут |
 | uploads/master documents/dispute evidence | 30 | 1 минута |
 
-`OPTIONS` не ограничивается этим middleware. Из health-путей исключается только точный `/health` (проверка `endsWith`); `/health/live` и `/health/ready` попадают под общий лимит 180/мин — учитывать при настройке k8s-проб.
+`OPTIONS` не ограничивается этим middleware. Пробы `/health`, `/health/live` и `/health/ready` исключены из rate-limit — частые опросы оркестратора с одного IP не получают `429`.
 
 При превышении API возвращает:
 

@@ -72,4 +72,29 @@ describe('SecurityRetentionService', () => {
     expect(storage.remove).toHaveBeenCalledWith('broken.png');
     expect(storage.remove).toHaveBeenCalledWith('healthy.png');
   });
+
+  it('пишет SECURITY_RETENTION_PARTIAL_FAILURE при ошибках storage', async () => {
+    const { service, prisma, storage } = setup();
+    prisma.$queryRaw
+      .mockResolvedValueOnce([{ id: 'upload-1', path: 'broken.png' }])
+      .mockResolvedValueOnce([]);
+    storage.remove.mockRejectedValueOnce(new Error('disk unavailable'));
+
+    await service.runRetention(25);
+
+    const inserted = prisma.$executeRaw.mock.calls.map((call) => (call[0] as string[]).join(''));
+    expect(inserted.some((sql) => sql.includes('SECURITY_RETENTION_PARTIAL_FAILURE'))).toBe(true);
+  });
+
+  it('без ошибок storage событие partial failure не пишется', async () => {
+    const { service, prisma } = setup();
+    prisma.$queryRaw
+      .mockResolvedValueOnce([{ id: 'upload-1', path: 'healthy.png' }])
+      .mockResolvedValueOnce([]);
+
+    await service.runRetention(25);
+
+    const inserted = prisma.$executeRaw.mock.calls.map((call) => (call[0] as string[]).join(''));
+    expect(inserted.some((sql) => sql.includes('SECURITY_RETENTION_PARTIAL_FAILURE'))).toBe(false);
+  });
 });

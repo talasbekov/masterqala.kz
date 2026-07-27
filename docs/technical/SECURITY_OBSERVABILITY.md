@@ -139,11 +139,16 @@ CRITICAL
 | `SECURITY_RETENTION_PARTIAL_FAILURE` | `RETENTION_PARTIAL_FAILURE` | `HIGH` |
 | `SECURITY_DEPENDENCY_DOWN` | `DEPENDENCY_UNAVAILABLE` | `CRITICAL` |
 
-Правила без реализованного продюсера событий:
+Продюсеры событий:
 
-- `RETENTION_PARTIAL_FAILURE` — зарезервировано: retention-воркер при сбое пишет только в логгер, audit-событие не создаёт;
-- `DEPENDENCY_UNAVAILABLE` — зарезервировано: мониторинг зависимостей не пишет audit-событий, недоступность видна только через `health/ready`;
-- `PDF_CDR_FAILED` — активируется вместе с CDR-провайдером, который пока не реализован; в БД `cdrStatus` пишется только `BYPASSED`/`NOT_REQUIRED`.
+- `RETENTION_PARTIAL_FAILURE` — retention-воркер после прогона с ошибками
+  storage пишет `SECURITY_RETENTION_PARTIAL_FAILURE` с числом сбоев;
+- `DEPENDENCY_UNAVAILABLE` — cron `SECURITY_DEPENDENCY_SWEEP` (раз в минуту)
+  проверяет Postgres/pg-boss/ClamAV и на переходе UP→DOWN пишет
+  `SECURITY_DEPENDENCY_DOWN` (одно событие на деградацию, без спама);
+- `PDF_CDR_FAILED` — **зарезервировано**: активируется вместе с CDR-провайдером,
+  который пока не реализован; в БД `cdrStatus` пишется только
+  `BYPASSED`/`NOT_REQUIRED`.
 
 Alert создаётся PostgreSQL trigger после вставки audit event.
 
@@ -309,7 +314,9 @@ Readiness не следует использовать как публичный
 
 - Health endpoint не заменяет внешний uptime monitoring.
 - Недоступность самой PostgreSQL не может быть сохранена в PostgreSQL audit trail.
-- Недоступность зависимостей сейчас видна только через `health/ready`; автоматический alert не создаётся — обнаруживать должен внешний мониторинг.
+- Недоступность зависимостей ловит `SECURITY_DEPENDENCY_SWEEP`, но при полностью
+  недоступной PostgreSQL или остановленном pg-boss записать alert нечем — этот
+  случай обязан обнаруживать внешний мониторинг.
 - Alert rules пока покрывают файловый security lifecycle, а не все бизнес-события.
 - Внешняя доставка: реализована подписанная webhook-доставка `HIGH`/`CRITICAL` (`SECURITY_ALERT_WEBHOOK_URL`, HMAC-SHA256 в `x-masterqala-signature`, экспоненциальный backoff, статус `EXHAUSTED` после лимита попыток, sweep раз в минуту, ручной retry). Нативных адаптеров Telegram/email/Slack/SIEM нет — интеграция через relay.
 - SLA-интервалы зашиты в SQL-функции и не настраиваются через env.

@@ -84,8 +84,10 @@ pricing, routing, queue, realtime, audit-log, commercial-mode, uploads, users и
 ### 2.4 Авторизация
 
 - вход выполняется по номеру телефона и SMS-коду;
-- SMS-провайдера нет: `ConsoleSmsSender` пишет код в лог при любом `NODE_ENV`,
-  включая production — блокер перед пилотом;
+- SMS-провайдера нет: `ConsoleSmsSender` пишет код в лог во всех окружениях,
+  кроме production, где текст маскируется и в лог попадает только факт
+  недоставки. Реальный шлюз остаётся блокером перед пилотом — без него в
+  production вход невозможен;
 - после подтверждения выдаётся JWT;
 - HTTP endpoints защищаются `JwtAuthGuard`;
 - Socket.IO проверяет JWT во время handshake;
@@ -219,7 +221,10 @@ Presence, загрузки и безопасность:
 - `PERSISTENT_FILE_SCAN_SWEEP` — досканирование постоянных файлов;
 - `SECURITY_RETENTION` — retention данных безопасности;
 - `SECURITY_ALERT_DELIVERY` / `SECURITY_ALERT_DELIVERY_SWEEP` /
-  `SECURITY_ALERT_SLA_SWEEP` — доставка security-алертов и контроль SLA.
+  `SECURITY_ALERT_SLA_SWEEP` — доставка security-алертов и контроль SLA;
+- `SECURITY_DEPENDENCY_SWEEP` — ежеминутная проверка зависимостей (Postgres,
+  pg-boss, ClamAV): на переходе UP→DOWN пишется событие
+  `SECURITY_DEPENDENCY_DOWN`, из которого триггер БД создаёт alert.
 
 В e2e pg-boss можно отключить через `PGBOSS_DISABLED=1`.
 

@@ -119,8 +119,8 @@ Capability-флаги определяют доступность создани
 | `GET` | `/health/live` | процесс жив | `{ "status": "alive", "checkedAt": "<ISO>" }` |
 | `GET` | `/health/ready` | готов принимать трафик | `200` с деталями проверок; при неготовности — `503` |
 
-От глобального rate-limit освобождён только `/health`; пробы `/health/live` и
-`/health/ready` попадают под общий лимит 180/мин на IP.
+Все три пробы (`/health`, `/health/live`, `/health/ready`) освобождены от
+rate-limit.
 
 ## 6. Авторизация
 

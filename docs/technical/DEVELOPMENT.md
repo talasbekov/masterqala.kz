@@ -76,7 +76,7 @@ pnpm --filter web dev                 # Web на :5173
 ## Тесты
 
 ```bash
-pnpm --filter api test                # unit — 146 тестов в 34 файлах
+pnpm --filter api test                # unit — 156 тестов в 36 файлах
 pnpm --filter api test:e2e            # e2e — 208 тестов в 52 файлах; нужна db_test на :5433
 ```
 

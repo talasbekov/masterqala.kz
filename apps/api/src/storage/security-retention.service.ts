@@ -35,14 +35,16 @@ export class SecurityRetentionService implements OnModuleInit {
   }
 
   async runRetention(limit = 100): Promise<void> {
-    await this.purgeTerminalPendingUploads(limit);
+    let storageFailures = 0;
+    storageFailures += await this.purgeTerminalPendingUploads(limit);
     await this.purgeConsumedUploadMetadata(limit);
-    await this.purgePersistentTerminalBinaries(limit);
+    storageFailures += await this.purgePersistentTerminalBinaries(limit);
     await this.redactPersistentScanErrors();
     await this.purgeExpiredAuditEvents();
+    if (storageFailures > 0) await this.recordPartialFailure(storageFailures);
   }
 
-  private async purgeTerminalPendingUploads(limit: number): Promise<void> {
+  private async purgeTerminalPendingUploads(limit: number): Promise<number> {
     const cutoff = this.daysAgo(this.quarantineRetentionDays);
     const rows = await this.prisma.$queryRaw<PendingCandidate[]>`
       SELECT "id", "path"
@@ -57,6 +59,7 @@ export class SecurityRetentionService implements OnModuleInit {
       LIMIT ${limit}
     `;
 
+    let failures = 0;
     for (const row of rows) {
       try {
         await this.storage.remove(row.path);
@@ -70,9 +73,11 @@ export class SecurityRetentionService implements OnModuleInit {
             )
         `;
       } catch (error) {
+        failures += 1;
         this.logger.error(`Не удалось очистить terminal upload ${row.id}: ${(error as Error).message}`);
       }
     }
+    return failures;
   }
 
   private async purgeConsumedUploadMetadata(limit: number): Promise<void> {
@@ -89,7 +94,7 @@ export class SecurityRetentionService implements OnModuleInit {
     `;
   }
 
-  private async purgePersistentTerminalBinaries(limit: number): Promise<void> {
+  private async purgePersistentTerminalBinaries(limit: number): Promise<number> {
     const cutoff = this.daysAgo(this.quarantineRetentionDays);
     const rows = await this.prisma.$queryRaw<FileCandidate[]>`
       SELECT 'MASTER_DOCUMENT' AS "kind", "id", "filePath" AS "path"
@@ -112,6 +117,7 @@ export class SecurityRetentionService implements OnModuleInit {
       LIMIT ${limit}
     `;
 
+    let failures = 0;
     for (const row of rows) {
       try {
         await this.storage.remove(row.path);
@@ -129,8 +135,28 @@ export class SecurityRetentionService implements OnModuleInit {
           `;
         }
       } catch (error) {
+        failures += 1;
         this.logger.error(`Не удалось удалить terminal ${row.kind} ${row.id}: ${(error as Error).message}`);
       }
+    }
+    return failures;
+  }
+
+  /** Триггер БД превращает это событие в alert `RETENTION_PARTIAL_FAILURE`. */
+  private async recordPartialFailure(failedCount: number): Promise<void> {
+    try {
+      await this.prisma.$executeRaw`
+        INSERT INTO "SecurityAuditEvent" (
+          "action", "severity", "outcome", "resourceType", "resourceId", "metadata"
+        ) VALUES (
+          'SECURITY_RETENTION_PARTIAL_FAILURE', 'HIGH', 'ERROR', 'SYSTEM', 'security-retention',
+          jsonb_build_object('failedCount', ${failedCount})
+        )
+      `;
+    } catch (error) {
+      this.logger.error(
+        `Не удалось записать SECURITY_RETENTION_PARTIAL_FAILURE: ${(error as Error).message}`,
+      );
     }
   }
 

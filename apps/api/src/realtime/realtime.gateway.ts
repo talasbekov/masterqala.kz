@@ -30,7 +30,7 @@ const GEO_UPDATE_MIN_INTERVAL_MS = 1_000;
 @WebSocketGateway()
 export class RealtimeGateway implements OnGatewayInit {
   private readonly logger = new Logger(RealtimeGateway.name);
-  private readonly orderStatusPresentations = new WeakMap<object, Promise<object>>();
+  private readonly orderStatusPresentations = new WeakMap<object, Promise<object | null>>();
   private readonly lastGeoUpdateAt = new WeakMap<Socket, number>();
 
   @WebSocketServer()
@@ -82,7 +82,15 @@ export class RealtimeGateway implements OnGatewayInit {
   emitToUser(userId: string, event: string, payload: object): void {
     if (event === 'order:status' && this.isOrderStatusPayload(payload)) {
       void this.presentOrderStatus(payload)
-        .then((presented) => this.emitRaw(userId, event, presented))
+        .then((presented) => {
+          if (!presented) {
+            // Заявка не найдена: исходный payload не шлём — для FREE_PILOT он
+            // может содержать номинальные суммы.
+            this.logger.warn(`order:status подавлен: заявка ${payload.orderId} не найдена`);
+            return;
+          }
+          this.emitRaw(userId, event, presented);
+        })
         .catch((error: Error) => {
           // Не отправляем исходный payload: для FREE_PILOT он может содержать
           // номинальные суммы. Безопаснее пропустить событие, чем раскрыть их.
@@ -120,7 +128,7 @@ export class RealtimeGateway implements OnGatewayInit {
     return 'orderId' in payload && typeof (payload as { orderId?: unknown }).orderId === 'string';
   }
 
-  private presentOrderStatus(payload: OrderStatusPayload): Promise<object> {
+  private presentOrderStatus(payload: OrderStatusPayload): Promise<object | null> {
     const cached = this.orderStatusPresentations.get(payload);
     if (cached) return cached;
 
@@ -134,7 +142,7 @@ export class RealtimeGateway implements OnGatewayInit {
         },
       })
       .then((order) => {
-        if (!order) return payload;
+        if (!order) return null;
         if (order.commercialMode === 'FREE_PILOT') {
           return {
             ...payload,

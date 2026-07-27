@@ -78,10 +78,15 @@ describe('API rate limit middleware', () => {
     expect(fresh.headers.get('RateLimit-Remaining')).toBe('9');
   });
 
-  it('не ограничивает preflight и health-check', () => {
+  it('не ограничивает preflight и health-пробы, включая live/ready', () => {
     const middleware = createRateLimitMiddleware(new InMemoryRateLimiter(() => 1_000));
 
-    for (const req of [request('/api/v1/health', '127.0.0.1', 'GET'), request('/api/v1/orders', '127.0.0.1', 'OPTIONS')]) {
+    for (const req of [
+      request('/api/v1/health', '127.0.0.1', 'GET'),
+      request('/api/v1/health/live', '127.0.0.1', 'GET'),
+      request('/api/v1/health/ready', '127.0.0.1', 'GET'),
+      request('/api/v1/orders', '127.0.0.1', 'OPTIONS'),
+    ]) {
       const result = responseMock();
       const next = jest.fn() as NextFunction;
       middleware(req, result.response, next);
