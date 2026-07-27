@@ -1,6 +1,6 @@
 # Стратегия тестирования MasterQala.kz
 
-Документ определяет тестовую модель первой публичной версии `FREE_PILOT`, фактически добавленное покрытие PR #4 и проверки, которые ещё нужны до запуска.
+Документ определяет тестовую модель первой публичной версии `FREE_PILOT`, фактически добавленное покрытие коммерческого стека (PR #4–#17, смержен в main) и проверки, которые ещё нужны до запуска.
 
 ## 1. Инструменты
 
@@ -12,7 +12,7 @@ Backend:
 - Prisma;
 - PostgreSQL 16 + PostGIS 3.4;
 - отдельный test `DATABASE_URL`;
-- `PGBOSS_DISABLED=1` для тестов без реального worker.
+- `PGBOSS_DISABLED=1` в e2e через `test/setup-env.ts`; в unit очередь мокается (переменная не выставляется).
 
 Frontend:
 
@@ -35,26 +35,27 @@ pnpm --filter api test:cov
 pnpm --filter web build
 ```
 
-Перед `build`, `test` и `test:e2e` PR #4 автоматически выполняет `prisma generate` lifecycle-скриптами.
+Перед `build`, `test` и `test:e2e` автоматически выполняется `prisma generate` lifecycle-скриптами (`prebuild`/`pretest`/`pretest:e2e`).
 
-## 2. CI PR #4
+## 2. CI
 
 `.github/workflows/ci.yml` выполняет:
 
 1. checkout;
-2. Node.js `22.12.0`;
-3. pnpm `9.15.0`;
-4. PostGIS service `16-3.4`;
-5. `pnpm install --frozen-lockfile`;
-6. `prisma migrate deploy`;
-7. API build;
-8. API unit tests;
-9. API e2e tests;
-10. web build.
+2. pnpm/action-setup `9.15.0`;
+3. setup-node `22.12.0` (cache: pnpm);
+4. `pnpm install --frozen-lockfile`;
+5. `prisma migrate deploy`;
+6. API build;
+7. API unit tests (`--runInBand`);
+8. API e2e tests (лог в `api-e2e.log` через `tee`, `pipefail`);
+9. upload-artifact `api-e2e-log` (`always()`, хранится 3 дня);
+10. web build (лог в `web-build.log`);
+11. upload-artifact `web-build-log`.
 
-Workflow запускается на push ветки и pull request в `main`.
+PostGIS `16-3.4` — service-контейнер, а не шаг; `prisma generate` выполняется неявно lifecycle-скриптами.
 
-На момент обновления документа успешный run доступным connector не подтверждён. Поэтому наличие тестов и CI-конфигурации не означает, что release gate пройден.
+Workflow запускается на любой push и любой pull request — фильтров по веткам в workflow нет.
 
 Lint/typecheck отдельным шагом сейчас отсутствует. TypeScript проверяется как часть build, но это не заменяет ESLint.
 
@@ -136,7 +137,7 @@ Unit-тест не заменяет проверку реальной транз
 - planned events;
 - reconnect.
 
-Текущий `RealtimeGateway` покрыт unit-тестами, но полноценный network-level Socket.IO integration suite ещё требуется.
+Network-level Socket.IO integration suite реализован: `apps/api/test/realtime-presence.e2e-spec.ts` и `apps/api/test/realtime-orders.e2e-spec.ts` — реальный listen-сервер и `socket.io-client` (handshake с невалидным JWT → `connect_error`, presence on/off, `geo:update` → `master:location`, `offer:new`/`order:status`, `sweepOffline`). Остаются gap'ы: room isolation, multi-socket одного пользователя, reconnect + refetch, out-of-order доставка, proxy/TLS smoke.
 
 ### 4.5 Frontend component
 
@@ -170,7 +171,7 @@ Unit-тест не заменяет проверку реальной транз
 
 Browser suite пока не реализован и остаётся release gap.
 
-## 5. Фактически добавленное покрытие PR #4
+## 5. Фактически добавленное покрытие коммерческого стека (в main)
 
 ### 5.1 `CommercialModeService`
 
@@ -413,14 +414,20 @@ Browser suite пока не реализован и остаётся release gap
 - отсутствие лишнего query;
 - free offer compensation.
 
-### Integration — требуется
+### Integration — реализовано
 
-- invalid JWT → `connect_error`;
+`test/realtime-presence.e2e-spec.ts` и `test/realtime-orders.e2e-spec.ts` — реальный listen-сервер + `socket.io-client`:
+
+- invalid JWT в handshake → `connect_error`;
+- presence online/offline;
+- `geo:update` → `master:location`;
+- `offer:new` и `order:status`;
+- `sweepOffline`.
+
+### Integration — остаётся
+
 - room isolation;
-- online/offline;
-- geo update;
-- master location только связанному клиенту;
-- multi-socket поведение после исправления presence;
+- multi-socket одного пользователя;
 - reconnect + REST refetch;
 - duplicate/out-of-order event tolerance;
 - proxy/TLS WebSocket smoke.
@@ -549,7 +556,7 @@ Browser suite пока не реализован и остаётся release gap
 
 ## 16. Merge gates
 
-Фактический CI PR #4:
+Фактический CI:
 
 ```text
 install
@@ -565,7 +572,7 @@ web build
 ```text
 lint
 frontend component tests
-Socket.IO integration
+Socket.IO integration — оставшиеся сценарии (room isolation, multi-socket, reconnect)
 browser e2e
 migration upgrade fixture
 ```
@@ -592,7 +599,7 @@ Merge блокируется при:
 
 ### Требуется добавить/выполнить
 
-- [ ] network Socket.IO integration;
+- [x] network Socket.IO integration — базовый suite реализован; остаются room isolation, multi-socket, reconnect;
 - [ ] browser urgent path;
 - [ ] browser planned path;
 - [ ] смешанный режим;

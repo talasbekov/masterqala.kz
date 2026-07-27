@@ -1,5 +1,7 @@
 # План реализации `FREE_PILOT`
 
+Статус: выполнено (PR #4, в main, 26.07.2026). Исторический документ — фиксирует план реализации; актуальное состояние — [docs/STATUS.md](../STATUS.md), приёмка — [FREE_PILOT_ROLLOUT.md](./FREE_PILOT_ROLLOUT.md). Реализация местами отличается от плана — см. пометки ниже.
+
 Этот документ превращает техническую спецификацию бесплатной версии в последовательный план изменений backend, frontend, тестов и эксплуатации.
 
 ## 1. Цель изменения
@@ -35,6 +37,8 @@ interface CommercialCapabilities {
 
 Бизнес-сервисы запрашивают capabilities, а не название режима, где это возможно.
 
+> Фактически отдельной refunds-capability не появилось: возврат гейтится режимом заявки.
+
 ## 3. Шаг 1 — конфигурация
 
 Добавить модуль:
@@ -50,7 +54,7 @@ apps/api/src/commercial-mode/
 Задачи:
 
 - прочитать `COMMERCIAL_MODE` через `ConfigService`;
-- остановить запуск при неизвестном или отсутствующем production-значении;
+- остановить запуск при неизвестном или отсутствующем production-значении — *в коде не реализовано: пустой `COMMERCIAL_MODE` в любом окружении молча даёт `PAID_MOCK` (известное расхождение)*;
 - разрешить безопасный development default только в non-production;
 - экспортировать сервис глобально или импортировать в нужные модули;
 - не читать env напрямую в Orders/PlannedOrders/Wallet/Disputes.
@@ -63,6 +67,8 @@ apps/api/src/commercial-mode/
 | leadCredits | false | true | true |
 | payouts | false | true | true |
 | refunds | false | true | true |
+
+> Фактически: отдельной refunds-capability нет (возврат гейтится режимом заявки); столбец PAID_LIVE недостижим — этот режим роняет старт приложения до подключения реального провайдера.
 
 ## 4. Шаг 2 — публичная конфигурация frontend
 
@@ -191,6 +197,8 @@ PAID_*:
 
 Если общего error envelope пока нет, сначала допускается стандартная NestJS-ошибка, но тест должен проверять backend-блокировку.
 
+> Фактический контракт: `403 ForbiddenException` без машинного кода (совпадает с [FREE_PILOT_ROLLOUT.md](./FREE_PILOT_ROLLOUT.md) §8).
+
 ## 8. Шаг 6 — кошелёк и вывод
 
 Изменить `WalletController/Service`.
@@ -222,6 +230,8 @@ Frontend:
 Важно: сейчас закрытие через разрешение спора вызывает компенсацию напрямую. Эта точка должна использовать ту же централизованную финансовую политику, что `OrdersService`.
 
 ## 10. Шаг 8 — унификация финансовых side effects
+
+> Реализовано иначе: отдельных `order-financial-effects.service.ts` / `planned-financial-effects.service.ts` нет; фактическая архитектура — декоратор `payments/commercial-payment.provider.ts` + гварды в `compensation.service`, `planned-orders-commercial.service`, `disputes.service` + Prisma-middleware штампа режима.
 
 Чтобы не пропустить скрытые вызовы, рекомендуется вынести оркестрацию в сервис, например:
 
@@ -399,14 +409,14 @@ commercialMode CommercialMode
 
 ## 19. Definition of Done
 
-- [ ] режим валидируется при старте;
-- [ ] публичная конфигурация доступна frontend;
-- [ ] ни один срочный путь не вызывает payment/accrual в FREE_PILOT;
-- [ ] ни один плановый отклик не использует кредиты;
-- [ ] purchase и withdrawal запрещены backend;
-- [ ] dispute resolution не вызывает refund/accrual;
-- [ ] frontend явно показывает условия бесплатного пилота;
-- [ ] e2e матрица FREE_PILOT/PAID_MOCK зелёная;
-- [ ] production база не содержит mock-финансовых обязательств;
-- [ ] документация и runbook обновлены;
-- [ ] оператор прошёл ручной acceptance сценарий.
+- [x] режим валидируется при старте;
+- [x] публичная конфигурация доступна frontend;
+- [x] ни один срочный путь не вызывает payment/accrual в FREE_PILOT;
+- [x] ни один плановый отклик не использует кредиты;
+- [x] purchase и withdrawal запрещены backend;
+- [x] dispute resolution не вызывает refund/accrual;
+- [x] frontend явно показывает условия бесплатного пилота;
+- [ ] e2e матрица FREE_PILOT/PAID_MOCK зелёная — есть только unit-тесты ветвления режимов и один e2e на `GET /config/public`;
+- [x] production база не содержит mock-финансовых обязательств;
+- [x] документация и runbook обновлены;
+- [ ] оператор прошёл ручной acceptance сценарий — ручной прогон §6–§9 из [FREE_PILOT_ROLLOUT.md](./FREE_PILOT_ROLLOUT.md) на staging ещё не выполнен.

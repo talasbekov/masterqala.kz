@@ -28,8 +28,13 @@ NestJS modules                   ├─ PostgreSQL/PostGIS
   ├─ disputes
   ├─ reviews
   ├─ wallet / lead credits
-  └─ operator
+  └─ admin / admin-users /
+     admin-masters / admin-orders
 ```
+
+Диаграмма сокращённая: помимо перечисленных подключены модули addresses, payments,
+pricing, routing, queue, realtime, audit-log, commercial-mode, uploads, users и health
+(полный список — `apps/api/src/app.module.ts`).
 
 ## 2. Backend
 
@@ -54,7 +59,7 @@ NestJS modules                   ├─ PostgreSQL/PostGIS
 ### 2.3 Как решаются гонки
 
 Это самая нагруженная часть системы: три мастера могут нажать «Принять» одновременно,
-а pg-boss имеет право доставить джобу дважды. Механизмов четыре, и каждый закрывает
+а pg-boss имеет право доставить джобу дважды. Механизмов пять, и каждый закрывает
 свой класс гонок.
 
 **Переходы статусов — атомарный гейт.** Каждый переход идёт через `updateMany` с
@@ -79,7 +84,8 @@ NestJS modules                   ├─ PostgreSQL/PostGIS
 ### 2.4 Авторизация
 
 - вход выполняется по номеру телефона и SMS-коду;
-- в development SMS-код выводится в лог API;
+- SMS-провайдера нет: `ConsoleSmsSender` пишет код в лог при любом `NODE_ENV`,
+  включая production — блокер перед пилотом;
 - после подтверждения выдаётся JWT;
 - HTTP endpoints защищаются `JwtAuthGuard`;
 - Socket.IO проверяет JWT во время handshake;
@@ -157,7 +163,9 @@ Backend:
 - подтверждение выбранным мастером — в течение 2 часов;
 - автозакрытие после выполнения — 24 часа.
 
-В текущей реализации каждая ставка уменьшает баланс мастера на один lead-кредит и создаёт операцию `SPEND`.
+В `PAID_MOCK` каждая ставка уменьшает баланс мастера на один lead-кредит и создаёт
+операцию `SPEND`; в `FREE_PILOT` ставка создаётся без списания. Режим берётся из
+поля `commercialMode` самой заявки, а не из текущего env.
 
 Основная цепочка:
 
@@ -188,21 +196,40 @@ Backend:
 
 ## 6. Фоновые задания
 
-pg-boss используется для:
+pg-boss используется для 18 типов задач (полный список ключей —
+`apps/api/src/queue/queue.constants.ts`).
 
-- последовательных волн срочного матчинга;
-- истечения офферов;
-- таймаута подтверждения цены;
-- автозакрытия срочной заявки;
-- таймаута подтверждения выбранным мастером;
-- истечения плановой заявки;
-- автозакрытия плановой заявки.
+Бизнес-таймауты:
+
+- последовательные волны срочного матчинга (`WAVE`);
+- истечение офферов (`WAVE_TIMEOUT`);
+- таймаут подтверждения цены (`PRICE_TIMEOUT`);
+- автозакрытие срочной заявки (`AUTO_CLOSE`);
+- таймаут подтверждения выбранным мастером (`PLANNED_CONFIRM_TIMEOUT`);
+- истечение плановой заявки (`PLANNED_EXPIRY`);
+- автозакрытие плановой заявки (`PLANNED_AUTO_CLOSE`).
+
+Presence, загрузки и безопасность:
+
+- `PRESENCE_SWEEP` — сброс устаревшего присутствия мастеров (cron раз в минуту);
+- `UPLOAD_CLEANUP` — очистка просроченных карантинных загрузок (`PendingUpload`);
+- `UPLOAD_SCAN` / `UPLOAD_SCAN_SWEEP` — антивирусный скан карантина загрузок;
+- `MASTER_DOCUMENT_SCAN` — скан документов мастера;
+- `DISPUTE_EVIDENCE_SCAN` — скан доказательств споров;
+- `PERSISTENT_FILE_SCAN_SWEEP` — досканирование постоянных файлов;
+- `SECURITY_RETENTION` — retention данных безопасности;
+- `SECURITY_ALERT_DELIVERY` / `SECURITY_ALERT_DELIVERY_SWEEP` /
+  `SECURITY_ALERT_SLA_SWEEP` — доставка security-алертов и контроль SLA.
 
 В e2e pg-boss можно отключить через `PGBOSS_DISABLED=1`.
 
 ## 7. Платежи в текущей реализации
 
-Текущий `MockPaymentProvider` всегда возвращает успешный результат, но создаёт реальные записи бизнес-журнала:
+В DI подставлен `CommercialPaymentProvider`: в `PAID_MOCK` он делегирует
+`MockPaymentProvider` (успешный результат; `ConflictException` при capture/void
+без холда), в `FREE_PILOT` возвращает виртуальные транзакции без записей в БД,
+а charge/payout завершаются `FAILED`. В `PAID_MOCK` создаются реальные записи
+бизнес-журнала:
 
 - `HOLD`;
 - `CAPTURE`;
@@ -212,6 +239,11 @@ pg-boss используется для:
 - mock refund.
 
 Это означает, что интеграции с банком ещё нет, однако финансовая state machine уже действует. Mock-платежи нельзя считать бесплатным пилотным режимом: это разные вещи, и режим заявки хранится в её поле `commercialMode` (см. [`DATA_MODEL.md`](./DATA_MODEL.md)).
+
+**Ценовой инвариант.** `PricingConfig` роняет приложение на старте, если
+`SERVICE_FEE_MIN >= PRICING_BASE_FARE` (`pricing.config.ts`, конструктор) — иначе
+компенсация мастеру на минимальном заказе уходит в ноль или минус. Проверка живёт
+в `PricingModule`, а не в `validateEnvironment`.
 
 ## 8. Хранение файлов
 

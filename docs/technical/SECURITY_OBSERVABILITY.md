@@ -99,10 +99,18 @@ acknowledgedAt
 acknowledgedByUserId
 resolvedAt
 resolvedByUserId
+assignedToUserId
+assignedAt
+acknowledgeBy
+resolveBy
+escalatedAt
+escalationLevel
 operatorNote
 createdAt
 updatedAt
 ```
+
+`escalationLevel` принимает 0..2. Доставка во внешний webhook фиксируется в отдельной таблице `SecurityAlertDelivery`. Обе таблицы (`SecurityAlert`, `SecurityAlertDelivery`) созданы SQL-миграциями и находятся вне Prisma-схемы.
 
 ### Состояния
 
@@ -131,6 +139,12 @@ CRITICAL
 | `SECURITY_RETENTION_PARTIAL_FAILURE` | `RETENTION_PARTIAL_FAILURE` | `HIGH` |
 | `SECURITY_DEPENDENCY_DOWN` | `DEPENDENCY_UNAVAILABLE` | `CRITICAL` |
 
+Правила без реализованного продюсера событий:
+
+- `RETENTION_PARTIAL_FAILURE` — зарезервировано: retention-воркер при сбое пишет только в логгер, audit-событие не создаёт;
+- `DEPENDENCY_UNAVAILABLE` — зарезервировано: мониторинг зависимостей не пишет audit-событий, недоступность видна только через `health/ready`;
+- `PDF_CDR_FAILED` — активируется вместе с CDR-провайдером, который пока не реализован; в БД `cdrStatus` пишется только `BYPASSED`/`NOT_REQUIRED`.
+
 Alert создаётся PostgreSQL trigger после вставки audit event.
 
 Повторные события с одинаковыми `ruleKey + resourceType + resourceId` объединяются в один `OPEN` alert:
@@ -139,6 +153,13 @@ Alert создаётся PostgreSQL trigger после вставки audit even
 - обновляется `lastSeenAt`;
 - сохраняется последний `sourceEventId`;
 - severity может только повышаться.
+
+### SLA и эскалация
+
+- SLA-дедлайны считаются SQL-функциями: acknowledge — `CRITICAL` 15 мин, `HIGH` 60 мин, иначе 240 мин; resolve — 120/480/1440 мин соответственно.
+- BEFORE-триггер проставляет `acknowledgeBy`/`resolveBy` при создании alert и ужесточает дедлайны при повышении severity.
+- Cron `SECURITY_ALERT_SLA_SWEEP` раз в минуту повышает `escalationLevel` (1 — просрочен acknowledge, 2 — просрочен resolve), пишет audit `SECURITY_ALERT_SLA_BREACH` и запускает внеочередную доставку.
+- Ответственный назначается через `PATCH /admin/security/alerts/:id/assignment`; acknowledge автоматически назначает оператора.
 
 ## Operator API
 
@@ -204,6 +225,28 @@ Content-Type: application/json
 
 Изменение alert и audit event `SECURITY_ALERT_ACKNOWLEDGED` или `SECURITY_ALERT_RESOLVED` сохраняются в одной PostgreSQL-транзакции.
 
+### Назначение ответственного
+
+```http
+PATCH /api/v1/admin/security/alerts/:id/assignment
+Content-Type: application/json
+
+{
+  "assigneeUserId": "<uuid>"
+}
+```
+
+`assigneeUserId: null` снимает назначение.
+
+### Доставки во внешний webhook
+
+```http
+GET /api/v1/admin/security/alerts/:id/deliveries
+POST /api/v1/admin/security/alerts/:id/deliveries/retry
+```
+
+Журнал audit-событий доступен через отдельный `GET /api/v1/admin/security/events` (см. `SECURITY_AUDIT_AND_RETENTION.md`).
+
 ## Web dashboard
 
 Маршрут:
@@ -220,7 +263,12 @@ Content-Type: application/json
 - открытые alerts по severity;
 - заражения и scan failures за 24 часа;
 - последние audit events;
-- действия acknowledge/resolve.
+- действия acknowledge/resolve;
+- статус внешней webhook-доставки;
+- SLA-дедлайны с подсветкой просрочки;
+- бейдж эскалации;
+- действия «взять/снять с себя»;
+- ручной retry доставки.
 
 Dashboard обновляется каждые 15 секунд и может быть обновлён вручную.
 
@@ -261,8 +309,8 @@ Readiness не следует использовать как публичный
 
 - Health endpoint не заменяет внешний uptime monitoring.
 - Недоступность самой PostgreSQL не может быть сохранена в PostgreSQL audit trail.
-- Если pg-boss полностью остановлен, внутренний scheduled monitor также не сможет создать alert; это должен обнаруживать внешний мониторинг.
+- Недоступность зависимостей сейчас видна только через `health/ready`; автоматический alert не создаётся — обнаруживать должен внешний мониторинг.
 - Alert rules пока покрывают файловый security lifecycle, а не все бизнес-события.
-- Нет отправки alerts в Telegram, email, Slack или SIEM.
-- Нет SLA/escalation timers и назначения конкретного ответственного оператора.
+- Внешняя доставка: реализована подписанная webhook-доставка `HIGH`/`CRITICAL` (`SECURITY_ALERT_WEBHOOK_URL`, HMAC-SHA256 в `x-masterqala-signature`, экспоненциальный backoff, статус `EXHAUSTED` после лимита попыток, sweep раз в минуту, ручной retry). Нативных адаптеров Telegram/email/Slack/SIEM нет — интеграция через relay.
+- SLA-интервалы зашиты в SQL-функции и не настраиваются через env.
 - UI первой версии предназначен для операционного контроля, а не для полноценного SOC.

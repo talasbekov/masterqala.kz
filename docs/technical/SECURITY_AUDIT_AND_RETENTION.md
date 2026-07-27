@@ -34,7 +34,7 @@ Audit создаётся PostgreSQL-триггерами в той же тран
 
 Строки журнала запрещено обновлять DB trigger `SecurityAuditEvent_immutable`. Retention удаляет истёкшие строки через `DELETE`; после очистки создаётся агрегированное событие `SECURITY_AUDIT_RETENTION_PURGE`.
 
-## События файлов
+## События файлов и алертов
 
 Основные действия:
 
@@ -44,6 +44,7 @@ FILE_SCAN_STARTED
 FILE_SCAN_CLEAN
 FILE_SCAN_INFECTED
 FILE_SCAN_FAILED
+FILE_SCAN_STATE_CHANGED
 FILE_CONSUMED
 FILE_BINARY_PURGED
 FILE_METADATA_PURGED
@@ -51,6 +52,13 @@ PDF_CDR_BYPASSED
 PDF_CDR_SANITIZED
 PDF_CDR_CDR_FAILED
 SECURITY_AUDIT_RETENTION_PURGE
+SECURITY_ALERT_ACKNOWLEDGED
+SECURITY_ALERT_RESOLVED
+SECURITY_ALERT_ASSIGNED
+SECURITY_ALERT_UNASSIGNED
+SECURITY_ALERT_SLA_BREACH
+SECURITY_ALERT_DELIVERY_EXHAUSTED
+SECURITY_ALERT_DELIVERY_RETRIED
 ```
 
 Уровни:
@@ -170,7 +178,7 @@ CONSUMED_UPLOAD_METADATA_RETENTION_DAYS="30"
 
 ## Ограничения
 
-- audit относится только к security lifecycle файлов, а не ко всем бизнес-действиям;
+- audit относится только к security lifecycle файлов и alert-жизненному циклу, а не ко всем бизнес-действиям;
 - прямой DBA с правом отключения trigger может обойти immutability;
 - local disk остаётся single-node storage;
 - retention job ограничена batch-размером и может потребовать нескольких запусков при большом backlog;

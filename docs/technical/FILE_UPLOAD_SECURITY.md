@@ -389,12 +389,7 @@ ClamAV не гарантирует обнаружение:
 
 Local disk остаётся single-node storage. Для нескольких API replicas нужен private S3-compatible bucket или общее защищённое storage.
 
-Отдельно требуется retention policy для:
-
-- consumed `PendingUpload` metadata;
-- infected/failed `MasterDocument`;
-- infected/failed `DisputeEvidence`;
-- security audit events.
+Retention реализован (consumed `PendingUpload`, infected/failed `MasterDocument` и `DisputeEvidence`, security audit) — см. `SECURITY_AUDIT_AND_RETENTION.md`.
 
 ## Staging smoke
 

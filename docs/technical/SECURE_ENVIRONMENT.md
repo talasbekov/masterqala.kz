@@ -15,7 +15,14 @@ API прекращает запуск, если:
 - `PORT` не является целым числом от 1 до 65535;
 - `CORS_ORIGINS` содержит `*`, некорректный URL, path, query или hash;
 - в production не задан CORS allowlist;
-- production origin использует HTTP вместо HTTPS.
+- production origin использует HTTP вместо HTTPS;
+- `TRUST_PROXY_HOPS` вне диапазона 0..10;
+- `UPLOAD_TTL_HOURS` вне диапазона 1..168;
+- `FILE_SCAN_MODE` в production не равен `CLAMAV`;
+- `PDF_CDR_MODE` в production не задан;
+- `PGBOSS_DISABLED=1` в production;
+- retention-дни вне допустимых диапазонов;
+- некорректные `SECURITY_ALERT_WEBHOOK_*` (URL, secret, timeout, attempts).
 
 JWT-модуль получает secret через `ConfigService.getOrThrow()` и больше не имеет fallback.
 
@@ -29,7 +36,14 @@ JWT_SECRET=<случайное значение длиной не менее 32 
 CORS_ORIGINS=https://masterqala.kz,https://app.masterqala.kz
 COMMERCIAL_MODE=FREE_PILOT
 UPLOAD_DIR=/var/lib/masterqala/uploads
+FILE_SCAN_MODE=CLAMAV
+CLAMAV_HOST=clamav
+CLAMAV_PORT=3310
+PDF_CDR_MODE=BYPASS        # или REQUIRED
+TRUST_PROXY_HOPS=1         # за reverse proxy
 ```
+
+Без `FILE_SCAN_MODE=CLAMAV`, явного `PDF_CDR_MODE` и остальных валидных значений `validateEnvironment` роняет production-bootstrap.
 
 Генерация секрета:
 
@@ -128,15 +142,11 @@ Unit-тесты подтверждают:
 
 Безопаснее исправить значения env и повторно запустить текущую версию, чем отключать validation.
 
-## 9. Что ещё не закрыто этим PR
+## 9. Что закрыто последующими PR и что остаётся
 
-Следующими отдельными изменениями остаются:
+Закрыто последующими PR: HTTP security headers, rate limiting для API и Socket.IO geo events, magic-byte проверка и антивирусный pipeline файлов, production readiness health-check, централизованный audit/security logging, trust proxy и определение IP за reverse proxy.
 
-- HTTP security headers;
-- rate limiting для API и Socket.IO geo events;
+Остаётся:
+
 - хеширование SMS-кодов;
-- magic-byte проверка и антивирусный pipeline файлов;
-- production readiness health-check;
-- session/revocation модель JWT;
-- централизованный audit/security logging;
-- trust proxy и корректное определение IP за reverse proxy.
+- session/revocation модель JWT.
