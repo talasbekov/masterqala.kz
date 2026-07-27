@@ -2,9 +2,20 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../../../api';
+import PhotoStrip from '../PhotoStrip';
 import type { OrderDetail } from '../../pages/OrderPage';
 
-export default function DoneView({ order, orderId, onChanged }: { order: OrderDetail; orderId: string; onChanged: () => void }) {
+export default function DoneView({
+  order,
+  orderId,
+  onChanged,
+  photoUrls,
+}: {
+  order: OrderDetail;
+  orderId: string;
+  onChanged: () => void;
+  photoUrls: string[];
+}) {
   const { t } = useTranslation();
   const paymentsEnabled = order.commercialMode !== 'FREE_PILOT' && order.freePilot !== true;
   const navigate = useNavigate();
@@ -43,6 +54,7 @@ export default function DoneView({ order, orderId, onChanged }: { order: OrderDe
           <span>{total} ₸</span>
         </div>
       </div>
+      <PhotoStrip urls={photoUrls} />
       <p className="text-xs leading-relaxed text-ink-soft">
         {paymentsEnabled
           ? t('orderDetail.doneNote')

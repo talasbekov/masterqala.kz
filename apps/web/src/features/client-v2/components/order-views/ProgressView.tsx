@@ -1,9 +1,10 @@
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { STEPPER_STEPS } from '../../../../orderStatus';
+import PhotoStrip from '../PhotoStrip';
 import type { OrderDetail } from '../../pages/OrderPage';
 
-export default function ProgressView({ order }: { order: OrderDetail }) {
+export default function ProgressView({ order, photoUrls }: { order: OrderDetail; photoUrls: string[] }) {
   const { t } = useTranslation();
   const paymentsEnabled = order.commercialMode !== 'FREE_PILOT' && order.freePilot !== true;
   const currentIdx = STEPPER_STEPS.findIndex((s) => s.status === order.status);
@@ -41,6 +42,7 @@ export default function ProgressView({ order }: { order: OrderDetail }) {
           ? t('orderDetail.progressNote', { price: order.calloutPrice + (order.workPrice ?? 0) })
           : `Согласованная стоимость работ: ${order.workPrice ?? 0} ₸. Расчёт происходит напрямую с мастером.`}
       </div>
+      <PhotoStrip urls={photoUrls} />
       <div className="mt-auto" />
       <Link
         to="/support"
