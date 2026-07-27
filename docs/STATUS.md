@@ -71,8 +71,8 @@
 `resolveBy`, `escalationLevel` (владение и два дедлайна). Общая колонка — только
 `escalatedAt`. Оставлена намеренно: решать, нужен ли подход, — автору.
 
-Открытым остаётся [PR #3](https://github.com/talasbekov/masterqala.kz/pull/3) —
-черновик с документацией, содержимое которой уже лежит в `main`.
+[PR #3](https://github.com/talasbekov/masterqala.kz/pull/3) — черновик с документацией,
+содержимое которой уже лежит в `main` — закрыт 25.07.2026.
 
 ### `SecurityAlert` живёт вне Prisma
 
