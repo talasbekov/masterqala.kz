@@ -1,14 +1,16 @@
 import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import * as request from 'supertest';
-import { AppModule } from '../src/app.module';
 
 describe('Commercial mode (e2e)', () => {
   let app: INestApplication;
   const previousMode = process.env.COMMERCIAL_MODE;
 
   beforeAll(async () => {
+    // Env-схема ConfigModule валидирует COMMERCIAL_MODE при импорте AppModule,
+    // поэтому переменная должна попасть в env до загрузки модуля.
     process.env.COMMERCIAL_MODE = 'FREE_PILOT';
+    const { AppModule } = await import('../src/app.module');
     const moduleFixture = await Test.createTestingModule({ imports: [AppModule] }).compile();
     app = moduleFixture.createNestApplication();
     app.setGlobalPrefix('api/v1');

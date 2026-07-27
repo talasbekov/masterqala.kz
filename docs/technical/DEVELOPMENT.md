@@ -45,7 +45,7 @@ pnpm --filter web dev                 # Web на :5173
 | `PGBOSS_DISABLED` | `0` | `1` отключает очередь (допустимы только `0`\|`1`); в production `1` роняет старт. Используется в e2e |
 | `CORS_ORIGINS` | локальные origin в dev | **Обязательна в production.** Список разрешённых origin через запятую |
 | `TRUST_PROXY_HOPS` | `0` | Число доверенных прокси (0..10); за reverse proxy — `1` |
-| `COMMERCIAL_MODE` | — | `FREE_PILOT` \| `PAID_MOCK`; `PAID_LIVE` роняет старт |
+| `COMMERCIAL_MODE` | `PAID_MOCK` вне production | `FREE_PILOT` \| `PAID_MOCK`; в production обязателен явно; `PAID_LIVE` роняет старт |
 | `FILE_SCAN_MODE` | `DISABLED` в dev | В production обязан быть `CLAMAV` |
 | `PDF_CDR_MODE` | `BYPASS` в dev | `BYPASS` \| `REQUIRED`; в production обязателен |
 
@@ -76,7 +76,7 @@ pnpm --filter web dev                 # Web на :5173
 ## Тесты
 
 ```bash
-pnpm --filter api test                # unit — 156 тестов в 36 файлах
+pnpm --filter api test                # unit — 159 тестов в 36 файлах
 pnpm --filter api test:e2e            # e2e — 208 тестов в 52 файлах; нужна db_test на :5433
 ```
 

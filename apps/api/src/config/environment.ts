@@ -1,3 +1,5 @@
+import { COMMERCIAL_MODES, CommercialMode } from '../commercial-mode/commercial-mode.types';
+
 const NODE_ENVIRONMENTS = ['development', 'test', 'production'] as const;
 const FILE_SCAN_MODES = ['DISABLED', 'CLAMAV'] as const;
 const PDF_CDR_MODES = ['BYPASS', 'REQUIRED'] as const;
@@ -44,6 +46,24 @@ function parsePdfCdrMode(value: unknown, nodeEnv: NodeEnvironment): PdfCdrMode {
     throw new Error(`Недопустимый PDF_CDR_MODE=${normalized || '<empty>'}. Допустимые значения: ${PDF_CDR_MODES.join(', ')}`);
   }
   return normalized as PdfCdrMode;
+}
+
+function parseCommercialMode(value: unknown, nodeEnv: NodeEnvironment): CommercialMode {
+  const normalized = requiredString(value);
+  if (!normalized) {
+    if (nodeEnv === 'production') {
+      // Молчаливый фолбэк в PAID_MOCK недопустим: коммерческий режим —
+      // бизнес-решение, в production он задаётся явно.
+      throw new Error('В production COMMERCIAL_MODE должен быть задан явно (FREE_PILOT или PAID_MOCK)');
+    }
+    return 'PAID_MOCK';
+  }
+  if (!COMMERCIAL_MODES.includes(normalized as CommercialMode)) {
+    throw new Error(
+      `Недопустимый COMMERCIAL_MODE=${normalized}. Допустимые значения: ${COMMERCIAL_MODES.join(', ')}`,
+    );
+  }
+  return normalized as CommercialMode;
 }
 
 function parseBinaryFlag(name: string, value: unknown, fallback: '0' | '1'): '0' | '1' {
@@ -145,6 +165,7 @@ export function validateEnvironment(raw: Record<string, unknown>): Record<string
   const uploadTtlHours = parseInteger('UPLOAD_TTL_HOURS', raw.UPLOAD_TTL_HOURS, 24, 1, 168);
   const fileScanMode = parseFileScanMode(raw.FILE_SCAN_MODE, nodeEnv);
   const pdfCdrMode = parsePdfCdrMode(raw.PDF_CDR_MODE, nodeEnv);
+  const commercialMode = parseCommercialMode(raw.COMMERCIAL_MODE, nodeEnv);
   const pgBossDisabled = parseBinaryFlag('PGBOSS_DISABLED', raw.PGBOSS_DISABLED, '0');
   const clamavHost = requiredString(raw.CLAMAV_HOST) || '127.0.0.1';
   const clamavPort = parseInteger('CLAMAV_PORT', raw.CLAMAV_PORT, 3310, 1, 65535);
@@ -191,6 +212,7 @@ export function validateEnvironment(raw: Record<string, unknown>): Record<string
     UPLOAD_TTL_HOURS: uploadTtlHours,
     FILE_SCAN_MODE: fileScanMode,
     PDF_CDR_MODE: pdfCdrMode,
+    COMMERCIAL_MODE: commercialMode,
     PGBOSS_DISABLED: pgBossDisabled,
     CLAMAV_HOST: clamavHost,
     CLAMAV_PORT: clamavPort,

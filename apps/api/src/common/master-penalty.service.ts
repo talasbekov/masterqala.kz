@@ -4,6 +4,9 @@ import { PrismaService } from '../prisma/prisma.service';
 
 type Tx = Prisma.TransactionClient;
 
+/** `chargeCredits: false` — для FREE_PILOT-заявок: пилот не создаёт финансовых операций. */
+export type PenaltyOptions = { chargeCredits?: boolean };
+
 const PENALTY_CREDITS = 2;
 const PRIORITY_PENALTY_MS = 24 * 3600 * 1000;
 const CANCELLATION_WINDOW_MS = 30 * 24 * 3600 * 1000;
@@ -22,29 +25,36 @@ export class MasterPenaltyService {
    * подбора ненаблюдаем. Поле пишется как след наказания на будущее; реально действуют
    * списание кредитов и `blockedUntil`. Подробности — docs/STATUS.md.
    */
-  async applyPenalty(tx: Tx, masterUserId: string): Promise<void> {
-    await tx.leadCreditAccount.upsert({
-      where: { masterUserId },
-      create: { masterUserId, balance: -PENALTY_CREDITS },
-      update: { balance: { decrement: PENALTY_CREDITS } },
-    });
-    await tx.leadCreditTransaction.create({
-      data: { masterUserId, type: 'PENALTY', amount: -PENALTY_CREDITS },
-    });
+  async applyPenalty(tx: Tx, masterUserId: string, options?: PenaltyOptions): Promise<void> {
+    if (options?.chargeCredits ?? true) {
+      await tx.leadCreditAccount.upsert({
+        where: { masterUserId },
+        create: { masterUserId, balance: -PENALTY_CREDITS },
+        update: { balance: { decrement: PENALTY_CREDITS } },
+      });
+      await tx.leadCreditTransaction.create({
+        data: { masterUserId, type: 'PENALTY', amount: -PENALTY_CREDITS },
+      });
+    }
     await tx.masterProfile.updateMany({
       where: { userId: masterUserId },
       data: { priorityPenaltyUntil: new Date(Date.now() + PRIORITY_PENALTY_MS) },
     });
   }
 
-  /** Отмена мастером: штраф + запись в окно блокировки + проверка 3-й за 30 дней. */
+  /**
+   * Отмена мастером: штраф + запись в окно блокировки + проверка 3-й за 30 дней.
+   * Учёт отмен и блокировка действуют во всех режимах; кредиты не списываются
+   * только при `chargeCredits: false` (FREE_PILOT-заявка).
+   */
   async penalizeForCancellation(
     tx: Tx,
     masterUserId: string,
     orderType: 'URGENT' | 'PLANNED',
     orderId: string,
+    options?: PenaltyOptions,
   ): Promise<void> {
-    await this.applyPenalty(tx, masterUserId);
+    await this.applyPenalty(tx, masterUserId, options);
     await tx.masterCancellation.create({ data: { masterUserId, orderType, orderId } });
 
     const since = new Date(Date.now() - CANCELLATION_WINDOW_MS);

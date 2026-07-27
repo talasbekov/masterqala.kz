@@ -54,7 +54,7 @@ apps/api/src/commercial-mode/
 Задачи:
 
 - прочитать `COMMERCIAL_MODE` через `ConfigService`;
-- остановить запуск при неизвестном или отсутствующем production-значении — *в коде не реализовано: пустой `COMMERCIAL_MODE` в любом окружении молча даёт `PAID_MOCK` (известное расхождение)*;
+- остановить запуск при неизвестном или отсутствующем production-значении — *реализовано: `validateEnvironment` требует явный `COMMERCIAL_MODE` в production; вне production умолчание `PAID_MOCK`*;
 - разрешить безопасный development default только в non-production;
 - экспортировать сервис глобально или импортировать в нужные модули;
 - не читать env напрямую в Orders/PlannedOrders/Wallet/Disputes.
