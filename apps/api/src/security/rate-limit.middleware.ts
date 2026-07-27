@@ -75,9 +75,12 @@ function requestIp(request: Request): string {
   return request.ip || request.socket.remoteAddress || 'unknown';
 }
 
+// Пробы оркестратора опрашиваются часто и с одного IP — под лимит не попадают.
+const HEALTH_EXEMPT_PATTERN = /\/health(\/live|\/ready)?$/;
+
 export function createRateLimitMiddleware(limiter = new InMemoryRateLimiter()) {
   return (request: Request, response: Response, next: NextFunction): void => {
-    if (request.method === 'OPTIONS' || request.path.endsWith('/health')) {
+    if (request.method === 'OPTIONS' || HEALTH_EXEMPT_PATTERN.test(request.path)) {
       next();
       return;
     }

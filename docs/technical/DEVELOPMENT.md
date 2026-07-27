@@ -2,7 +2,7 @@
 
 ## Требования
 
-Node 20+, pnpm 9.15, Docker (для PostgreSQL с PostGIS).
+Node 22.12 (версия CI), pnpm 9.15, Docker (для PostgreSQL с PostGIS).
 
 ## Первый запуск
 
@@ -10,8 +10,12 @@ Node 20+, pnpm 9.15, Docker (для PostgreSQL с PostGIS).
 docker compose up -d                  # БД :5432 и тестовая БД :5433
 pnpm install
 cp apps/api/.env.example apps/api/.env
+openssl rand -base64 48               # результат вписать в JWT_SECRET в apps/api/.env
 cd apps/api && pnpm prisma migrate dev && pnpm prisma db seed && cd ../..
 ```
+
+Шаг с `JWT_SECRET` обязателен: placeholder из `.env.example` находится в блэклисте
+`validateEnvironment`, и API с ним не стартует.
 
 Затем в двух терминалах:
 
@@ -31,18 +35,27 @@ pnpm --filter web dev                 # Web на :5173
 | Переменная | По умолчанию | Назначение |
 |---|---|---|
 | `DATABASE_URL` | — | **Обязательна.** Строка подключения к PostgreSQL |
-| `JWT_SECRET` | `dev-secret-change-me` | Подпись токенов. В проде задавать обязательно |
+| `JWT_SECRET` | — | Подпись токенов. Обязательна во всех окружениях; ≥32 символов; значения-заглушки отклоняются |
 | `OPERATOR_PHONE` | — | Телефон оператора, создаётся сидами |
 | `UPLOAD_DIR` | `./uploads` | Каталог для документов, фото и доказательств |
 | `PRICING_BASE_FARE` | `2000` | Базовый тариф выезда, ₸ |
 | `PRICING_PER_KM` | `150` | Тариф за километр, ₸ |
 | `SERVICE_FEE_RATE` | `0.4` | Доля платформы от стоимости выезда |
 | `SERVICE_FEE_MIN` | `1000` | Минимальный сервисный сбор, ₸ |
-| `PGBOSS_DISABLED` | — | `1` отключает очередь. Используется в e2e |
+| `PGBOSS_DISABLED` | `0` | `1` отключает очередь (допустимы только `0`\|`1`); в production `1` роняет старт. Используется в e2e |
+| `CORS_ORIGINS` | локальные origin в dev | **Обязательна в production.** Список разрешённых origin через запятую |
+| `TRUST_PROXY_HOPS` | `0` | Число доверенных прокси (0..10); за reverse proxy — `1` |
+| `COMMERCIAL_MODE` | `PAID_MOCK` вне production | `FREE_PILOT` \| `PAID_MOCK`; в production обязателен явно; `PAID_LIVE` роняет старт |
+| `FILE_SCAN_MODE` | `DISABLED` в dev | В production обязан быть `CLAMAV` |
+| `PDF_CDR_MODE` | `BYPASS` в dev | `BYPASS` \| `REQUIRED`; в production обязателен |
 
-`SERVICE_FEE_MIN` обязан быть меньше `PRICING_BASE_FARE` — иначе на минимальном заказе
-компенсация мастеру уходит в ноль. Инвариант проверяется на старте и роняет приложение
-с внятной ошибкой, а не молча.
+Остальные security-переменные (ClamAV, webhook алертов и т.д.) —
+см. [`SECURE_ENVIRONMENT.md`](SECURE_ENVIRONMENT.md).
+
+Дефолты `PRICING_*`/`SERVICE_FEE_*` заданы в `pricing.config.ts`; в `.env.example`
+эти строки закомментированы. `SERVICE_FEE_MIN` обязан быть меньше `PRICING_BASE_FARE` —
+иначе на минимальном заказе компенсация мастеру уходит в ноль. Инвариант проверяется
+на старте и роняет приложение с внятной ошибкой, а не молча.
 
 ## Данные из сидов
 
@@ -53,16 +66,18 @@ pnpm --filter web dev                 # Web на :5173
 ## Вход в dev
 
 Реального SMS-шлюза нет: `ConsoleSmsSender` пишет код в лог API строкой вида
-`SMS → +7…`. Берите код оттуда.
+`[SMS] → +7…: Ваш код подтверждения: NNNNNN` (контекст логгера — `SMS`, формат
+«→ телефон: текст»). Берите код оттуда.
 
-Учтите два ограничения — они настоящие и в dev тоже: код живёт 5 минут, отправок не
-более 3 за 10 минут на номер, попыток ввода — 5 на код.
+Учтите ограничения — они настоящие и в dev тоже: код живёт 5 минут, отправок не
+более 3 за 10 минут на номер, попыток ввода — 5 на код; плюс IP-лимит middleware:
+10 запросов кода и 30 проверок за 10 минут.
 
 ## Тесты
 
 ```bash
-pnpm --filter api test                # unit — 46 тестов, ~4 с
-pnpm --filter api test:e2e            # e2e — 184 теста, ~100 с; нужна db_test на :5433
+pnpm --filter api test                # unit — 159 тестов в 36 файлах
+pnpm --filter api test:e2e            # e2e — 208 тестов в 52 файлах; нужна db_test на :5433
 ```
 
 Перед первым прогоном e2e накатите схему на тестовую базу:

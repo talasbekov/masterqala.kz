@@ -8,6 +8,7 @@ describe('security alert webhook environment', () => {
     FILE_SCAN_MODE: 'CLAMAV',
     PDF_CDR_MODE: 'REQUIRED',
     PGBOSS_DISABLED: '0',
+    COMMERCIAL_MODE: 'FREE_PILOT',
   };
 
   it('разрешает отключённую внешнюю доставку', () => {

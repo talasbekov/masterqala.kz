@@ -1,6 +1,6 @@
 # Запуск бесплатного пилота MasterQala.kz
 
-Этот runbook относится к реализации из PR `feat/free-pilot-mode`. Архитектурное обоснование и техническая спецификация находятся в документационном PR #3.
+Реализация в main (PR #4). Спецификация — [./FREE_PILOT_TECHNICAL_SPEC.md](./FREE_PILOT_TECHNICAL_SPEC.md), план — [./FREE_PILOT_IMPLEMENTATION_PLAN.md](./FREE_PILOT_IMPLEMENTATION_PLAN.md).
 
 ## 1. Что гарантирует режим
 
@@ -69,7 +69,7 @@ pnpm --filter api test:e2e
 pnpm --filter web build
 ```
 
-PR нельзя переводить из draft до успешного прохождения этих команд.
+Эти команды обязаны быть зелёными перед выкаткой (в CI выполняются на каждый push).
 
 ## 6. Smoke-сценарий срочной заявки
 
@@ -229,4 +229,4 @@ ORDER BY "commercialMode", status;
 
 ## 12. Статус готовности
 
-Функциональная вертикаль бесплатного пилота реализована для HTTP, Socket.IO, срочных и плановых заявок, кошелька, lead-кредитов и споров. Реализация остаётся в draft до фактического выполнения build, unit, e2e и web build в среде с установленными зависимостями и PostgreSQL/PostGIS.
+Функциональная вертикаль бесплатного пилота реализована для HTTP, Socket.IO, срочных и плановых заявок, кошелька, lead-кредитов и споров. Реализация в main (PR #4); build, unit, e2e и web build выполняются в CI на каждый push. Остаётся ручной acceptance-прогон §6–§9 на staging.

@@ -25,6 +25,19 @@ describe('MasterPenaltyService — скользящее окно 30 дней', (
     service = moduleRef.get(MasterPenaltyService);
   });
 
+  it('chargeCredits: false (FREE_PILOT) — кредиты не трогаются, учёт отмен и блокировка работают', async () => {
+    const tx = makeTx(3);
+    await service.penalizeForCancellation(tx, 'master-1', 'PLANNED', 'order-1', {
+      chargeCredits: false,
+    });
+
+    expect(tx.leadCreditAccount.upsert).not.toHaveBeenCalled();
+    expect(tx.leadCreditTransaction.create).not.toHaveBeenCalled();
+    expect(tx.masterCancellation.create).toHaveBeenCalled();
+    const blockCall = updateManyProfileMock.mock.calls.find((c) => 'blockedUntil' in c[0].data);
+    expect(blockCall).toBeDefined();
+  });
+
   it('2-я отмена в окне не блокирует', async () => {
     const tx = makeTx(2);
     await service.penalizeForCancellation(tx, 'master-1', 'URGENT', 'order-1');

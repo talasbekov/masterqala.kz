@@ -72,7 +72,7 @@ production-готовности.
 | Документ | О чём |
 |---|---|
 | [pilot/FREE_PILOT_TECHNICAL_SPEC.md](pilot/FREE_PILOT_TECHNICAL_SPEC.md) | Требования первой бесплатной версии |
-| [pilot/FREE_PILOT_IMPLEMENTATION_PLAN.md](pilot/FREE_PILOT_IMPLEMENTATION_PLAN.md) | План backend/frontend/data/testing/rollout |
+| [pilot/FREE_PILOT_IMPLEMENTATION_PLAN.md](pilot/FREE_PILOT_IMPLEMENTATION_PLAN.md) | План backend/frontend/data/testing/rollout (исторический — реализация в `main`) |
 | [pilot/FREE_PILOT_ROLLOUT.md](pilot/FREE_PILOT_ROLLOUT.md) | Выкатка |
 
 **Ключевой принцип.** `MockPaymentProvider` и бесплатный пилот — разные вещи:

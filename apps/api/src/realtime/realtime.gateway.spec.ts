@@ -85,6 +85,16 @@ describe('RealtimeGateway.emitToUser — order:status', () => {
     });
   });
 
+  it('подавляет order:status, если заявка не найдена', async () => {
+    const { gateway, prisma, emit } = setup('PAID_MOCK');
+    prisma.order.findUnique.mockResolvedValue(null);
+
+    gateway.emitToUser('client-1', 'order:status', { orderId: 'missing', calloutPrice: 2600 });
+    await flushPromises();
+
+    expect(emit).not.toHaveBeenCalled();
+  });
+
   it('не обращается к БД для остальных событий', () => {
     const { gateway, prisma, emit } = setup('FREE_PILOT');
     const payload = { orderId: 'order-1', lat: 51.1, lng: 71.4 };

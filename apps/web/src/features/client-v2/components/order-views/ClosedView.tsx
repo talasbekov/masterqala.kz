@@ -3,9 +3,18 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../../../api';
 import { STATUS_LABELS } from '../../../../orderStatus';
+import PhotoStrip from '../PhotoStrip';
 import type { OrderDetail } from '../../pages/OrderPage';
 
-export default function ClosedView({ order, onChanged }: { order: OrderDetail; onChanged: () => void }) {
+export default function ClosedView({
+  order,
+  onChanged,
+  photoUrls,
+}: {
+  order: OrderDetail;
+  onChanged: () => void;
+  photoUrls: string[];
+}) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [rating, setRating] = useState(0);
@@ -39,6 +48,7 @@ export default function ClosedView({ order, onChanged }: { order: OrderDetail; o
       <div className="text-xl font-extrabold text-ink">
         {isCancelled ? t('orderDetail.closedCancelledTitle') : t('orderDetail.closedTitle')}
       </div>
+      <PhotoStrip urls={photoUrls} />
       {isCancelled && order.cancelReason && <div className="text-sm text-ink-soft">{order.cancelReason}</div>}
       {!isCancelled && (
         <div className="w-full rounded-md border border-border bg-surface p-3.5">

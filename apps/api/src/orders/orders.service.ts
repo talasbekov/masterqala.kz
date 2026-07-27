@@ -464,7 +464,9 @@ export class OrdersService implements OnModuleInit {
         { status: 'SEARCHING', masterId: null, acceptedAt: null, wave: 0, searchAttempt: { increment: 1 } },
         tx,
       );
-      await this.penalties.penalizeForCancellation(tx, masterUserId, 'URGENT', order.id);
+      await this.penalties.penalizeForCancellation(tx, masterUserId, 'URGENT', order.id, {
+        chargeCredits: order.commercialMode !== 'FREE_PILOT',
+      });
     });
     await this.queue.send(JOBS.WAVE, { orderId: order.id, wave: 1 });
     await this.emitOrderStatus(order.id);

@@ -27,7 +27,7 @@
 | `POST /auth/verify-code` | 30 | 10 минут |
 | uploads/master documents/dispute evidence | 30 | 1 минута |
 
-`OPTIONS` и `/health` не ограничиваются этим middleware.
+`OPTIONS` не ограничивается этим middleware. Пробы `/health`, `/health/live` и `/health/ready` исключены из rate-limit — частые опросы оркестратора с одного IP не получают `429`.
 
 При превышении API возвращает:
 
@@ -195,5 +195,5 @@ done
 - Socket.IO handshake limiter на proxy;
 - CAPTCHA/risk challenge для аномальной SMS-активности;
 - CSP для web-приложения;
-- audit/security logging;
+- audit/security logging — реализовано (миграция `20260724103000`, см. `SECURITY_AUDIT_AND_RETENTION.md`);
 - алерты на всплески `429`, SMS и upload traffic.

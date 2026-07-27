@@ -98,6 +98,15 @@ describe('Выбор и подтверждение мастера (e2e)', () => 
     expect(fresh).toMatchObject({ status: 'PUBLISHED', masterId: null, selectedBidId: null });
     expect(await prisma.plannedOrderBid.count({ where: { plannedOrderId: order.id } })).toBe(1);
 
+    // §3.4: неподтверждение выбранным мастером возвращает кредит — 5 − 1 ставка + 1 возврат
+    const afterDecline = await prisma.leadCreditAccount.findUniqueOrThrow({
+      where: { masterUserId: m1.userId },
+    });
+    expect(afterDecline.balance).toBe(5);
+    expect(
+      await prisma.leadCreditTransaction.count({ where: { bidId: b1.id, type: 'REFUND' } }),
+    ).toBe(1);
+
     // повторный выбор того же бида работает после возврата в PUBLISHED
     await request(app.getHttpServer())
       .post(`/api/v1/planned-orders/${order.id}/select`)
@@ -114,6 +123,15 @@ describe('Выбор и подтверждение мастера (e2e)', () => 
     await plannedOrders.handleConfirmTimeout({ plannedOrderId: order.id, bidId: stillSelected.selectedBidId! });
     const afterTimeout = await prisma.plannedOrder.findUniqueOrThrow({ where: { id: order.id } });
     expect(afterTimeout.status).toBe('PUBLISHED');
+
+    // повторного возврата за ту же ставку нет: бид был переизбран после decline с возвратом
+    const accountAfterTimeout = await prisma.leadCreditAccount.findUniqueOrThrow({
+      where: { masterUserId: m1.userId },
+    });
+    expect(accountAfterTimeout.balance).toBe(5);
+    expect(
+      await prisma.leadCreditTransaction.count({ where: { bidId: b1.id, type: 'REFUND' } }),
+    ).toBe(1);
   });
 
   it('устаревшая джоба-таймаут от первого выбора не трогает второй, реально текущий выбор', async () => {

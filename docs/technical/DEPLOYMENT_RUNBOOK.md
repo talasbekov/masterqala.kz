@@ -2,7 +2,7 @@
 
 Документ описывает безопасную сборку, миграцию, запуск и откат первой публичной версии MasterQala.kz в режиме `FREE_PILOT`.
 
-Фактическая реализация находится в PR #4. Специализированные smoke/SQL-проверки дополнительно описаны в `docs/pilot/FREE_PILOT_ROLLOUT.md` этого PR.
+Фактическая реализация — в main (стек PR #4–#17). Специализированные smoke/SQL-проверки дополнительно описаны в `docs/pilot/FREE_PILOT_ROLLOUT.md`.
 
 ## 1. Текущее состояние
 
@@ -29,23 +29,23 @@
 
 | Компонент | Статус |
 |---|---|
-| `COMMERCIAL_MODE=FREE_PILOT` | реализован в PR #4 |
+| `COMMERCIAL_MODE=FREE_PILOT` | реализован (в main) |
 | неизменяемый режим заявки | реализован |
 | миграция `CommercialMode` | реализована |
 | public config endpoint | реализован |
 | финансовые блокировки пилота | реализованы |
 | HTTP/Socket.IO маскирование цены | реализовано |
-| CI workflow | добавлен в PR #4 |
-| подтверждённый успешный CI run | пока не подтверждён доступным connector |
+| CI workflow | добавлен (в main) |
 | production container/systemd | не зафиксирован |
-| CORS allowlist | не реализован |
-| обязательный production JWT secret | не реализован |
-| readiness зависимостей | не реализован |
-| общий rate limit | не реализован |
-| файловый security pipeline | не реализован |
+| CORS allowlist | реализован (`CORS_ORIGINS`) |
+| обязательный production JWT secret | реализован |
+| readiness зависимостей | реализовано (`/health/ready` с `503`: Postgres + pg-boss + ClamAV) |
+| общий rate limit | реализован (in-memory per-IP) |
+| файловый security pipeline | реализован (magic bytes + ClamAV-карантин + PDF-политика) |
+| EXIF strip / re-encode изображений | не реализовано |
 | backup/restore automation | не добавлена в репозиторий |
 
-PR #4 должен оставаться draft до подтверждённого CI и ручного smoke.
+Стек в main; CI-проверки и ручной smoke обязаны быть зелёными перед выкаткой.
 
 ## 3. Рекомендуемая топология первого пилота
 
@@ -104,7 +104,7 @@ Single-node допустим только при:
 
 ## 5. Версии runtime
 
-CI PR #4 фиксирует:
+CI фиксирует:
 
 ```text
 Node.js 22.12.0
@@ -135,7 +135,16 @@ OPERATOR_PHONE=<controlled-operator-phone>
 UPLOAD_DIR=/var/lib/masterqala/uploads
 PGBOSS_DISABLED=0
 CORS_ORIGINS=https://masterqala.kz
+FILE_SCAN_MODE=CLAMAV
+CLAMAV_HOST=<clamav-host>
+CLAMAV_PORT=3310
+PDF_CDR_MODE=<BYPASS|REQUIRED>
+TRUST_PROXY_HOPS=1
+PORT=3000
 ```
+
+Без `FILE_SCAN_MODE=CLAMAV`, `CLAMAV_HOST`, `PDF_CDR_MODE`, валидных `TRUST_PROXY_HOPS`
+и `PORT` `validateEnvironment` роняет bootstrap.
 
 Тарификация может оставаться заданной для номинального расчёта:
 
@@ -152,20 +161,18 @@ SERVICE_FEE_MIN=...
 
 ### 6.1 Незакрытый риск конфигурации
 
-Сейчас централизованно валидируется `COMMERCIAL_MODE`, включая fail-fast `PAID_LIVE`. Остальные переменные ещё не объединены в startup schema.
+Централизованная startup-schema есть (`config/environment.ts`, ~18 переменных), включая fail-fast `PAID_LIVE`. Вне схемы остаются: `DATABASE_URL`, `UPLOAD_DIR` (читается напрямую с тихим fallback `./uploads`), проверка доступности каталога uploads на старте. `ConsoleSmsSender` в production маскирует текст SMS (код в логи не попадает), но доставки нет — вход в production без реального шлюза невозможен.
 
 До запуска API должен завершаться с ошибкой при:
 
-- отсутствии/слабости `JWT_SECRET`;
 - отсутствии `DATABASE_URL`;
 - пустом `UPLOAD_DIR`;
-- неизвестном origin;
 - production dev-SMS режиме;
 - недоступной директории uploads.
 
 ## 7. CI
 
-PR #4 добавляет `.github/workflows/ci.yml`.
+`.github/workflows/ci.yml` — в main.
 
 Job использует:
 
@@ -180,12 +187,9 @@ Job использует:
 - API e2e tests;
 - web build.
 
-Workflow запускается:
+Workflow запускается на любой push и любой pull request — фильтров по веткам нет.
 
-- на push ветки;
-- на pull request в `main`.
-
-На момент обновления документа успешный run доступным connector не подтверждён. Наличие YAML не равно успешному CI.
+Наличие YAML не равно успешному CI: перед выкаткой сверяйте конкретный зелёный run.
 
 Минимальный merge gate:
 
@@ -334,7 +338,7 @@ prisma db push
 - `Permissions-Policy` для geolocation;
 - запрет framing.
 
-CORS должен ограничиваться production origin. Текущее `origin: true` в коде необходимо изменить до публичного запуска.
+CORS уже ограничен allowlist'ом `CORS_ORIGINS` (обязателен в production, только HTTPS-origin, wildcard запрещён) — остаётся задать production-домен.
 
 ## 13. Запуск API
 
@@ -357,7 +361,7 @@ Process manager должен обеспечивать:
 - startup/readiness timeout;
 - остановку старого процесса только после готовности нового, если топология позволяет.
 
-Текущий API слушает `3000`. Поддержка `PORT`/bind address ещё не формализована.
+`PORT` настраивается и валидируется (1–65535, дефолт `3000`); не формализован только bind address.
 
 ## 14. Проверки до открытия трафика
 
@@ -618,14 +622,15 @@ Frontend должен иметь управляемое сообщение о ma
 ### Требует подтверждения/реализации
 
 - [ ] CI workflow успешно завершён;
-- [ ] production secrets валидируются;
-- [ ] CORS ограничен;
+- [x] production secrets валидируются;
+- [x] CORS ограничен;
 - [ ] реальный SMS provider подключён;
 - [ ] production process/container manifest создан;
 - [ ] reverse proxy/TLS проверены;
 - [ ] uploads persistent/private;
-- [ ] file signature/EXIF/PDF security реализованы;
-- [ ] global rate limit включён;
+- [x] file signature/PDF security реализованы;
+- [ ] EXIF removal / image re-encode;
+- [x] global rate limit включён;
 - [ ] backup автоматизирован;
 - [ ] restore-test успешен;
 - [ ] monitoring/alerts включены;

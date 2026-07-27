@@ -282,7 +282,7 @@ export class PlannedOrdersService implements OnModuleInit {
   async decline(masterUserId: string, plannedOrderId: string) {
     const order = await this.findOrThrow(plannedOrderId);
     if (order.masterId !== masterUserId) throw new ForbiddenException('Нет доступа к заявке');
-    await this.returnToPublished(plannedOrderId);
+    await this.returnToPublished(order);
     return this.findOrThrow(plannedOrderId);
   }
 
@@ -290,17 +290,44 @@ export class PlannedOrdersService implements OnModuleInit {
   async handleConfirmTimeout({ plannedOrderId, bidId }: { plannedOrderId: string; bidId: string }): Promise<void> {
     const order = await this.prisma.plannedOrder.findUnique({ where: { id: plannedOrderId } });
     if (!order || order.status !== 'MASTER_SELECTED' || order.selectedBidId !== bidId) return;
-    await this.returnToPublished(plannedOrderId);
+    await this.returnToPublished(order);
   }
 
-  private async returnToPublished(plannedOrderId: string): Promise<void> {
-    await this.gate(plannedOrderId, 'MASTER_SELECTED', {
-      status: 'PUBLISHED',
-      masterId: null,
-      selectedBidId: null,
-      selectedAt: null,
+  /** Спека §3.4/§6: неподтверждение выбранным мастером (decline/таймаут) возвращает ему кредит полностью. */
+  private async returnToPublished(order: PlannedOrder): Promise<void> {
+    await this.prisma.$transaction(async (tx) => {
+      await this.gate(
+        order.id,
+        'MASTER_SELECTED',
+        { status: 'PUBLISHED', masterId: null, selectedBidId: null, selectedAt: null },
+        tx,
+      );
+      if (order.commercialMode !== 'FREE_PILOT' && order.masterId) {
+        await this.refundBidCredit(tx, order.masterId, order.selectedBidId);
+      }
     });
-    await this.emitPlannedStatus(plannedOrderId);
+    await this.emitPlannedStatus(order.id);
+  }
+
+  /**
+   * Возврат кредита за ставку — не больше одного раза на ставку: после decline
+   * с возвратом клиент может переизбрать тот же бид, и повторный возврат
+   * (по таймауту или отмене) дал бы мастеру прибыль из воздуха.
+   */
+  private async refundBidCredit(tx: Tx, masterUserId: string, bidId: string | null): Promise<void> {
+    if (!bidId) return;
+    const alreadyRefunded = await tx.leadCreditTransaction.findFirst({
+      where: { bidId, type: 'REFUND' },
+      select: { id: true },
+    });
+    if (alreadyRefunded) return;
+    await tx.leadCreditAccount.update({
+      where: { masterUserId },
+      data: { balance: { increment: 1 } },
+    });
+    await tx.leadCreditTransaction.create({
+      data: { masterUserId, type: 'REFUND', amount: 1, bidId },
+    });
   }
 
   async onSite(masterUserId: string, plannedOrderId: string) {
@@ -394,13 +421,7 @@ export class PlannedOrdersService implements OnModuleInit {
           tx,
         );
         if (order.masterId) {
-          await tx.leadCreditAccount.update({
-            where: { masterUserId: order.masterId },
-            data: { balance: { increment: 1 } },
-          });
-          await tx.leadCreditTransaction.create({
-            data: { masterUserId: order.masterId, type: 'REFUND', amount: 1, bidId: order.selectedBidId },
-          });
+          await this.refundBidCredit(tx, order.masterId, order.selectedBidId);
         }
       });
       await this.emitPlannedStatus(order.id);
@@ -421,7 +442,9 @@ export class PlannedOrdersService implements OnModuleInit {
         { status: 'PUBLISHED', masterId: null, selectedBidId: null, selectedAt: null, confirmedAt: null },
         tx,
       );
-      await this.penalties.penalizeForCancellation(tx, order.masterId!, 'PLANNED', order.id);
+      await this.penalties.penalizeForCancellation(tx, order.masterId!, 'PLANNED', order.id, {
+        chargeCredits: order.commercialMode !== 'FREE_PILOT',
+      });
     });
     await this.emitPlannedStatus(order.id);
   }

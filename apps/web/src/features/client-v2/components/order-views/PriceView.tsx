@@ -1,9 +1,20 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../../../api';
+import PhotoStrip from '../PhotoStrip';
 import type { OrderDetail } from '../../pages/OrderPage';
 
-export default function PriceView({ order, orderId, onChanged }: { order: OrderDetail; orderId: string; onChanged: () => void }) {
+export default function PriceView({
+  order,
+  orderId,
+  onChanged,
+  photoUrls,
+}: {
+  order: OrderDetail;
+  orderId: string;
+  onChanged: () => void;
+  photoUrls: string[];
+}) {
   const { t } = useTranslation();
   const paymentsEnabled = order.commercialMode !== 'FREE_PILOT' && order.freePilot !== true;
   const [remaining, setRemaining] = useState(0);
@@ -70,6 +81,7 @@ export default function PriceView({ order, orderId, onChanged }: { order: OrderD
       {order.workComment && (
         <div className="rounded-md bg-fill p-3 text-[13px] leading-relaxed text-ink">«{order.workComment}»</div>
       )}
+      <PhotoStrip urls={photoUrls} />
       <p className="text-xs leading-relaxed text-ink-soft">
         {paymentsEnabled
           ? t('orderDetail.priceRejectNote')

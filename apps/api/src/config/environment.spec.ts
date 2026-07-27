@@ -62,6 +62,7 @@ describe('environment security validation', () => {
       JWT_SECRET: secureSecret,
       CORS_ORIGINS: 'https://masterqala.kz',
       PDF_CDR_MODE: 'REQUIRED',
+      COMMERCIAL_MODE: 'FREE_PILOT',
     };
 
     expect(() => validateEnvironment(productionBase)).toThrow('FILE_SCAN_MODE');
@@ -77,6 +78,7 @@ describe('environment security validation', () => {
       JWT_SECRET: secureSecret,
       CORS_ORIGINS: 'https://masterqala.kz',
       FILE_SCAN_MODE: 'CLAMAV',
+      COMMERCIAL_MODE: 'FREE_PILOT',
     };
 
     expect(() => validateEnvironment(productionBase)).toThrow('PDF_CDR_MODE');
@@ -92,11 +94,38 @@ describe('environment security validation', () => {
       CORS_ORIGINS: 'https://masterqala.kz',
       FILE_SCAN_MODE: 'CLAMAV',
       PDF_CDR_MODE: 'REQUIRED',
+      COMMERCIAL_MODE: 'FREE_PILOT',
     };
 
     expect(() => validateEnvironment({ ...productionBase, PGBOSS_DISABLED: '1' })).toThrow('PGBOSS_DISABLED');
     expect(validateEnvironment({ ...productionBase, PGBOSS_DISABLED: '0' }).PGBOSS_DISABLED).toBe('0');
     expect(() => validateEnvironment({ ...productionBase, PGBOSS_DISABLED: 'yes' })).toThrow('PGBOSS_DISABLED');
+  });
+
+  it('в production требует явный COMMERCIAL_MODE', () => {
+    const productionBase = {
+      NODE_ENV: 'production',
+      JWT_SECRET: secureSecret,
+      CORS_ORIGINS: 'https://masterqala.kz',
+      FILE_SCAN_MODE: 'CLAMAV',
+      PDF_CDR_MODE: 'REQUIRED',
+    };
+
+    expect(() => validateEnvironment(productionBase)).toThrow(
+      'COMMERCIAL_MODE должен быть задан явно',
+    );
+    expect(
+      validateEnvironment({ ...productionBase, COMMERCIAL_MODE: 'FREE_PILOT' }).COMMERCIAL_MODE,
+    ).toBe('FREE_PILOT');
+  });
+
+  it('вне production подставляет PAID_MOCK и отклоняет неизвестный COMMERCIAL_MODE', () => {
+    const env = validateEnvironment({ NODE_ENV: 'test', JWT_SECRET: secureSecret });
+    expect(env.COMMERCIAL_MODE).toBe('PAID_MOCK');
+
+    expect(() =>
+      validateEnvironment({ NODE_ENV: 'test', JWT_SECRET: secureSecret, COMMERCIAL_MODE: 'FREEMIUM' }),
+    ).toThrow('Недопустимый COMMERCIAL_MODE');
   });
 
   it('отклоняет wildcard, path и неизвестный протокол', () => {
@@ -150,6 +179,7 @@ describe('environment security validation', () => {
       FILE_SCAN_MODE: 'CLAMAV',
       PDF_CDR_MODE: 'REQUIRED',
       PGBOSS_DISABLED: '0',
+      COMMERCIAL_MODE: 'FREE_PILOT',
       CLAMAV_HOST: 'clamav.internal',
       CLAMAV_PORT: '3311',
       CLAMAV_TIMEOUT_MS: '20000',

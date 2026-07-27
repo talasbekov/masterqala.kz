@@ -65,3 +65,10 @@ export async function apiUpload(path: string, formData: FormData) {
   const result = await handle(res);
   return isUploadScanResponse(result) ? waitForUploadScan(result) : result;
 }
+
+export async function apiBlobUrl(path: string): Promise<string> {
+  const res = await fetch(`${API}${path}`, { headers: authHeaders() });
+  if (!res.ok) throw new Error(`Ошибка ${res.status}`);
+  const blob = await res.blob();
+  return URL.createObjectURL(blob);
+}

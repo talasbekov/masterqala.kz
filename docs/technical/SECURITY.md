@@ -25,7 +25,7 @@
 
 ## 2. Статус ключевых мер
 
-| Мера | Статус после PR #4 |
+| Мера | Статус после стека безопасности (26.07.2026, PR #4–#17) |
 |---|---|
 | JWT на защищённых HTTP-маршрутах | реализовано |
 | загрузка актуального пользователя из БД на каждый HTTP-запрос | реализовано |
@@ -37,15 +37,15 @@
 | блокировка платежей/кредитов/выводов в `FREE_PILOT` | реализовано |
 | маскирование финансовых сумм HTTP и Socket.IO | реализовано |
 | fail-fast для `PAID_LIVE` без провайдера | реализовано |
-| обязательный production JWT secret | не реализовано |
-| CORS allowlist | не реализовано |
-| общая env-schema | не реализовано |
-| глобальный rate limiting | не реализовано |
-| magic-byte/антивирусная проверка файлов | не реализовано |
-| неизменяемый security audit log | не реализовано |
+| обязательный production JWT secret | реализовано: `validateEnvironment` — секрет обязателен везде, ≥32 символов, блэклист заглушек; fallback удалён (auth-модуль использует `getOrThrow`) |
+| CORS allowlist | реализовано: env-валидация (запрет `*`, path/query, только HTTPS в prod); применён к HTTP и Socket.IO |
+| общая env-schema | реализовано: `config/environment.ts`, подключена через `ConfigModule` validate; вне схемы остаются `DATABASE_URL`, `UPLOAD_DIR`, SMS-провайдер, публичные URL |
+| глобальный rate limiting | реализовано: in-memory per-IP 180/мин + политики auth/upload; распределённого нет |
+| magic-byte/антивирусная проверка файлов | реализовано: `upload-security.ts` + ClamAV-карантин |
+| неизменяемый security audit log | реализовано: миграция `20260724103000`, триггер запрещает UPDATE; покрывает файловый lifecycle и alert-переходы |
 | refresh/revoke sessions | не реализовано |
-| формальная retention-политика | не реализовано |
-| readiness-проверки зависимостей | не реализовано |
+| формальная retention-политика | реализовано: cron `43 3 * * *`, 365/30/30 дней — для файлов и security audit; retention ПД в целом не определён |
+| readiness-проверки зависимостей | реализовано: `GET /health/live`, `/health/ready` с `503`; Postgres + pg-boss + ClamAV |
 
 Незакрытые P0 ниже блокируют безопасный публичный production-запуск.
 
@@ -66,7 +66,7 @@
 Ограничения:
 
 - код хранится открытым текстом;
-- отдельный rate limit на `verify-code` отсутствует;
+- rate limit на `verify-code`: добавлен IP-лимит 30 запросов / 10 минут поверх бизнес-лимитов по номеру;
 - нет device/session fingerprint;
 - старые записи не очищаются автоматически.
 
@@ -266,20 +266,23 @@ Enum существует для миграционной стабильност
 - upload-каталог не раздаётся как публичная static-директория;
 - выдача выполняется через авторизованные endpoints.
 
-### 6.2 Незакрытые P0
+### 6.2 Статус P0 по файлам
 
-Сейчас доверие строится на MIME из multipart. Перед публичным запуском нужны:
+Закрыто:
 
 - проверка magic bytes;
+- allowlist только JPEG/PNG/PDF — SVG, HTML и исполняемые форматы отклоняются;
+- безопасный `Content-Disposition` (attachment для PDF);
+- явная PDF-политика (`PDF_CDR_MODE`) и проверка ClamAV;
+- удаление orphan-файлов при rollback/ошибке транзакции.
+
+Остаётся:
+
 - безопасное декодирование и повторное кодирование изображений;
 - удаление EXIF/GPS metadata;
-- проверка PDF антивирусом/санитайзером;
-- запрет SVG, HTML и исполняемых форматов;
-- безопасный `Content-Disposition`;
-- отдельные storage-prefix/ACL для заявок, споров и документов мастеров;
 - checksum;
 - quota пользователя и общий disk quota;
-- удаление orphan-файлов при rollback/ошибке транзакции.
+- отдельные storage-prefix/ACL для заявок, споров и документов мастеров.
 
 ### 6.3 Local disk
 
@@ -297,27 +300,23 @@ Enum существует для миграционной стабильност
 
 ## 7. Критические P0 до публичного production
 
-### P0-1. Запрет default JWT secret
+### P0-1. Запрет default JWT secret — закрыто
 
-Сейчас при отсутствии секрета используется development fallback.
-
-Production должен завершать запуск, если:
+Development fallback удалён: auth-модуль получает секрет через `getOrThrow`. Старт падает в любом окружении, если:
 
 - `JWT_SECRET` отсутствует;
-- секрет слишком короткий/предсказуемый;
-- используется известное development-значение.
+- секрет короче 32 символов;
+- используется известная заглушка из `.env.example`.
 
-### P0-2. CORS allowlist
+### P0-2. CORS allowlist — закрыто
 
-HTTP и Socket.IO сейчас разрешают любой origin.
-
-Нужно:
+HTTP и Socket.IO ограничены единым allowlist из `CORS_ORIGINS`:
 
 ```env
 CORS_ORIGINS=https://masterqala.kz,https://app.masterqala.kz
 ```
 
-Неизвестный origin должен отклоняться. Для mobile/native-клиента правила следует определить отдельно, не открывая browser CORS всем доменам.
+Неизвестный origin отклоняется. Для mobile/native-клиента правила следует определить отдельно, не открывая browser CORS всем доменам.
 
 ### P0-3. Валидация окружения
 
@@ -335,25 +334,25 @@ CORS_ORIGINS=https://masterqala.kz,https://app.masterqala.kz
 
 `COMMERCIAL_MODE` уже валидируется, включая fail-fast `PAID_LIVE`; остальная конфигурация пока не объединена в одну schema.
 
-### P0-4. Общий rate limiting
+### P0-4. Общий rate limiting — частично закрыто
 
-Нужны лимиты для:
+Закрыто (per-IP): `request-code` и `verify-code`, uploads, глобальный лимит 180/мин на прочие API-запросы; `geo:update` — не чаще 1/сек на socket.
 
-- `request-code` и `verify-code`;
-- uploads;
-- создания заявок;
+Остаётся:
+
+- создание заявок;
 - retry-search;
-- принятия оффера;
-- плановых откликов;
-- споров и доказательств;
-- `presence:online` и `geo:update`;
-- операторских endpoints.
+- принятие оффера;
+- плановые ставки;
+- споры и доказательства;
+- операторские endpoints;
+- лимиты по userId и телефону — сейчас только IP (бизнес-лимиты SMS по номеру действуют отдельно).
 
-Rate limit должен учитывать IP, userId, телефон и endpoint в зависимости от сценария.
+### P0-5. Security audit log — частично закрыто
 
-### P0-5. Security audit log
+Файловый lifecycle и alert-переходы аудируются неизменяемо (`SecurityAuditEvent`). Операторские решения по анкетам, спорам и санкциям НЕ аудируются — бизнесовый `AuditLog` пишется только при блокировке/разблокировке пользователя.
 
-Неизменяемо фиксировать:
+Остаётся неизменяемо фиксировать:
 
 - вход и чувствительные действия оператора;
 - просмотр документа мастера;
@@ -451,6 +450,8 @@ Backup, который не проходил restore-test, не считаетс
 - свободный текст спора без редактирования;
 - provider secrets и webhook signatures.
 
+Известное отступление: реального SMS-шлюза нет. `ConsoleSmsSender` логирует полный текст с кодом вне production; в production текст маскируется (логируется только факт недоставки) — код в прод-логи не попадает, но и вход в production без реального шлюза невозможен.
+
 Для корреляции использовать:
 
 - request ID;
@@ -469,7 +470,14 @@ JWT_SECRET=<случайный секрет из secret manager>
 CORS_ORIGINS=https://masterqala.kz
 UPLOAD_DIR=/var/lib/masterqala/uploads
 PGBOSS_DISABLED=0
+FILE_SCAN_MODE=CLAMAV
+CLAMAV_HOST=clamav
+CLAMAV_PORT=3310
+PDF_CDR_MODE=BYPASS        # или REQUIRED
+TRUST_PROXY_HOPS=1         # за reverse proxy
 ```
+
+Без `FILE_SCAN_MODE=CLAMAV`, явного `PDF_CDR_MODE` и остальных валидных значений `validateEnvironment` роняет production-bootstrap.
 
 Инфраструктура:
 
@@ -491,15 +499,16 @@ PGBOSS_DISABLED=0
 
 ### Обязательные P0
 
-- [ ] запуск невозможен с default/слабым JWT secret;
-- [ ] CORS ограничен production-origin;
-- [ ] env schema валидирует обязательные настройки;
-- [ ] HTTPS и security headers настроены;
+- [x] запуск невозможен с default/слабым JWT secret;
+- [x] CORS ограничен production-origin;
+- [x] env schema валидирует обязательные настройки;
+- [x] security headers настроены (HTTPS — настройка reverse proxy при деплое);
 - [ ] PostgreSQL закрыт от интернета;
 - [ ] upload volume непубличен и защищён;
-- [ ] magic bytes/EXIF/PDF проверки реализованы;
-- [ ] общий rate limit включён;
-- [ ] операторские действия аудируются;
+- [x] magic bytes и PDF-gate реализованы;
+- [ ] удаление EXIF/GPS реализовано;
+- [x] общий rate limit включён;
+- [ ] операторские действия аудируются (сейчас — только блокировки/разблокировки);
 - [ ] backup БД и файлов создан;
 - [ ] restore фактически проверен;
 - [x] `FREE_PILOT` блокирует покупки, выплаты и финансовые side effects;
@@ -512,7 +521,7 @@ PGBOSS_DISABLED=0
 
 - [ ] session/refresh/revoke;
 - [ ] хеширование SMS-кодов;
-- [ ] liveness/readiness;
+- [x] liveness/readiness;
 - [ ] heartbeat и multi-socket presence;
 - [ ] object storage либо формализованный single-node storage;
 - [ ] error tracking с PII-redaction;

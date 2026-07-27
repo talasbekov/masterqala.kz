@@ -232,14 +232,22 @@ export class DisputesService {
 
       if (orderId) {
         const order = await tx.order.findUniqueOrThrow({ where: { id: orderId } });
-        if (dto.penalizeMaster && order.masterId) await this.penalties.applyPenalty(tx, order.masterId);
+        if (dto.penalizeMaster && order.masterId) {
+          await this.penalties.applyPenalty(tx, order.masterId, {
+            chargeCredits: order.commercialMode !== 'FREE_PILOT',
+          });
+        }
         if (order.status === 'DONE') {
           await tx.order.updateMany({ where: { id: orderId, status: 'DONE' }, data: { status: 'CLOSED', closedAt: new Date() } });
           await this.compensation.accrueCallout(tx, order);
         }
       } else if (plannedOrderId) {
         const order = await tx.plannedOrder.findUniqueOrThrow({ where: { id: plannedOrderId } });
-        if (dto.penalizeMaster && order.masterId) await this.penalties.applyPenalty(tx, order.masterId);
+        if (dto.penalizeMaster && order.masterId) {
+          await this.penalties.applyPenalty(tx, order.masterId, {
+            chargeCredits: order.commercialMode !== 'FREE_PILOT',
+          });
+        }
         if (order.status === 'DONE') {
           await tx.plannedOrder.updateMany({ where: { id: plannedOrderId, status: 'DONE' }, data: { status: 'CLOSED', closedAt: new Date() } });
         }
