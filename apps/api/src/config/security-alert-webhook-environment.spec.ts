@@ -8,6 +8,8 @@ describe('security alert webhook environment', () => {
     FILE_SCAN_MODE: 'CLAMAV',
     PDF_CDR_MODE: 'REQUIRED',
     PGBOSS_DISABLED: '0',
+    SMS_PROVIDER_MODE: 'HTTP',
+    SMS_HTTP_URL: 'https://sms.internal/send',
   };
 
   it('разрешает отключённую внешнюю доставку', () => {

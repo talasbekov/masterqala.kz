@@ -39,7 +39,8 @@
 | HTTP/Socket.IO маскирование цены | реализовано |
 | CI workflow | добавлен в PR #4 |
 | подтверждённый успешный CI run | подтверждён — `.github/workflows/ci.yml` проходит на каждый push |
-| production container/systemd | не зафиксирован |
+| production container/systemd | реализован — `apps/api/Dockerfile` и `apps/web/Dockerfile` (multi-stage, собраны и проверены live-контейнером). systemd unit / compose-оркестрация всё ещё не собраны |
+| реальный SMS-провайдер | адаптер реализован — `SMS_PROVIDER_MODE=HTTP` (`apps/api/src/sms/http-sms.sender.ts`), URL/тело/метод конфигурируются через env без правки кода. `CONSOLE`-режим запрещён централизованной валидацией в production. Конкретный провайдер (аккаунт, API-ключ) — не выбран |
 | CORS allowlist | реализован — `environment.ts` валидирует `CORS_ORIGINS`, запрещает wildcard и non-HTTPS в production, `main.ts` вызывает `enableCors({ origin: corsOrigins })` |
 | обязательный production JWT secret | реализован — `environment.ts` требует `JWT_SECRET` ≥32 символов и запрещает известные заглушки (`getOrThrow` без фолбэка) |
 | readiness зависимостей | реализован — `GET /health` проверяет БД, очередь pg-boss и антивирус-сканер |
@@ -150,7 +151,11 @@ SERVICE_FEE_MIN=...
 
 В `FREE_PILOT` эти значения не должны создавать платёжные операции.
 
-Дополнительно необходимы настройки реального SMS-провайдера. Провайдер, печатающий код в stdout, запрещён в production.
+Дополнительно необходимы настройки реального SMS-провайдера — `SMS_PROVIDER_MODE=HTTP`
+(значение по умолчанию `CONSOLE`, печатающее код в лог, запрещено централизованной
+валидацией в production) плюс `SMS_HTTP_URL`/`SMS_HTTP_METHOD`/`SMS_HTTP_BODY_TEMPLATE`/
+`SMS_HTTP_SECRET` под конкретный шлюз — см. `apps/api/.env.example` для формата
+плейсхолдеров `{{phone}}`/`{{text}}`/`{{secret}}`.
 
 ### 6.1 Валидация конфигурации
 
@@ -160,13 +165,14 @@ SERVICE_FEE_MIN=...
 - отсутствии/пустом или содержащем wildcard/non-HTTPS origin `CORS_ORIGINS` в production;
 - `FILE_SCAN_MODE` отличном от `CLAMAV` в production;
 - `PGBOSS_DISABLED=1` в production;
+- `SMS_PROVIDER_MODE` отличном от `HTTP` в production (`CONSOLE`, пишущий код в лог, запрещён);
+- отсутствии/некорректном `SMS_HTTP_URL` при `SMS_PROVIDER_MODE=HTTP`, non-HTTPS URL в production;
 - некорректном `SECURITY_ALERT_WEBHOOK_URL`/`SECURITY_ALERT_WEBHOOK_SECRET`.
 
 Ещё не покрыто централизованной схемой:
 
 - отсутствие `DATABASE_URL`;
 - пустой `UPLOAD_DIR`;
-- production dev-SMS режим (сам SMS-провайдер пока пишет код в лог, см. [STATUS.md](../STATUS.md));
 - недоступная директория uploads.
 
 ## 7. CI
@@ -624,13 +630,14 @@ Frontend должен иметь управляемое сообщение о ma
 - [x] CORS ограничен явным списком origin;
 - [x] global rate limit включён (`rate-limit.middleware.ts`);
 - [x] file signature/карантин/ClamAV-скан реализованы (`FILE_SCAN_MODE=CLAMAV` обязателен в production);
-- [x] readiness зависимостей (БД, очередь, антивирус) реализован в `GET /health`.
+- [x] readiness зависимостей (БД, очередь, антивирус) реализован в `GET /health`;
+- [x] production process/container manifest создан (`apps/api/Dockerfile`, `apps/web/Dockerfile` — собраны и проверены live-контейнером);
+- [x] SMS HTTP-адаптер реализован и конфигурируется без правки кода (`SMS_PROVIDER_MODE=HTTP`).
 
 ### Требует подтверждения/реализации
 
 - [ ] **ручной код-ревью стека безопасности** — ~225 файлов смержены без единого ревью, см. [STATUS.md](../STATUS.md#прод-блокеры);
-- [ ] реальный SMS provider подключён (сейчас пишет код в лог);
-- [ ] production process/container manifest создан (Dockerfile приложений отсутствует);
+- [ ] выбран и оплачен конкретный SMS-провайдер (Mobizon/SMSC.kz/др.) — адаптер готов, аккаунта нет;
 - [ ] reverse proxy/TLS проверены;
 - [ ] uploads persistent/private на выделенном volume;
 - [ ] backup автоматизирован;
