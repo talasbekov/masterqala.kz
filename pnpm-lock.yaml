@@ -134,6 +134,9 @@ importers:
       i18next:
         specifier: ^26.3.6
         version: 26.3.6(typescript@6.0.3)
+      leaflet:
+        specifier: ^1.9.4
+        version: 1.9.4
       next:
         specifier: ^15.0.0
         version: 15.5.22(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
@@ -153,6 +156,9 @@ importers:
       '@tailwindcss/postcss':
         specifier: ^4.3.2
         version: 4.3.3
+      '@types/leaflet':
+        specifier: ^1.9.21
+        version: 1.9.21
       '@types/node':
         specifier: ^24.13.2
         version: 24.13.3
