@@ -42,4 +42,5 @@ export interface PlannedOrderDetail {
   confirmDeadline: string | null;
   bids: PlannedBid[];
   review: { rating: number; comment: string | null } | null;
+  photos: { id: string }[];
 }
