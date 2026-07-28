@@ -846,3 +846,80 @@ Expected: API на `:3000`(или использующемся для воркт
 соответствующего шага. Это последняя задача последней фазы подпроекта 2
 — по завершении зафиксировать в памяти сессии, что весь клиентский флоу
 (Фазы A-D) реализован, отревьюен и живьём проверен целиком.
+
+---
+
+### Task 6: `/notifications` — исправление ложного допущения плана
+
+**Найдено во время живой проверки Task 5 (не заранее в плане):** и общая
+спека подпроекта 2, и черновик спеки Фазы D утверждали, что
+`NotificationsPage` «уже реализован в Фазе A» для `apps/client`. Прямая
+проверка файловой системы во время Task 5 показала, что это утверждение
+ложно — в `apps/client/app/` нет ни одной директории/файла `notifications`
+вообще. Источник ошибки: в памяти сессии по прошлому, более раннему циклу
+«клиент v2» (другой codebase, `apps/web`) действительно была фраза
+«NotificationsPage уже реализован в Фазе A» — но это утверждение верно
+только для `apps/web`, а не для `apps/client` (десктопный ребилд). При
+переносе контекста в спеку Фазы D эта деталь была скопирована не глядя.
+Реальный план Фазы A подпроекта 2 (`docs/superpowers/plans/2026-07-28-client-flow-desktop-phase-a.md`,
+строки 38-39 и 648) явно фиксирует `/notifications` как маршрут,
+намеренно ведущий в 404 до более поздней фазы — т.е. экран всегда
+планировался позже, просто нигде не был доведён до конца. `Sidebar.tsx`
+уже содержит `<NavLink href="/notifications">` с Фазы A, `/profile` (Task
+2 этого плана) уже ссылается на `/notifications` — обе ссылки сейчас ведут
+в 404.
+
+**Files:**
+- Create: `apps/client/app/(app)/notifications/page.tsx`
+
+**Interfaces:**
+- Consumes: `EmptyState` (именованный экспорт `@masterqala/ui`, уже
+  зависимость `apps/client` — `packages/ui/src/index.ts`: `export {
+  default as EmptyState } from './EmptyState'`; пропы — `icon: ReactNode,
+  title: string, subtitle: string`, см. `packages/ui/src/EmptyState.tsx`).
+- Produces: маршрут `/notifications`.
+
+- [ ] **Step 1: Создать `apps/client/app/(app)/notifications/page.tsx`**
+
+Порт `apps/web/src/features/client-v2/pages/NotificationsPage.tsx`
+дословно — честный empty state, никакой реальной функциональности
+уведомлений в бэкенде нет, ничего не выдумывается:
+
+```tsx
+'use client';
+import { useTranslation } from 'react-i18next';
+import { EmptyState } from '@masterqala/ui';
+
+export default function NotificationsPage() {
+  const { t } = useTranslation();
+  return (
+    <div className="flex flex-col gap-3.5 px-8 py-6">
+      <div className="text-[22px] font-extrabold text-ink">{t('notifications.title')}</div>
+      <EmptyState
+        icon={<span className="text-3xl">🔔</span>}
+        title={t('notifications.emptyTitle')}
+        subtitle={t('notifications.emptySubtitle')}
+      />
+    </div>
+  );
+}
+```
+
+- [ ] **Step 2: Проверить сборку**
+
+Run: `pnpm --filter client build`
+Expected: сборка проходит без ошибок, маршрут `/notifications`
+присутствует.
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add "apps/client/app/(app)/notifications"
+git commit -m "feat(client): NotificationsPage — честный empty state (найдено в Task 5, не было в Фазе A для apps/client)"
+```
+
+- [ ] **Step 4: Повторно проверить `/profile` и `Sidebar`**
+
+Живьём: перейти по ссылке «Уведомления» из `/profile` и по пункту
+сайдбара «🔔 Уведомл.» — оба должны резолвиться в честный empty state
+вместо 404.
