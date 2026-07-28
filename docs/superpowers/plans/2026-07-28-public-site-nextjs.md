@@ -157,8 +157,10 @@ Expected: HTML-ответ содержит `MasterQala`.
 
 - [ ] **Step 10: Commit**
 
+`pnpm install` в Step 8 обновил корневой `pnpm-lock.yaml` (зарегистрировал `next`/`react`/`react-dom` для нового пакета) — этот файл обязателен в коммите, иначе `pnpm install --frozen-lockfile` на чистом клоне сломается.
+
 ```bash
-git add apps/site .gitignore
+git add apps/site .gitignore pnpm-lock.yaml
 git commit -m "feat(site): каркас Next.js-приложения apps/site"
 ```
 
