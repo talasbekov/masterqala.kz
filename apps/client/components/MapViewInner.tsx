@@ -36,6 +36,11 @@ export default function MapViewInner({ mode, center, onCenterChange, masterPosit
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const masterMarkerRef = useRef<L.Marker | null>(null);
+  const onCenterChangeRef = useRef(onCenterChange);
+
+  useEffect(() => {
+    onCenterChangeRef.current = onCenterChange;
+  }, [onCenterChange]);
 
   useEffect(() => {
     if (!containerRef.current || mode === 'pulse') return;
@@ -54,7 +59,7 @@ export default function MapViewInner({ mode, center, onCenterChange, masterPosit
       });
       map.on('moveend', () => {
         const c = map.getCenter();
-        onCenterChange?.({ lat: c.lat, lng: c.lng });
+        onCenterChangeRef.current?.({ lat: c.lat, lng: c.lng });
       });
     }
 
