@@ -3,10 +3,25 @@ import { useMasterPresence } from '@/lib/masterPresence';
 import { useCountdown } from '@/lib/useCountdown';
 
 export function OfferOverlay() {
-  const { offer } = useMasterPresence();
+  const { offer, offerNote, dismissOfferNote } = useMasterPresence();
   const secondsLeft = useCountdown(offer?.deadline ?? null);
 
-  if (!offer) return null;
+  if (!offer) {
+    if (!offerNote) return null;
+    return (
+      <div className="fixed bottom-6 right-6 z-50 flex w-full max-w-[360px] items-start gap-3 rounded-md border border-border bg-fill-soft p-3 text-sm text-ink-soft shadow-lg">
+        <p className="flex-1">{offerNote}</p>
+        <button
+          type="button"
+          onClick={dismissOfferNote}
+          aria-label="Скрыть уведомление"
+          className="text-ink-soft hover:text-ink"
+        >
+          ✕
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-6">
