@@ -8,7 +8,7 @@ export class AdminMetricsService {
 
   async getDashboard() {
     const since = new Date(Date.now() - 24 * 3600_000);
-    const nonTerminalStatuses = ACTIVE_CLIENT_STATUSES.filter((s) => s !== 'NO_MASTERS');
+    const nonTerminalStatuses = ACTIVE_CLIENT_STATUSES.filter((s) => s !== 'NO_MASTERS' && s !== 'DONE');
 
     const [
       activeUrgentCount,
