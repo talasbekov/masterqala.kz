@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { ACTIVE_MASTER_STATUSES } from '../orders/order.constants';
@@ -82,7 +82,11 @@ export class AdminOrdersService {
     return rows.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()).slice(0, 100);
   }
 
-  async candidates(orderId: string): Promise<AssignCandidate[]> {
+  async candidates(orderId: string, type: 'urgent' | 'planned' = 'urgent'): Promise<AssignCandidate[]> {
+    if (type === 'planned') {
+      throw new BadRequestException('Подбор кандидатов недоступен для плановых заказов');
+    }
+
     const order = await this.prisma.order.findUnique({ where: { id: orderId } });
     if (!order) throw new NotFoundException('Заказ не найден');
 

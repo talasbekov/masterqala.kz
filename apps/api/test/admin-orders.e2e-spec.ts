@@ -8,6 +8,7 @@ import {
   loginAs,
   createActiveMaster,
   createOrderViaApi,
+  createPlannedOrderViaApi,
 } from './helpers';
 
 describe('Admin orders (e2e)', () => {
@@ -114,5 +115,20 @@ describe('Admin orders (e2e)', () => {
       .set('Authorization', `Bearer ${operator.token}`)
       .send({ masterUserId: 'irrelevant' })
       .expect(409);
+  });
+
+  it('rejects candidates/assign for a planned order with 400, not a 404', async () => {
+    const created = await createPlannedOrderViaApi(app, client.token, categories.plumbing.id);
+
+    await request(app.getHttpServer())
+      .get(`/api/v1/admin/orders/${created.id}/candidates?type=planned`)
+      .set('Authorization', `Bearer ${operator.token}`)
+      .expect(400);
+
+    await request(app.getHttpServer())
+      .post(`/api/v1/admin/orders/${created.id}/assign?type=planned`)
+      .set('Authorization', `Bearer ${operator.token}`)
+      .send({ masterUserId: 'irrelevant' })
+      .expect(400);
   });
 });

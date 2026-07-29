@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
 import { User } from '@prisma/client';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Roles, RolesGuard } from '../auth/roles.guard';
@@ -26,8 +26,8 @@ export class AdminOrdersController {
   }
 
   @Get(':id/candidates')
-  candidates(@Param('id') id: string) {
-    return this.admin.candidates(id);
+  candidates(@Param('id') id: string, @Query('type') type: 'urgent' | 'planned' = 'urgent') {
+    return this.admin.candidates(id, type);
   }
 
   @Get(':id')
@@ -36,7 +36,15 @@ export class AdminOrdersController {
   }
 
   @Post(':id/assign')
-  assign(@CurrentUser() operator: User, @Param('id') id: string, @Body() dto: AssignOrderDto) {
+  assign(
+    @CurrentUser() operator: User,
+    @Param('id') id: string,
+    @Body() dto: AssignOrderDto,
+    @Query('type') type: 'urgent' | 'planned' = 'urgent',
+  ) {
+    if (type === 'planned') {
+      throw new BadRequestException('Ручное назначение недоступно для плановых заказов');
+    }
     return this.orders.manualAssign(operator.id, id, dto.masterUserId);
   }
 }
