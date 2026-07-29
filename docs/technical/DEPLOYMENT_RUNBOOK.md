@@ -4,6 +4,8 @@
 
 Фактическая реализация находится в PR #4. Специализированные smoke/SQL-проверки дополнительно описаны в `docs/pilot/FREE_PILOT_ROLLOUT.md` этого PR.
 
+**Сверено с кодом 27.07.2026.** Документ изначально описывал состояние на момент PR #4, до мержа стека безопасности (`#6–#13`, `#16` в [STATUS.md](../STATUS.md)). CORS, валидация секретов, rate-limit и readiness с тех пор реализованы — раздел 2 и gate в разделе 23 обновлены под текущий код.
+
 ## 1. Текущее состояние
 
 Монорепозиторий:
@@ -21,9 +23,14 @@
 Порты разработки:
 
 - API: `3000`;
-- Vite: `5173`;
+- `apps/web` (Vite): `5173` по умолчанию (`5181` в текущем ворктри, см. `.claude/launch.json`);
+- `apps/client` (Next.js): `4200`;
+- `apps/master` (Next.js): `4300`;
+- `apps/site` (Next.js): `4100`;
 - development PostgreSQL: `5432`;
 - test PostgreSQL: `5433`.
+
+Каждый новый browser-origin dev-сервера должен быть добавлен в `CORS_ORIGINS` локального `apps/api/.env` (см. `apps/api/.env.example`), иначе запросы из браузера падают с `Failed to fetch` без внятной ошибки CORS в консоли.
 
 ## 2. Статус готовности компонентов
 
@@ -36,16 +43,17 @@
 | финансовые блокировки пилота | реализованы |
 | HTTP/Socket.IO маскирование цены | реализовано |
 | CI workflow | добавлен в PR #4 |
-| подтверждённый успешный CI run | пока не подтверждён доступным connector |
-| production container/systemd | не зафиксирован |
-| CORS allowlist | не реализован |
-| обязательный production JWT secret | не реализован |
-| readiness зависимостей | не реализован |
-| общий rate limit | не реализован |
-| файловый security pipeline | не реализован |
+| подтверждённый успешный CI run | подтверждён — `.github/workflows/ci.yml` проходит на каждый push |
+| production container/systemd | реализован — `apps/api/Dockerfile` и `apps/web/Dockerfile` (multi-stage, собраны и проверены live-контейнером). systemd unit / compose-оркестрация всё ещё не собраны |
+| реальный SMS-провайдер | адаптер реализован — `SMS_PROVIDER_MODE=HTTP` (`apps/api/src/sms/http-sms.sender.ts`), URL/тело/метод конфигурируются через env без правки кода. `CONSOLE`-режим запрещён централизованной валидацией в production. Конкретный провайдер (аккаунт, API-ключ) — не выбран |
+| CORS allowlist | реализован — `environment.ts` валидирует `CORS_ORIGINS`, запрещает wildcard и non-HTTPS в production, `main.ts` вызывает `enableCors({ origin: corsOrigins })` |
+| обязательный production JWT secret | реализован — `environment.ts` требует `JWT_SECRET` ≥32 символов и запрещает известные заглушки (`getOrThrow` без фолбэка) |
+| readiness зависимостей | реализован — `GET /health` проверяет БД, очередь pg-boss и антивирус-сканер |
+| общий rate limit | реализован — `rate-limit.middleware.ts`, подключён глобально в `main.ts` |
+| файловый security pipeline | реализован — magic-byte проверка, карантин, ClamAV-скан (`FILE_SCAN_MODE=CLAMAV` обязателен в production) |
 | backup/restore automation | не добавлена в репозиторий |
 
-PR #4 должен оставаться draft до подтверждённого CI и ручного smoke.
+Стек безопасности смержен в `main`, но **не проходил код-ревью** — это отдельный прод-блокер, см. [STATUS.md](../STATUS.md#прод-блокеры).
 
 ## 3. Рекомендуемая топология первого пилота
 
@@ -148,20 +156,29 @@ SERVICE_FEE_MIN=...
 
 В `FREE_PILOT` эти значения не должны создавать платёжные операции.
 
-Дополнительно необходимы настройки реального SMS-провайдера. Провайдер, печатающий код в stdout, запрещён в production.
+Дополнительно необходимы настройки реального SMS-провайдера — `SMS_PROVIDER_MODE=HTTP`
+(значение по умолчанию `CONSOLE`, печатающее код в лог, запрещено централизованной
+валидацией в production) плюс `SMS_HTTP_URL`/`SMS_HTTP_METHOD`/`SMS_HTTP_BODY_TEMPLATE`/
+`SMS_HTTP_SECRET` под конкретный шлюз — см. `apps/api/.env.example` для формата
+плейсхолдеров `{{phone}}`/`{{text}}`/`{{secret}}`.
 
-### 6.1 Незакрытый риск конфигурации
+### 6.1 Валидация конфигурации
 
-Сейчас централизованно валидируется `COMMERCIAL_MODE`, включая fail-fast `PAID_LIVE`. Остальные переменные ещё не объединены в startup schema.
+`environment.ts` объединяет проверку в единую startup-схему и завершает запуск с ошибкой при:
 
-До запуска API должен завершаться с ошибкой при:
+- отсутствии/слабости или заглушке `JWT_SECRET` (<32 символов или значение из списка известных placeholder'ов);
+- отсутствии/пустом или содержащем wildcard/non-HTTPS origin `CORS_ORIGINS` в production;
+- `FILE_SCAN_MODE` отличном от `CLAMAV` в production;
+- `PGBOSS_DISABLED=1` в production;
+- `SMS_PROVIDER_MODE` отличном от `HTTP` в production (`CONSOLE`, пишущий код в лог, запрещён);
+- отсутствии/некорректном `SMS_HTTP_URL` при `SMS_PROVIDER_MODE=HTTP`, non-HTTPS URL в production;
+- некорректном `SECURITY_ALERT_WEBHOOK_URL`/`SECURITY_ALERT_WEBHOOK_SECRET`.
 
-- отсутствии/слабости `JWT_SECRET`;
-- отсутствии `DATABASE_URL`;
-- пустом `UPLOAD_DIR`;
-- неизвестном origin;
-- production dev-SMS режиме;
-- недоступной директории uploads.
+Ещё не покрыто централизованной схемой:
+
+- отсутствие `DATABASE_URL`;
+- пустой `UPLOAD_DIR`;
+- недоступная директория uploads.
 
 ## 7. CI
 
@@ -334,7 +351,7 @@ prisma db push
 - `Permissions-Policy` для geolocation;
 - запрет framing.
 
-CORS должен ограничиваться production origin. Текущее `origin: true` в коде необходимо изменить до публичного запуска.
+CORS ограничен production origin — `CORS_ORIGINS` обязателен и валидируется в `environment.ts`, wildcard запрещён.
 
 ## 13. Запуск API
 
@@ -612,25 +629,26 @@ Frontend должен иметь управляемое сообщение о ma
 - [x] исторические записи мигрируют в `PAID_MOCK`;
 - [x] финансовые side effects пилота заблокированы;
 - [x] HTTP/Socket.IO маскируют выезд и сбор;
-- [x] CI workflow добавлен;
-- [x] rollout и SQL smoke документированы.
+- [x] CI workflow добавлен и успешно проходит на каждый push;
+- [x] rollout и SQL smoke документированы;
+- [x] production secrets валидируются (`JWT_SECRET`, `CORS_ORIGINS`, `FILE_SCAN_MODE` и др. — `environment.ts`);
+- [x] CORS ограничен явным списком origin;
+- [x] global rate limit включён (`rate-limit.middleware.ts`);
+- [x] file signature/карантин/ClamAV-скан реализованы (`FILE_SCAN_MODE=CLAMAV` обязателен в production);
+- [x] readiness зависимостей (БД, очередь, антивирус) реализован в `GET /health`;
+- [x] production process/container manifest создан (`apps/api/Dockerfile`, `apps/web/Dockerfile` — собраны и проверены live-контейнером);
+- [x] SMS HTTP-адаптер реализован и конфигурируется без правки кода (`SMS_PROVIDER_MODE=HTTP`).
 
 ### Требует подтверждения/реализации
 
-- [ ] CI workflow успешно завершён;
-- [ ] production secrets валидируются;
-- [ ] CORS ограничен;
-- [ ] реальный SMS provider подключён;
-- [ ] production process/container manifest создан;
+- [ ] **ручной код-ревью стека безопасности** — ~225 файлов смержены без единого ревью, см. [STATUS.md](../STATUS.md#прод-блокеры);
+- [ ] выбран и оплачен конкретный SMS-провайдер (Mobizon/SMSC.kz/др.) — адаптер готов, аккаунта нет;
 - [ ] reverse proxy/TLS проверены;
-- [ ] uploads persistent/private;
-- [ ] file signature/EXIF/PDF security реализованы;
-- [ ] global rate limit включён;
+- [ ] uploads persistent/private на выделенном volume;
 - [ ] backup автоматизирован;
 - [ ] restore-test успешен;
-- [ ] monitoring/alerts включены;
-- [ ] ручной security review пройден;
-- [ ] полный smoke выполнен;
+- [ ] monitoring/alerts включены (Sentry, метрики, алерты на зависшие джобы);
+- [ ] полный smoke выполнен на staging, приближённом к production;
 - [ ] назначен ответственный за инцидент.
 
 Публичный доступ нельзя открывать только на основании merge PR: обязательны инфраструктурный gate, security gate и smoke на production-подобном staging.

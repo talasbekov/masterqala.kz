@@ -41,6 +41,9 @@ describe('environment security validation', () => {
     expect(env.SECURITY_AUDIT_RETENTION_DAYS).toBe(365);
     expect(env.FILE_QUARANTINE_RETENTION_DAYS).toBe(30);
     expect(env.CONSUMED_UPLOAD_METADATA_RETENTION_DAYS).toBe(30);
+    expect(env.SMS_PROVIDER_MODE).toBe('CONSOLE');
+    expect(env.SMS_HTTP_METHOD).toBe('POST');
+    expect(env.SMS_HTTP_TIMEOUT_MS).toBe(5000);
   });
 
   it('требует явный HTTPS allowlist в production', () => {
@@ -62,6 +65,8 @@ describe('environment security validation', () => {
       JWT_SECRET: secureSecret,
       CORS_ORIGINS: 'https://masterqala.kz',
       PDF_CDR_MODE: 'REQUIRED',
+      SMS_PROVIDER_MODE: 'HTTP',
+      SMS_HTTP_URL: 'https://sms.internal/send',
     };
 
     expect(() => validateEnvironment(productionBase)).toThrow('FILE_SCAN_MODE');
@@ -77,6 +82,8 @@ describe('environment security validation', () => {
       JWT_SECRET: secureSecret,
       CORS_ORIGINS: 'https://masterqala.kz',
       FILE_SCAN_MODE: 'CLAMAV',
+      SMS_PROVIDER_MODE: 'HTTP',
+      SMS_HTTP_URL: 'https://sms.internal/send',
     };
 
     expect(() => validateEnvironment(productionBase)).toThrow('PDF_CDR_MODE');
@@ -92,11 +99,44 @@ describe('environment security validation', () => {
       CORS_ORIGINS: 'https://masterqala.kz',
       FILE_SCAN_MODE: 'CLAMAV',
       PDF_CDR_MODE: 'REQUIRED',
+      SMS_PROVIDER_MODE: 'HTTP',
+      SMS_HTTP_URL: 'https://sms.internal/send',
     };
 
     expect(() => validateEnvironment({ ...productionBase, PGBOSS_DISABLED: '1' })).toThrow('PGBOSS_DISABLED');
     expect(validateEnvironment({ ...productionBase, PGBOSS_DISABLED: '0' }).PGBOSS_DISABLED).toBe('0');
     expect(() => validateEnvironment({ ...productionBase, PGBOSS_DISABLED: 'yes' })).toThrow('PGBOSS_DISABLED');
+  });
+
+  it('запрещает console SMS provider в production', () => {
+    const productionBase = {
+      NODE_ENV: 'production',
+      JWT_SECRET: secureSecret,
+      CORS_ORIGINS: 'https://masterqala.kz',
+      FILE_SCAN_MODE: 'CLAMAV',
+      PDF_CDR_MODE: 'REQUIRED',
+      PGBOSS_DISABLED: '0',
+    };
+
+    expect(() => validateEnvironment(productionBase)).toThrow('SMS_PROVIDER_MODE');
+    expect(() => validateEnvironment({ ...productionBase, SMS_PROVIDER_MODE: 'CONSOLE' })).toThrow(
+      'должен быть HTTP',
+    );
+    expect(() => validateEnvironment({ ...productionBase, SMS_PROVIDER_MODE: 'HTTP' })).toThrow(
+      'SMS_HTTP_URL обязателен',
+    );
+    expect(() =>
+      validateEnvironment({ ...productionBase, SMS_PROVIDER_MODE: 'HTTP', SMS_HTTP_URL: 'http://sms.internal/send' }),
+    ).toThrow('должен использовать HTTPS');
+
+    const env = validateEnvironment({
+      ...productionBase,
+      SMS_PROVIDER_MODE: 'HTTP',
+      SMS_HTTP_URL: 'https://sms.internal/send?to={{phone}}&text={{text}}&key={{secret}}',
+      SMS_HTTP_METHOD: 'GET',
+    });
+    expect(env.SMS_PROVIDER_MODE).toBe('HTTP');
+    expect(env.SMS_HTTP_METHOD).toBe('GET');
   });
 
   it('отклоняет wildcard, path и неизвестный протокол', () => {
@@ -157,6 +197,9 @@ describe('environment security validation', () => {
       SECURITY_AUDIT_RETENTION_DAYS: '730',
       FILE_QUARANTINE_RETENTION_DAYS: '45',
       CONSUMED_UPLOAD_METADATA_RETENTION_DAYS: '60',
+      SMS_PROVIDER_MODE: 'HTTP',
+      SMS_HTTP_URL: 'https://sms.internal/send',
+      SMS_HTTP_TIMEOUT_MS: '10000',
     });
 
     expect(corsOriginsFromValue(env.CORS_ORIGINS)).toEqual([
@@ -176,5 +219,8 @@ describe('environment security validation', () => {
     expect(env.SECURITY_AUDIT_RETENTION_DAYS).toBe(730);
     expect(env.FILE_QUARANTINE_RETENTION_DAYS).toBe(45);
     expect(env.CONSUMED_UPLOAD_METADATA_RETENTION_DAYS).toBe(60);
+    expect(env.SMS_PROVIDER_MODE).toBe('HTTP');
+    expect(env.SMS_HTTP_URL).toBe('https://sms.internal/send');
+    expect(env.SMS_HTTP_TIMEOUT_MS).toBe(10000);
   });
 });

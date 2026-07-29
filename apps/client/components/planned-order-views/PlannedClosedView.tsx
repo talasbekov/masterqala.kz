@@ -1,0 +1,82 @@
+'use client';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useTranslation } from 'react-i18next';
+import { api } from '@/lib/api';
+import type { PlannedOrderDetail } from '@/lib/plannedOrderTypes';
+
+export default function PlannedClosedView({ order, onChanged }: { order: PlannedOrderDetail; onChanged: () => void }) {
+  const { t } = useTranslation();
+  const router = useRouter();
+  const [rating, setRating] = useState(0);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
+  const isClosed = order.status === 'CLOSED';
+  const isExpired = order.status === 'EXPIRED';
+
+  async function submitRating(stars: number) {
+    setRating(stars);
+    setSubmitting(true);
+    setError('');
+    try {
+      await api(`/planned-orders/${order.id}/review`, { method: 'POST', body: JSON.stringify({ rating: stars }) });
+      onChanged();
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  const title = isClosed
+    ? t('plannedDetail.closedTitle')
+    : isExpired
+      ? t('plannedDetail.closedExpiredTitle')
+      : t('plannedDetail.closedCancelledTitle');
+
+  return (
+    <div className="mx-auto flex min-h-[80vh] w-full max-w-[560px] flex-col items-center justify-center gap-3.5 px-6 text-center">
+      <div
+        className={`flex h-19 w-19 items-center justify-center rounded-full text-4xl text-white ${
+          isClosed ? 'bg-success' : 'bg-ink-soft'
+        }`}
+      >
+        {isClosed ? '✓' : '×'}
+      </div>
+      <div className="text-xl font-extrabold text-ink">{title}</div>
+      {!isClosed && order.cancelReason && <div className="text-sm text-ink-soft">{order.cancelReason}</div>}
+      {isClosed && (
+        <div className="w-full rounded-md border border-border bg-surface p-3.5">
+          {order.review ? (
+            <div className="text-sm font-extrabold text-ink">{t('plannedDetail.rateThanks')}</div>
+          ) : (
+            <>
+              <div className="mb-2 text-[13px] font-extrabold text-ink">{t('plannedDetail.rateTitle')}</div>
+              <div className="flex justify-center gap-1 text-[28px]">
+                {[1, 2, 3, 4, 5].map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    disabled={submitting}
+                    onClick={() => submitRating(s)}
+                    className={s <= rating ? 'text-primary' : 'text-border'}
+                  >
+                    ★
+                  </button>
+                ))}
+              </div>
+              {error && <div className="mt-2 text-xs font-semibold text-danger">{error}</div>}
+            </>
+          )}
+        </div>
+      )}
+      <button
+        type="button"
+        onClick={() => router.push('/')}
+        className="w-full rounded-pill bg-primary p-4 text-sm font-extrabold text-white"
+      >
+        {t('plannedDetail.toHome')}
+      </button>
+    </div>
+  );
+}

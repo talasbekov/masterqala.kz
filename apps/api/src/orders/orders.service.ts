@@ -85,6 +85,8 @@ export class OrdersService implements OnModuleInit {
           description: dto.description,
           address: dto.address,
           district: dto.district,
+          lat: dto.lat,
+          lng: dto.lng,
           entrance: dto.entrance ?? null,
           floor: dto.floor ?? null,
           apartment: dto.apartment ?? null,

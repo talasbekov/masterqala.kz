@@ -1,10 +1,14 @@
 const NODE_ENVIRONMENTS = ['development', 'test', 'production'] as const;
 const FILE_SCAN_MODES = ['DISABLED', 'CLAMAV'] as const;
 const PDF_CDR_MODES = ['BYPASS', 'REQUIRED'] as const;
+const SMS_PROVIDER_MODES = ['CONSOLE', 'HTTP'] as const;
+const SMS_HTTP_METHODS = ['GET', 'POST'] as const;
 
 type NodeEnvironment = (typeof NODE_ENVIRONMENTS)[number];
 type FileScanMode = (typeof FILE_SCAN_MODES)[number];
 type PdfCdrMode = (typeof PDF_CDR_MODES)[number];
+type SmsProviderMode = (typeof SMS_PROVIDER_MODES)[number];
+type SmsHttpMethod = (typeof SMS_HTTP_METHODS)[number];
 
 const DEFAULT_LOCAL_ORIGINS = ['http://localhost:5173', 'http://127.0.0.1:5173'];
 const INSECURE_JWT_SECRETS = new Set([
@@ -44,6 +48,50 @@ function parsePdfCdrMode(value: unknown, nodeEnv: NodeEnvironment): PdfCdrMode {
     throw new Error(`Недопустимый PDF_CDR_MODE=${normalized || '<empty>'}. Допустимые значения: ${PDF_CDR_MODES.join(', ')}`);
   }
   return normalized as PdfCdrMode;
+}
+
+function parseSmsProviderMode(value: unknown, nodeEnv: NodeEnvironment): SmsProviderMode {
+  const normalized = requiredString(value) || (nodeEnv === 'production' ? '' : 'CONSOLE');
+  if (!SMS_PROVIDER_MODES.includes(normalized as SmsProviderMode)) {
+    throw new Error(`Недопустимый SMS_PROVIDER_MODE=${normalized || '<empty>'}. Допустимые значения: ${SMS_PROVIDER_MODES.join(', ')}`);
+  }
+  if (nodeEnv === 'production' && normalized !== 'HTTP') {
+    throw new Error('В production SMS_PROVIDER_MODE должен быть HTTP: провайдер, печатающий код в лог, запрещён');
+  }
+  return normalized as SmsProviderMode;
+}
+
+function parseSmsHttpMethod(value: unknown): SmsHttpMethod {
+  const normalized = requiredString(value) || 'POST';
+  if (!SMS_HTTP_METHODS.includes(normalized as SmsHttpMethod)) {
+    throw new Error(`Недопустимый SMS_HTTP_METHOD=${normalized}. Допустимые значения: ${SMS_HTTP_METHODS.join(', ')}`);
+  }
+  return normalized as SmsHttpMethod;
+}
+
+function parseSmsHttpUrl(value: unknown, nodeEnv: NodeEnvironment, mode: SmsProviderMode): string {
+  const normalized = requiredString(value);
+  if (mode !== 'HTTP') return normalized;
+
+  if (!normalized) {
+    throw new Error('SMS_HTTP_URL обязателен при SMS_PROVIDER_MODE=HTTP');
+  }
+
+  let url: URL;
+  try {
+    // {{phone}}/{{text}}/{{secret}} — плейсхолдеры шаблона, подставляются при отправке.
+    // Заменяем их на безопасное значение только для проверки формы URL.
+    url = new URL(normalized.replace(/\{\{\w+\}\}/g, 'placeholder'));
+  } catch {
+    throw new Error('SMS_HTTP_URL должен быть корректным URL');
+  }
+  if (!['http:', 'https:'].includes(url.protocol)) {
+    throw new Error('SMS_HTTP_URL должен использовать HTTP или HTTPS');
+  }
+  if (nodeEnv === 'production' && url.protocol !== 'https:') {
+    throw new Error('В production SMS_HTTP_URL должен использовать HTTPS');
+  }
+  return normalized;
 }
 
 function parseBinaryFlag(name: string, value: unknown, fallback: '0' | '1'): '0' | '1' {
@@ -167,6 +215,13 @@ export function validateEnvironment(raw: Record<string, unknown>): Record<string
   const securityAlertDeliveryMaxAttempts = parseInteger(
     'SECURITY_ALERT_DELIVERY_MAX_ATTEMPTS', raw.SECURITY_ALERT_DELIVERY_MAX_ATTEMPTS, 5, 1, 10,
   );
+  const smsProviderMode = parseSmsProviderMode(raw.SMS_PROVIDER_MODE, nodeEnv);
+  const smsHttpMethod = parseSmsHttpMethod(raw.SMS_HTTP_METHOD);
+  const smsHttpUrl = parseSmsHttpUrl(raw.SMS_HTTP_URL, nodeEnv, smsProviderMode);
+  const smsHttpBodyTemplate = requiredString(raw.SMS_HTTP_BODY_TEMPLATE);
+  const smsHttpContentType = requiredString(raw.SMS_HTTP_CONTENT_TYPE) || 'application/json';
+  const smsHttpSecret = requiredString(raw.SMS_HTTP_SECRET);
+  const smsHttpTimeoutMs = parseInteger('SMS_HTTP_TIMEOUT_MS', raw.SMS_HTTP_TIMEOUT_MS, 5000, 1000, 30000);
 
   if (fileScanMode === 'CLAMAV' && !clamavHost) {
     throw new Error('CLAMAV_HOST обязателен при FILE_SCAN_MODE=CLAMAV');
@@ -203,6 +258,13 @@ export function validateEnvironment(raw: Record<string, unknown>): Record<string
     SECURITY_ALERT_WEBHOOK_SECRET: securityAlertWebhookSecret,
     SECURITY_ALERT_WEBHOOK_TIMEOUT_MS: securityAlertWebhookTimeoutMs,
     SECURITY_ALERT_DELIVERY_MAX_ATTEMPTS: securityAlertDeliveryMaxAttempts,
+    SMS_PROVIDER_MODE: smsProviderMode,
+    SMS_HTTP_METHOD: smsHttpMethod,
+    SMS_HTTP_URL: smsHttpUrl,
+    SMS_HTTP_BODY_TEMPLATE: smsHttpBodyTemplate,
+    SMS_HTTP_CONTENT_TYPE: smsHttpContentType,
+    SMS_HTTP_SECRET: smsHttpSecret,
+    SMS_HTTP_TIMEOUT_MS: smsHttpTimeoutMs,
   };
 }
 

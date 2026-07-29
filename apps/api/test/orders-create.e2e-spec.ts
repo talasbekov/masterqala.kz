@@ -68,6 +68,12 @@ describe('Создание срочной заявки (e2e)', () => {
     expect(geo.lat).toBeCloseTo(ALMATY.lat, 3);
   });
 
+  it('создание: заявка возвращает lat/lng, совпадающие со входными координатами', async () => {
+    const order = await createOrderViaApi(app, client.token, plumbingId);
+    expect(order.lat).toBeCloseTo(ALMATY.lat, 3);
+    expect(order.lng).toBeCloseTo(ALMATY.lng, 3);
+  });
+
   it('вторая активная заявка — 409; после отмены создать можно', async () => {
     const first = await createOrderViaApi(app, client.token, plumbingId);
     await request(app.getHttpServer())
