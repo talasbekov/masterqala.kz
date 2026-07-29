@@ -23,9 +23,14 @@
 Порты разработки:
 
 - API: `3000`;
-- Vite: `5173`;
+- `apps/web` (Vite): `5173` по умолчанию (`5181` в текущем ворктри, см. `.claude/launch.json`);
+- `apps/client` (Next.js): `4200`;
+- `apps/master` (Next.js): `4300`;
+- `apps/site` (Next.js): `4100`;
 - development PostgreSQL: `5432`;
 - test PostgreSQL: `5433`.
+
+Каждый новый browser-origin dev-сервера должен быть добавлен в `CORS_ORIGINS` локального `apps/api/.env` (см. `apps/api/.env.example`), иначе запросы из браузера падают с `Failed to fetch` без внятной ошибки CORS в консоли.
 
 ## 2. Статус готовности компонентов
 
