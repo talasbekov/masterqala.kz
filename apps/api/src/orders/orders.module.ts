@@ -7,6 +7,7 @@ import { CommonModule } from '../common/common.module';
 import { DisputesModule } from '../disputes/disputes.module';
 import { StorageModule } from '../storage/storage.module';
 import { ReviewsModule } from '../reviews/reviews.module';
+import { AuditLogModule } from '../audit-log/audit-log.module';
 import { OrdersService } from './orders.service';
 import { OrdersController } from './orders.controller';
 import { MatchingService } from './matching.service';
@@ -21,6 +22,7 @@ import { MatchingService } from './matching.service';
     DisputesModule,
     StorageModule,
     ReviewsModule,
+    AuditLogModule,
   ],
   providers: [OrdersService, MatchingService],
   controllers: [OrdersController],

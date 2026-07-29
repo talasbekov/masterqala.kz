@@ -1,5 +1,18 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { ACTIVE_MASTER_STATUSES } from '../orders/order.constants';
+
+export interface AssignCandidate {
+  masterUserId: string;
+  name: string;
+  distanceKm: number;
+  isOnline: boolean;
+}
+
+const ACTIVE_MASTER_STATUSES_SQL = Prisma.join(
+  ACTIVE_MASTER_STATUSES.map((s) => Prisma.sql`${s}::"OrderStatus"`),
+);
 
 export interface AdminOrderRow {
   id: string;
@@ -67,6 +80,35 @@ export class AdminOrdersService {
     }
 
     return rows.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()).slice(0, 100);
+  }
+
+  async candidates(orderId: string): Promise<AssignCandidate[]> {
+    const order = await this.prisma.order.findUnique({ where: { id: orderId } });
+    if (!order) throw new NotFoundException('Заказ не найден');
+
+    const rows = await this.prisma.$queryRaw<{ id: string; name: string | null; meters: number }[]>`
+      SELECT u.id, u.name, ST_Distance(mp.location, o.location) AS meters
+      FROM "MasterPresence" mp
+      JOIN "User" u ON u.id = mp."masterUserId"
+      JOIN "MasterProfile" pr ON pr."userId" = u.id AND pr.status = 'ACTIVE'
+      JOIN "MasterCategory" mc ON mc."masterProfileId" = pr.id AND mc."categoryId" = ${order.categoryId}
+      JOIN "Order" o ON o.id = ${orderId}
+      WHERE mp."isOnline" = true
+        AND (pr."blockedUntil" IS NULL OR pr."blockedUntil" < now())
+        AND mp.location IS NOT NULL AND o.location IS NOT NULL
+        AND u.id <> ${order.clientId}
+        AND NOT EXISTS (
+          SELECT 1 FROM "Order" ao WHERE ao."masterId" = u.id AND ao.status IN (${ACTIVE_MASTER_STATUSES_SQL})
+        )
+      ORDER BY meters ASC
+      LIMIT 10`;
+
+    return rows.map((r) => ({
+      masterUserId: r.id,
+      name: r.name ?? '—',
+      distanceKm: Math.round(r.meters / 100) / 10,
+      isOnline: true,
+    }));
   }
 
   async detail(id: string, type: 'urgent' | 'planned') {

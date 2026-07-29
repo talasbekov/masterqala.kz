@@ -23,6 +23,7 @@ import { CompensationService } from '../common/compensation.service';
 import { DisputesService } from '../disputes/disputes.service';
 import { ReviewsService } from '../reviews/reviews.service';
 import { FileStorage, FILE_STORAGE } from '../storage/storage.interface';
+import { AuditLogService } from '../audit-log/audit-log.service';
 import {
   ACTIVE_CLIENT_STATUSES,
   ACTIVE_MASTER_STATUSES,
@@ -47,6 +48,7 @@ export class OrdersService implements OnModuleInit {
     private readonly disputes: DisputesService,
     @Inject(FILE_STORAGE) private readonly storage: FileStorage,
     private readonly reviews: ReviewsService,
+    private readonly auditLog: AuditLogService,
   ) {}
 
   async preview(clientId: string, dto: PreviewOrderDto) {
@@ -273,6 +275,41 @@ export class OrdersService implements OnModuleInit {
     for (const o of losers) {
       this.gateway.emitToUser(o.masterUserId, 'offer:closed', { orderId, reason: 'Заявку принял другой мастер' });
     }
+    await this.emitOrderStatus(orderId);
+    return this.findOrThrow(orderId);
+  }
+
+  /** Операторское назначение зависшего в поиске заказа конкретному мастеру, в обход offer-flow. */
+  async manualAssign(operatorId: string, orderId: string, masterUserId: string): Promise<Order> {
+    await this.prisma.$transaction(async (tx) => {
+      const order = await tx.order.findUnique({ where: { id: orderId } });
+      if (!order) throw new NotFoundException('Заявка не найдена');
+
+      const gate = await tx.order.updateMany({
+        where: { id: orderId, status: 'SEARCHING' },
+        data: { status: 'ACCEPTED', masterId: masterUserId, acceptedAt: new Date() },
+      });
+      if (gate.count === 0) throw new ConflictException('Заявка больше не в поиске');
+
+      await tx.orderOffer.updateMany({
+        where: { orderId, attempt: order.searchAttempt, outcome: 'PENDING' },
+        data: { outcome: 'LOST', respondedAt: new Date() },
+      });
+
+      await this.auditLog.write(
+        {
+          actorType: 'OPERATOR',
+          actorId: operatorId,
+          action: 'ORDER_MANUALLY_ASSIGNED',
+          targetType: 'ORDER',
+          targetId: orderId,
+          comment: `назначен мастер ${masterUserId}`,
+        },
+        tx,
+      );
+    });
+
+    await this.payments.capture(orderId);
     await this.emitOrderStatus(orderId);
     return this.findOrThrow(orderId);
   }
