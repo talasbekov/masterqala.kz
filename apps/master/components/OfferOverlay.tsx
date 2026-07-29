@@ -3,7 +3,7 @@ import { useMasterPresence } from '@/lib/masterPresence';
 import { useCountdown } from '@/lib/useCountdown';
 
 export function OfferOverlay() {
-  const { offer, offerNote, dismissOfferNote } = useMasterPresence();
+  const { offer, offerNote, acceptingOffer, acceptOffer, dismissOfferNote } = useMasterPresence();
   const secondsLeft = useCountdown(offer?.deadline ?? null);
 
   if (!offer) {
@@ -39,10 +39,14 @@ export function OfferOverlay() {
         ) : (
           <div className="text-lg font-extrabold text-primary">Компенсация выезда: {offer.compensation} ₸</div>
         )}
-        <div className="text-sm font-bold text-ink-soft">Осталось {secondsLeft} с</div>
-        <div className="rounded-md border border-dashed border-border p-3 text-xs text-ink-soft">
-          Приём заявки появится в Фазе 2 — сейчас можно только просмотреть оффер.
-        </div>
+        <button
+          type="button"
+          disabled={acceptingOffer}
+          onClick={acceptOffer}
+          className="w-full rounded-pill bg-primary p-4 text-base font-extrabold text-white disabled:opacity-40"
+        >
+          {acceptingOffer ? 'Принимаем…' : `Принять (${secondsLeft} с)`}
+        </button>
       </div>
     </div>
   );

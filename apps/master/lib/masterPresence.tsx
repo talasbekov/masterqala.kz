@@ -1,5 +1,7 @@
 'use client';
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
+import { useRouter } from 'next/navigation';
+import { api } from './api';
 import { getSocket } from './socket';
 
 export interface UrgentOffer {
@@ -13,15 +15,23 @@ export interface UrgentOffer {
   deadline: string;
 }
 
+export interface LatLng {
+  lat: number;
+  lng: number;
+}
+
 interface MasterPresenceCtx {
   online: boolean;
   connected: boolean;
   geoDenied: boolean;
   offer: UrgentOffer | null;
   offerNote: string;
+  myPosition: LatLng | null;
+  acceptingOffer: boolean;
   goOnline: () => void;
   goOffline: () => void;
   dismissOfferNote: () => void;
+  acceptOffer: () => Promise<void>;
 }
 
 const Ctx = createContext<MasterPresenceCtx>({
@@ -30,9 +40,12 @@ const Ctx = createContext<MasterPresenceCtx>({
   geoDenied: false,
   offer: null,
   offerNote: '',
+  myPosition: null,
+  acceptingOffer: false,
   goOnline: () => {},
   goOffline: () => {},
   dismissOfferNote: () => {},
+  acceptOffer: async () => {},
 });
 
 function beepAndVibrate() {
@@ -51,11 +64,14 @@ function beepAndVibrate() {
 }
 
 export function MasterPresenceProvider({ children }: { children: ReactNode }) {
+  const router = useRouter();
   const [online, setOnline] = useState(false);
   const [connected, setConnected] = useState(false);
   const [geoDenied, setGeoDenied] = useState(false);
   const [offer, setOffer] = useState<UrgentOffer | null>(null);
   const [offerNote, setOfferNote] = useState('');
+  const [myPosition, setMyPosition] = useState<LatLng | null>(null);
+  const [acceptingOffer, setAcceptingOffer] = useState(false);
   const geoTimer = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
@@ -89,13 +105,17 @@ export function MasterPresenceProvider({ children }: { children: ReactNode }) {
     setGeoDenied(false);
     navigator.geolocation.getCurrentPosition(
       (position) => {
+        const coords = { lat: position.coords.latitude, lng: position.coords.longitude };
         const socket = getSocket();
-        socket.emit('presence:online', { lat: position.coords.latitude, lng: position.coords.longitude });
+        socket.emit('presence:online', coords);
         setOnline(true);
+        setMyPosition(coords);
         geoTimer.current = setInterval(() => {
-          navigator.geolocation.getCurrentPosition((next) =>
-            socket.emit('geo:update', { lat: next.coords.latitude, lng: next.coords.longitude }),
-          );
+          navigator.geolocation.getCurrentPosition((next) => {
+            const nextCoords = { lat: next.coords.latitude, lng: next.coords.longitude };
+            socket.emit('geo:update', nextCoords);
+            setMyPosition(nextCoords);
+          });
         }, 30000);
       },
       () => setGeoDenied(true),
@@ -110,8 +130,37 @@ export function MasterPresenceProvider({ children }: { children: ReactNode }) {
 
   const dismissOfferNote = useCallback(() => setOfferNote(''), []);
 
+  const acceptOffer = useCallback(async () => {
+    if (!offer) return;
+    setAcceptingOffer(true);
+    try {
+      await api(`/orders/${offer.orderId}/accept`, { method: 'POST' });
+      setOffer(null);
+      router.push('/');
+    } catch (e) {
+      setOffer(null);
+      setOfferNote((e as Error).message);
+    } finally {
+      setAcceptingOffer(false);
+    }
+  }, [offer, router]);
+
   return (
-    <Ctx.Provider value={{ online, connected, geoDenied, offer, offerNote, goOnline, goOffline, dismissOfferNote }}>
+    <Ctx.Provider
+      value={{
+        online,
+        connected,
+        geoDenied,
+        offer,
+        offerNote,
+        myPosition,
+        acceptingOffer,
+        goOnline,
+        goOffline,
+        dismissOfferNote,
+        acceptOffer,
+      }}
+    >
       {children}
     </Ctx.Provider>
   );
