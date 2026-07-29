@@ -17,6 +17,7 @@ describe('Admin orders (e2e)', () => {
   let categories: Awaited<ReturnType<typeof seedCategories>>;
   let operator: { token: string; userId: string };
   let client: { token: string; userId: string };
+  let seededMaster: { token: string; userId: string };
 
   beforeAll(async () => {
     app = await createTestApp();
@@ -28,7 +29,7 @@ describe('Admin orders (e2e)', () => {
     categories = await seedCategories(app);
     operator = await loginAs(app, '+77010000001', 'OPERATOR');
     client = await loginAs(app, '+77010000002');
-    await createActiveMaster(app, '+77010000003', categories.plumbing.id);
+    seededMaster = await createActiveMaster(app, '+77010000003', categories.plumbing.id);
   });
 
   it('lists urgent orders and marks a stuck wave-3 search as assignable in the detail view', async () => {
@@ -106,6 +107,50 @@ describe('Admin orders (e2e)', () => {
     expect(log.actorId).toBe(operator.userId);
   });
 
+  it('rejects manual assignment to a masterUserId that is not an active master (4xx, not 500)', async () => {
+    const created = await createOrderViaApi(app, client.token, categories.plumbing.id);
+    await prisma.order.update({
+      where: { id: created.id },
+      data: { wave: 3, createdAt: new Date(Date.now() - 10 * 60_000) },
+    });
+
+    await request(app.getHttpServer())
+      .post(`/api/v1/admin/orders/${created.id}/assign`)
+      .set('Authorization', `Bearer ${operator.token}`)
+      .send({ masterUserId: 'this-user-does-not-exist' })
+      .expect(404);
+
+    const untouched = await prisma.order.findUniqueOrThrow({ where: { id: created.id } });
+    expect(untouched.status).toBe('SEARCHING');
+    expect(untouched.masterId).toBeNull();
+  });
+
+  it('rejects manual assignment to a master already busy on another active order (no double-booking)', async () => {
+    const busyMaster = await createActiveMaster(app, '+77010000004', categories.plumbing.id);
+    const otherClient = await loginAs(app, '+77010000005');
+    const busyOrder = await createOrderViaApi(app, otherClient.token, categories.plumbing.id);
+    await prisma.order.update({
+      where: { id: busyOrder.id },
+      data: { status: 'ACCEPTED', masterId: busyMaster.userId, acceptedAt: new Date() },
+    });
+
+    const target = await createOrderViaApi(app, client.token, categories.plumbing.id);
+    await prisma.order.update({
+      where: { id: target.id },
+      data: { wave: 3, createdAt: new Date(Date.now() - 10 * 60_000) },
+    });
+
+    await request(app.getHttpServer())
+      .post(`/api/v1/admin/orders/${target.id}/assign`)
+      .set('Authorization', `Bearer ${operator.token}`)
+      .send({ masterUserId: busyMaster.userId })
+      .expect(409);
+
+    const untouched = await prisma.order.findUniqueOrThrow({ where: { id: target.id } });
+    expect(untouched.status).toBe('SEARCHING');
+    expect(untouched.masterId).toBeNull();
+  });
+
   it('rejects manual assignment for an order that already left SEARCHING', async () => {
     const created = await createOrderViaApi(app, client.token, categories.plumbing.id);
     await prisma.order.update({ where: { id: created.id }, data: { status: 'NO_MASTERS' } });
@@ -113,7 +158,7 @@ describe('Admin orders (e2e)', () => {
     await request(app.getHttpServer())
       .post(`/api/v1/admin/orders/${created.id}/assign`)
       .set('Authorization', `Bearer ${operator.token}`)
-      .send({ masterUserId: 'irrelevant' })
+      .send({ masterUserId: seededMaster.userId })
       .expect(409);
   });
 

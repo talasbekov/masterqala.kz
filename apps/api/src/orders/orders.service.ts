@@ -285,6 +285,21 @@ export class OrdersService implements OnModuleInit {
       const order = await tx.order.findUnique({ where: { id: orderId } });
       if (!order) throw new NotFoundException('Заявка не найдена');
 
+      // masterUserId приходит из тела запроса оператора — нельзя доверять,
+      // что он взят из /candidates: типо/устаревший id иначе даёт либо сырую
+      // P2003 (FK) на updateMany ниже, либо тихое двойное бронирование занятого
+      // мастера. Валидируем «активный мастер» + «сейчас свободен» тем же
+      // критерием, что и candidates()/matching.service.ts.
+      const profile = await tx.masterProfile.findUnique({ where: { userId: masterUserId } });
+      if (!profile) throw new NotFoundException('Мастер не найден');
+      if (profile.status !== 'ACTIVE' || (profile.blockedUntil && profile.blockedUntil > new Date())) {
+        throw new ConflictException('Мастер недоступен для назначения');
+      }
+      const busy = await tx.order.count({
+        where: { masterId: masterUserId, status: { in: ACTIVE_MASTER_STATUSES } },
+      });
+      if (busy > 0) throw new ConflictException('Мастер уже занят другой заявкой');
+
       const gate = await tx.order.updateMany({
         where: { id: orderId, status: 'SEARCHING' },
         data: { status: 'ACCEPTED', masterId: masterUserId, acceptedAt: new Date() },
