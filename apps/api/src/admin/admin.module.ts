@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { HealthModule } from '../health.module';
 import { StorageModule } from '../storage/storage.module';
+import { AuditLogModule } from '../audit-log/audit-log.module';
 import { AdminService } from './admin.service';
 import { AdminController } from './admin.controller';
 import { SecurityAuditController } from './security-audit.controller';
@@ -10,7 +11,7 @@ import { SecurityObservabilityController } from './security-observability.contro
 import { SecurityObservabilityService } from './security-observability.service';
 
 @Module({
-  imports: [StorageModule, HealthModule],
+  imports: [StorageModule, HealthModule, AuditLogModule],
   providers: [
     AdminService,
     SecurityAuditService,

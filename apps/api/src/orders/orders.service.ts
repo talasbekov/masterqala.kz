@@ -427,6 +427,7 @@ export class OrdersService implements OnModuleInit {
     if (!order || order.status !== 'DONE') return;
     if (await this.disputes.hasOpenDispute({ orderId })) return;
     await this.closeOrder(orderId);
+    await this.auditLog.write({ actorType: 'SYSTEM', action: 'AUTO_CLOSED', targetType: 'ORDER', targetId: orderId });
   }
 
   /** DONE → CLOSED + компенсация мастеру (§3.8). */

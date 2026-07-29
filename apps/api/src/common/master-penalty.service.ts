@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { AuditLogService } from '../audit-log/audit-log.service';
 
 type Tx = Prisma.TransactionClient;
 
@@ -12,7 +13,10 @@ const BLOCK_DURATION_MS = 7 * 24 * 3600 * 1000;
 
 @Injectable()
 export class MasterPenaltyService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly auditLog: AuditLogService,
+  ) {}
 
   /**
    * Ядро: −2 кредита + отметка о понижении приоритета. Не знает про отмены/окно блокировки.
@@ -56,6 +60,10 @@ export class MasterPenaltyService {
         where: { userId: masterUserId },
         data: { blockedUntil: new Date(Date.now() + BLOCK_DURATION_MS) },
       });
+      await this.auditLog.write(
+        { actorType: 'SYSTEM', action: 'MASTER_AUTO_BLOCKED', targetType: 'MASTER_PROFILE', targetId: masterUserId },
+        tx,
+      );
     }
   }
 }

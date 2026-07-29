@@ -4,6 +4,7 @@ import { createReadStream } from 'fs';
 import { PrismaService } from '../prisma/prisma.service';
 import { FILE_STORAGE, FileStorage } from '../storage/storage.interface';
 import { PersistentScanStatus } from '../storage/persistent-file-scans.service';
+import { AuditLogService } from '../audit-log/audit-log.service';
 import { DecisionDto } from './dto';
 
 type DocumentSecurityRow = {
@@ -31,6 +32,7 @@ export class AdminService {
   constructor(
     private readonly prisma: PrismaService,
     @Inject(FILE_STORAGE) private readonly storage: FileStorage,
+    private readonly auditLog: AuditLogService,
   ) {}
 
   listApplications(status?: MasterStatus) {
@@ -138,6 +140,22 @@ export class AdminService {
           comment: dto.comment,
         },
       });
+      const actionByDecision: Record<DecisionType, string> = {
+        APPROVE: 'MASTER_APPROVED',
+        REJECT: 'MASTER_REJECTED',
+        REQUEST_INFO: 'MASTER_NEEDS_INFO',
+      };
+      await this.auditLog.write(
+        {
+          actorType: 'OPERATOR',
+          actorId: operatorId,
+          action: actionByDecision[dto.decision],
+          targetType: 'MASTER_PROFILE',
+          targetId: profileId,
+          comment: dto.comment,
+        },
+        tx,
+      );
       return tx.masterProfile.findUniqueOrThrow({ where: { id: profileId } });
     });
   }
