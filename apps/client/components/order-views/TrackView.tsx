@@ -41,7 +41,9 @@ export default function TrackView({ order, orderId }: { order: OrderDetail; orde
     <div className="flex h-screen">
       <MapView
         mode="tracking"
-        center={masterPos ?? { lat: 51.1605, lng: 71.4704 }}
+        center={
+          masterPos ?? (order.lat != null && order.lng != null ? { lat: order.lat, lng: order.lng } : { lat: 51.1605, lng: 71.4704 })
+        }
         masterPosition={masterPos}
         height={undefined}
         className="flex-1 rounded-none"

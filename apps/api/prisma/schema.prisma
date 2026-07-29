@@ -136,6 +136,8 @@ model Order {
   description     String
   address         String
   location        Unsupported("geography(Point, 4326)")?
+  lat             Float?
+  lng             Float?
   status          OrderStatus               @default(CREATED)
   commercialMode  CommercialMode            @default(PAID_MOCK)
   masterId        String?

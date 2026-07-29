@@ -15,6 +15,8 @@ export interface OrderDetail {
   category: { name: string } | null;
   master: OrderMaster | null;
   address: string;
+  lat: number | null;
+  lng: number | null;
   description: string;
   calloutPrice: number;
   serviceFee: number;
