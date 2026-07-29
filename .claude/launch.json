@@ -45,6 +45,15 @@
         "cd '/home/erda/Музыка/MasterQala.kz/.claude/worktrees/relaxed-pike-c226a7/apps/client' && NEXT_PUBLIC_API_URL=http://localhost:3001/api/v1 npx next dev -p 4200"
       ],
       "port": 4200
+    },
+    {
+      "name": "relaxed-master",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": [
+        "-c",
+        "cd '/home/erda/Музыка/MasterQala.kz/.claude/worktrees/relaxed-pike-c226a7/apps/master' && NEXT_PUBLIC_API_URL=http://localhost:3001/api/v1 npx next dev -p 4300"
+      ],
+      "port": 4300
     }
   ]
 }
