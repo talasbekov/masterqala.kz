@@ -4,37 +4,55 @@
     {
       "name": "api",
       "runtimeExecutable": "bash",
-      "runtimeArgs": ["-c", "cd /home/erda/Музыка/MasterQala.kz && pnpm --filter api start:dev"],
+      "runtimeArgs": [
+        "-c",
+        "cd /home/erda/Музыка/MasterQala.kz && pnpm --filter api start:dev"
+      ],
       "port": 3000
     },
     {
       "name": "web",
       "runtimeExecutable": "bash",
-      "runtimeArgs": ["-c", "cd /home/erda/Музыка/MasterQala.kz/apps/web && npx vite --port 5180 --strictPort"],
+      "runtimeArgs": [
+        "-c",
+        "cd /home/erda/Музыка/MasterQala.kz/apps/web && npx vite --port 5180 --strictPort"
+      ],
       "port": 5180
     },
     {
       "name": "sad-api",
       "runtimeExecutable": "bash",
-      "runtimeArgs": ["-c", "cd '/home/erda/Музыка/MasterQala.kz/.claude/worktrees/sad-haibt-0f77d1' && pnpm --filter api start:dev"],
+      "runtimeArgs": [
+        "-c",
+        "cd '/home/erda/Музыка/MasterQala.kz/.claude/worktrees/sad-haibt-0f77d1' && pnpm --filter api start:dev"
+      ],
       "port": 3000
     },
     {
       "name": "sad-web",
       "runtimeExecutable": "bash",
-      "runtimeArgs": ["-c", "cd '/home/erda/Музыка/MasterQala.kz/.claude/worktrees/sad-haibt-0f77d1/apps/web' && npx vite --port 5180 --strictPort"],
+      "runtimeArgs": [
+        "-c",
+        "cd '/home/erda/Музыка/MasterQala.kz/.claude/worktrees/sad-haibt-0f77d1/apps/web' && npx vite --port 5180 --strictPort"
+      ],
       "port": 5180
     },
     {
       "name": "relaxed-api",
       "runtimeExecutable": "bash",
-      "runtimeArgs": ["-c", "cd '/home/erda/Музыка/MasterQala.kz/.claude/worktrees/relaxed-pike-c226a7' && rm -f apps/api/tsconfig.build.tsbuildinfo apps/api/dist -r && pnpm --filter api start:dev"],
+      "runtimeArgs": [
+        "-c",
+        "cd '/home/erda/Музыка/MasterQala.kz/.claude/worktrees/relaxed-pike-c226a7' && rm -f apps/api/tsconfig.build.tsbuildinfo apps/api/dist -r && pnpm --filter api start:dev"
+      ],
       "port": 3001
     },
     {
       "name": "relaxed-web",
       "runtimeExecutable": "bash",
-      "runtimeArgs": ["-c", "cd '/home/erda/Музыка/MasterQala.kz/.claude/worktrees/relaxed-pike-c226a7/apps/web' && VITE_API_URL=http://localhost:3001/api/v1 npx vite --port 5181 --strictPort"],
+      "runtimeArgs": [
+        "-c",
+        "cd '/home/erda/Музыка/MasterQala.kz/.claude/worktrees/relaxed-pike-c226a7/apps/web' && VITE_API_URL=http://localhost:3001/api/v1 npx vite --port 5181 --strictPort"
+      ],
       "port": 5181
     },
     {
@@ -45,6 +63,15 @@
         "cd '/home/erda/Музыка/MasterQala.kz/.claude/worktrees/relaxed-pike-c226a7/apps/master' && NEXT_PUBLIC_API_URL=http://localhost:3001/api/v1 npx next dev -p 4300"
       ],
       "port": 4300
+    },
+    {
+      "name": "relaxed-operator",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": [
+        "-c",
+        "cd '/home/erda/Музыка/MasterQala.kz/.claude/worktrees/relaxed-pike-c226a7/apps/operator' && NEXT_PUBLIC_API_URL=http://localhost:3001/api/v1 npx next dev -p 4400"
+      ],
+      "port": 4400
     }
   ]
 }
