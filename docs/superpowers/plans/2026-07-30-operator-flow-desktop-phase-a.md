@@ -827,8 +827,11 @@ Expected: сборка проходит без ошибок (`✓ Compiled succe
 Run (из корня репозитория):
 
 ```bash
-cd apps/api && pnpm seed
+cd apps/api && pnpm exec prisma db seed
 ```
+
+(Исправлено при реализации Task 2 — `pnpm seed` не существует как алиас,
+рабочая команда именно эта.)
 
 Expected: скрипт использует `OPERATOR_PHONE` из `apps/api/.env`
 (`+77000000001`) и создаёт/обновляет пользователя с ролью `OPERATOR` —
