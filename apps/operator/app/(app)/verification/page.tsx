@@ -217,6 +217,12 @@ export default function VerificationPage() {
                   {detail.status === 'ACTIVE' && '✓ Мастер одобрен и активирован.'}
                   {detail.status === 'NEEDS_INFO' && '📎 Запрошены дополнительные данные.'}
                   {detail.status === 'REJECTED' && `✕ Заявка отклонена. ${detail.rejectionReason ?? ''}`}
+                  {detail.decisions[0] && (
+                    <div className="mt-1 text-xs font-semibold text-ink-soft">
+                      {detail.decisions[0].operator.name ?? detail.decisions[0].operator.phone}
+                      {detail.decisions[0].comment && `: ${detail.decisions[0].comment}`}
+                    </div>
+                  )}
                 </div>
               ) : (
                 <>
