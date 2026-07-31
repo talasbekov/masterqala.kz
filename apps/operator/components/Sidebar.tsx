@@ -1,9 +1,11 @@
 'use client';
 import { NavLink } from './NavLink';
 import { useAuth } from '@/lib/auth';
+import { useOperatorMetrics } from '@/lib/operatorMetrics';
 
 export function Sidebar() {
   const { logout } = useAuth();
+  const { metrics } = useOperatorMetrics();
 
   return (
     <aside className="flex w-56 shrink-0 flex-col gap-1 border-r border-border bg-surface p-3">
@@ -11,7 +13,7 @@ export function Sidebar() {
       <NavLink href="/" icon="◫">
         Обзор
       </NavLink>
-      <NavLink href="/verification" icon="🛡">
+      <NavLink href="/verification" icon="🛡" badge={metrics?.pendingVerificationCount}>
         Верификация
       </NavLink>
       <NavLink href="/users" icon="👤">
@@ -20,13 +22,13 @@ export function Sidebar() {
       <NavLink href="/masters" icon="🛠">
         Мастера
       </NavLink>
-      <NavLink href="/orders" icon="☰">
+      <NavLink href="/orders" icon="☰" badge={metrics?.stuckSearches.length}>
         Заказы
       </NavLink>
-      <NavLink href="/disputes" icon="⚖️">
+      <NavLink href="/disputes" icon="⚖️" badge={metrics?.openDisputesCount}>
         Споры
       </NavLink>
-      <NavLink href="/withdrawals" icon="₸">
+      <NavLink href="/withdrawals" icon="₸" badge={metrics?.pendingWithdrawalsCount}>
         Вывод средств
       </NavLink>
       <NavLink href="/journal" icon="▤">
