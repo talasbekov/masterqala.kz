@@ -21,3 +21,12 @@ export async function api(path: string, options: RequestInit = {}) {
   });
   return handle(res);
 }
+
+export async function apiBlob(path: string): Promise<{ blob: Blob; contentType: string | null }> {
+  const res = await fetch(`${API}${path}`, { headers: { ...authHeaders() } });
+  if (!res.ok) {
+    throw new Error(res.status === 404 ? 'Файл не найден' : `Ошибка ${res.status}`);
+  }
+  const blob = await res.blob();
+  return { blob, contentType: res.headers.get('Content-Type') };
+}
