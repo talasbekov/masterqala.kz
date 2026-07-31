@@ -635,15 +635,16 @@ export function AuthGuard({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!user) {
+      setChecked(false);
       router.replace('/login');
     } else {
       setChecked(true);
     }
   }, [user, router]);
 
-  if (!checked) return <div className="p-6 text-ink-soft">Загрузка…</div>;
+  if (!checked || !user) return <div className="p-6 text-ink-soft">Загрузка…</div>;
 
-  if (user!.role !== 'OPERATOR') {
+  if (user.role !== 'OPERATOR') {
     return (
       <div className="flex flex-col items-start gap-3 p-8">
         <div className="text-lg font-extrabold text-danger">Доступ запрещён</div>
@@ -668,6 +669,16 @@ export function AuthGuard({ children }: { children: ReactNode }) {
 `logout()` очищает `user` в контексте, компонент перерендерится,
 `useEffect` увидит `!user` и сделает `router.replace('/login')` —
 отдельный явный редирект в обработчике кнопки не нужен.
+
+**Исправлено при реализации (найдено живой проверкой Task 2):** более
+ранняя версия этого файла не сбрасывала `checked` в `false` при выходе и
+проверяла `user!.role` без явной защиты от `null` — на повторном рендере
+после `logout()` (`user` уже `null`, `checked` ещё `true` из прошлого
+рендера) это падало с `Cannot read properties of null (reading 'role')`.
+Текущая версия (`if (!checked || !user) return …`, `setChecked(false)` в
+ветке `!user`, обычный `user.role` без `!`) не даёт рендеру дойти до
+`user.role`, пока `user` реально не `null` — баг воспроизводился дважды
+детерминированно, пофикшено в рамках Task 2 до коммита.
 
 - [ ] **Step 3: Создать `components/NavLink.tsx`**
 
