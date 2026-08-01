@@ -224,7 +224,7 @@ export class SecurityObservabilityService {
           'SECURITY_ALERT',
           ${alertId},
           ${operatorId},
-          jsonb_strip_nulls(jsonb_build_object('ruleKey', ${changed.ruleKey}, 'note', ${note}))
+          jsonb_strip_nulls(jsonb_build_object('ruleKey', ${changed.ruleKey}, 'note', ${note}::text))
         )
       `;
 
@@ -265,7 +265,7 @@ export class SecurityObservabilityService {
         ) VALUES (
           ${assigneeUserId ? 'SECURITY_ALERT_ASSIGNED' : 'SECURITY_ALERT_UNASSIGNED'},
           'INFO', 'SUCCESS', 'SECURITY_ALERT', ${alertId}, ${operatorId},
-          jsonb_strip_nulls(jsonb_build_object('assigneeUserId', ${assigneeUserId}, 'ruleKey', ${changed.ruleKey}))
+          jsonb_strip_nulls(jsonb_build_object('assigneeUserId', ${assigneeUserId}::text, 'ruleKey', ${changed.ruleKey}))
         )
       `;
       return changed;
