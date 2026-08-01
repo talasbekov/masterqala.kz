@@ -13,6 +13,8 @@ import {
 import { fetchOrder, type OrderDetail, type OrderType } from '@/lib/orders';
 import { Lightbox } from '@/components/Lightbox';
 import { useOperatorMetrics } from '@/lib/operatorMetrics';
+import { formatDateTime } from '@/lib/format';
+import { ApiError } from '@/lib/api';
 
 const STATUS_FILTERS: { value: DisputeStatus | 'ALL'; label: string }[] = [
   { value: 'ALL', label: 'все' },
@@ -30,14 +32,6 @@ function formatWaiting(createdAt: string): string {
   return hours < 24 ? `ждёт ${hours} ч` : `ждёт ${Math.floor(hours / 24)} дн`;
 }
 
-function formatDateTime(iso: string): string {
-  return new Date(iso).toLocaleString('ru-RU', {
-    day: '2-digit',
-    month: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
 
 export default function DisputesPage() {
   const { refetch: refetchMetrics } = useOperatorMetrics();
@@ -136,7 +130,10 @@ export default function DisputesPage() {
       refetchMetrics();
     } catch (e) {
       const message = (e as Error).message;
-      if (message.includes('возврат сбора не удался')) {
+      // 503 = «спор разрешён, но возврат сбора не удался» — специфичный для этого
+      // случая статус на бэкенде (disputes.service.ts), а не текст сообщения,
+      // который мог бы измениться и молча сломать эту ветку.
+      if (e instanceof ApiError && e.status === 503) {
         setRefundWarning(message);
         setConfirming(false);
         try {

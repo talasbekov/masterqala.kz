@@ -1,9 +1,18 @@
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000/api/v1';
 
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    public readonly status: number,
+  ) {
+    super(message);
+  }
+}
+
 async function handle(res: Response) {
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    throw new Error(body.message ?? `Ошибка ${res.status}`);
+    throw new ApiError(body.message ?? `Ошибка ${res.status}`, res.status);
   }
   return res.status === 204 ? null : res.json();
 }

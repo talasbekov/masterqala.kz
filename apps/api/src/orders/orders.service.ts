@@ -281,9 +281,12 @@ export class OrdersService implements OnModuleInit {
 
   /** Операторское назначение зависшего в поиске заказа конкретному мастеру, в обход offer-flow. */
   async manualAssign(operatorId: string, orderId: string, masterUserId: string): Promise<Order> {
-    await this.prisma.$transaction(async (tx) => {
+    const losers = await this.prisma.$transaction(async (tx) => {
       const order = await tx.order.findUnique({ where: { id: orderId } });
       if (!order) throw new NotFoundException('Заявка не найдена');
+      if (order.clientId === masterUserId) {
+        throw new ConflictException('Нельзя назначить клиента заявки мастером на неё же');
+      }
 
       // masterUserId приходит из тела запроса оператора — нельзя доверять,
       // что он взят из /candidates: типо/устаревший id иначе даёт либо сырую
@@ -306,8 +309,11 @@ export class OrdersService implements OnModuleInit {
       });
       if (gate.count === 0) throw new ConflictException('Заявка больше не в поиске');
 
-      await tx.orderOffer.updateMany({
+      const rest = await tx.orderOffer.findMany({
         where: { orderId, attempt: order.searchAttempt, outcome: 'PENDING' },
+      });
+      await tx.orderOffer.updateMany({
+        where: { id: { in: rest.map((o) => o.id) } },
         data: { outcome: 'LOST', respondedAt: new Date() },
       });
 
@@ -322,9 +328,14 @@ export class OrdersService implements OnModuleInit {
         },
         tx,
       );
+
+      return rest;
     });
 
-    await this.payments.capture(orderId);
+    await this.payments.capture(orderId); // идемпотентен: при повторном поиске capture уже есть
+    for (const o of losers) {
+      this.gateway.emitToUser(o.masterUserId, 'offer:closed', { orderId, reason: 'Заявку назначил оператор' });
+    }
     await this.emitOrderStatus(orderId);
     return this.findOrThrow(orderId);
   }

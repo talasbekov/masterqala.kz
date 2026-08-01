@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   fetchOrders,
   fetchOrder,
@@ -16,6 +16,7 @@ import {
   type AssignCandidate,
 } from '@/lib/orders';
 import { useOperatorMetrics } from '@/lib/operatorMetrics';
+import { formatDateTime } from '@/lib/format';
 
 const TYPE_FILTERS: { value: OrderType | 'ALL'; label: string }[] = [
   { value: 'ALL', label: 'все типы' },
@@ -30,15 +31,6 @@ function statusOptionsFor(type: OrderType | 'ALL'): { value: string; label: stri
   Object.entries(STATUS_LABELS).forEach(([value, label]) => merged.set(value, label));
   Object.entries(PLANNED_STATUS_LABELS).forEach(([value, label]) => merged.set(value, label));
   return Array.from(merged.entries()).map(([value, label]) => ({ value, label }));
-}
-
-function formatDateTime(iso: string): string {
-  return new Date(iso).toLocaleString('ru-RU', {
-    day: '2-digit',
-    month: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
 }
 
 export default function OrdersPage() {
@@ -85,15 +77,24 @@ export default function OrdersPage() {
     setStatusFilter('');
   }, [typeFilter]);
 
+  const selectedRef = useRef<{ id: string; type: OrderType } | null>(null);
+  selectedRef.current = selected;
+
   function loadDetail(target: { id: string; type: OrderType }) {
     setDetailLoading(true);
     fetchOrder(target.id, target.type)
       .then((data) => {
+        if (selectedRef.current?.id !== target.id) return; // ответ на уже сброшенный выбор
         setDetail(data);
         setDetailError('');
       })
-      .catch((e) => setDetailError((e as Error).message))
-      .finally(() => setDetailLoading(false));
+      .catch((e) => {
+        if (selectedRef.current?.id !== target.id) return;
+        setDetailError((e as Error).message);
+      })
+      .finally(() => {
+        if (selectedRef.current?.id === target.id) setDetailLoading(false);
+      });
   }
 
   useEffect(() => {

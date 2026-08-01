@@ -1,7 +1,10 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { OrderStatus, PlannedOrderStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { ACTIVE_MASTER_STATUSES } from '../orders/order.constants';
+
+const ORDER_STATUSES = new Set<string>(Object.values(OrderStatus));
+const PLANNED_ORDER_STATUSES = new Set<string>(Object.values(PlannedOrderStatus));
 
 export interface AssignCandidate {
   masterUserId: string;
@@ -34,50 +37,55 @@ export class AdminOrdersService {
   constructor(private readonly prisma: PrismaService) {}
 
   async list(opts: { type?: 'urgent' | 'planned'; status?: string; search?: string }): Promise<AdminOrderRow[]> {
-    const rows: AdminOrderRow[] = [];
     const searchFilter = opts.search
       ? [{ id: { startsWith: opts.search } }, { client: { phone: { contains: opts.search } } }]
       : undefined;
 
-    if (opts.type !== 'planned') {
-      const orders = await this.prisma.order.findMany({
-        where: { status: opts.status as any, OR: searchFilter },
-        include: { client: true, master: true, category: true },
-        orderBy: { createdAt: 'desc' },
-        take: 100,
-      });
-      rows.push(
-        ...orders.map((o) => ({
-          id: o.id,
-          type: 'urgent' as const,
-          client: o.client.name ?? o.client.phone,
-          master: o.master ? o.master.name ?? o.master.phone : null,
-          category: o.category.name,
-          status: o.status,
-          createdAt: o.createdAt,
-        })),
-      );
-    }
+    // status может относиться только к одному из двух enum'ов (фронт сводит их в
+    // один общий dropdown при типе "все типы") — если он не входит в enum текущей
+    // ветки, эта ветка не может вернуть ни одной строки, а не 500 от Prisma.
+    const statusInvalidForOrder = opts.status !== undefined && !ORDER_STATUSES.has(opts.status);
+    const statusInvalidForPlanned = opts.status !== undefined && !PLANNED_ORDER_STATUSES.has(opts.status);
 
-    if (opts.type !== 'urgent') {
-      const planned = await this.prisma.plannedOrder.findMany({
-        where: { status: opts.status as any, OR: searchFilter },
-        include: { client: true, master: true, category: true },
-        orderBy: { createdAt: 'desc' },
-        take: 100,
-      });
-      rows.push(
-        ...planned.map((o) => ({
-          id: o.id,
-          type: 'planned' as const,
-          client: o.client.name ?? o.client.phone,
-          master: o.master ? o.master.name ?? o.master.phone : null,
-          category: o.category.name,
-          status: o.status,
-          createdAt: o.createdAt,
-        })),
-      );
-    }
+    const [orders, planned] = await Promise.all([
+      opts.type !== 'planned' && !statusInvalidForOrder
+        ? this.prisma.order.findMany({
+            where: { status: opts.status as OrderStatus | undefined, OR: searchFilter },
+            include: { client: true, master: true, category: true },
+            orderBy: { createdAt: 'desc' },
+            take: 100,
+          })
+        : Promise.resolve([]),
+      opts.type !== 'urgent' && !statusInvalidForPlanned
+        ? this.prisma.plannedOrder.findMany({
+            where: { status: opts.status as PlannedOrderStatus | undefined, OR: searchFilter },
+            include: { client: true, master: true, category: true },
+            orderBy: { createdAt: 'desc' },
+            take: 100,
+          })
+        : Promise.resolve([]),
+    ]);
+
+    const rows: AdminOrderRow[] = [
+      ...orders.map((o) => ({
+        id: o.id,
+        type: 'urgent' as const,
+        client: o.client.name ?? o.client.phone,
+        master: o.master ? o.master.name ?? o.master.phone : null,
+        category: o.category.name,
+        status: o.status,
+        createdAt: o.createdAt,
+      })),
+      ...planned.map((o) => ({
+        id: o.id,
+        type: 'planned' as const,
+        client: o.client.name ?? o.client.phone,
+        master: o.master ? o.master.name ?? o.master.phone : null,
+        category: o.category.name,
+        status: o.status,
+        createdAt: o.createdAt,
+      })),
+    ];
 
     return rows.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()).slice(0, 100);
   }

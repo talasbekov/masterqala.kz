@@ -7,6 +7,7 @@ import {
   type WithdrawalRow,
   type WithdrawalStatus,
 } from '@/lib/withdrawals';
+import { formatDateTime as formatDate } from '@/lib/format';
 
 const STATUS_FILTERS: { value: WithdrawalStatus | 'ALL'; label: string }[] = [
   { value: 'ALL', label: 'все' },
@@ -21,14 +22,6 @@ const STATUS_PILL: Record<WithdrawalStatus, string> = {
   FAILED: 'bg-danger-bg text-danger',
 };
 
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleString('ru-RU', {
-    day: '2-digit',
-    month: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
 
 export default function WithdrawalsPage() {
   const [rows, setRows] = useState<WithdrawalRow[]>([]);

@@ -50,7 +50,10 @@ export function OperatorMetricsProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!user || user.role !== 'OPERATOR') return;
-    const interval = setInterval(() => setTick((t) => t + 1), POLL_INTERVAL_MS);
+    const interval = setInterval(() => {
+      if (document.hidden) return;
+      setTick((t) => t + 1);
+    }, POLL_INTERVAL_MS);
     return () => clearInterval(interval);
   }, [user]);
 

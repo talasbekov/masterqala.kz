@@ -24,8 +24,12 @@ export default function WalletPage() {
   const [submitting, setSubmitting] = useState(false);
 
   function load() {
-    api('/wallet/balance').then((r) => setBalance(r.balance));
-    api('/wallet/withdrawals').then(setHistory);
+    api('/wallet/balance')
+      .then((r) => setBalance(r.balance))
+      .catch((e) => setError((e as Error).message));
+    api('/wallet/withdrawals')
+      .then(setHistory)
+      .catch((e) => setError((e as Error).message));
   }
 
   useEffect(() => {

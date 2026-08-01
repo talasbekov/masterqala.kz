@@ -17,8 +17,12 @@ export default function LeadCreditsPage() {
   const [purchasing, setPurchasing] = useState('');
 
   function load() {
-    api('/lead-credits/balance').then((r) => setBalance(r.balance));
-    api('/lead-credits/packages').then(setPackages);
+    api('/lead-credits/balance')
+      .then((r) => setBalance(r.balance))
+      .catch((e) => setError((e as Error).message));
+    api('/lead-credits/packages')
+      .then(setPackages)
+      .catch((e) => setError((e as Error).message));
   }
 
   useEffect(() => {
