@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditLogService } from '../audit-log/audit-log.service';
 
@@ -24,7 +24,7 @@ export class AdminUsersService {
       id: u.id,
       name: u.name,
       phone: u.phone,
-      role: u.masterProfile ? 'клиент + мастер' : 'клиент',
+      role: u.role === 'OPERATOR' ? 'оператор' : u.masterProfile ? 'клиент + мастер' : 'клиент',
       orders: u._count.clientOrders + u._count.masterOrders,
       isBlocked: u.isBlocked,
     }));
@@ -33,6 +33,7 @@ export class AdminUsersService {
   async block(operatorId: string, userId: string, reason: string) {
     const existing = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!existing) throw new NotFoundException('Пользователь не найден');
+    if (existing.role === 'OPERATOR') throw new ForbiddenException('Нельзя заблокировать оператора');
     await this.prisma.user.update({
       where: { id: userId },
       data: { isBlocked: true, blockedAt: new Date(), blockedReason: reason },

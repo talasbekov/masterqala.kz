@@ -1,5 +1,6 @@
 import { Test } from '@nestjs/testing';
 import { PrismaService } from '../prisma/prisma.service';
+import { AuditLogService } from '../audit-log/audit-log.service';
 import { MasterPenaltyService } from './master-penalty.service';
 
 describe('MasterPenaltyService — скользящее окно 30 дней', () => {
@@ -20,7 +21,11 @@ describe('MasterPenaltyService — скользящее окно 30 дней', (
 
   beforeEach(async () => {
     const moduleRef = await Test.createTestingModule({
-      providers: [MasterPenaltyService, { provide: PrismaService, useValue: {} }],
+      providers: [
+        MasterPenaltyService,
+        { provide: PrismaService, useValue: {} },
+        { provide: AuditLogService, useValue: { write: jest.fn() } },
+      ],
     }).compile();
     service = moduleRef.get(MasterPenaltyService);
   });

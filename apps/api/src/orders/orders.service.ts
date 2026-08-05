@@ -23,6 +23,7 @@ import { CompensationService } from '../common/compensation.service';
 import { DisputesService } from '../disputes/disputes.service';
 import { ReviewsService } from '../reviews/reviews.service';
 import { FileStorage, FILE_STORAGE } from '../storage/storage.interface';
+import { AuditLogService } from '../audit-log/audit-log.service';
 import {
   ACTIVE_CLIENT_STATUSES,
   ACTIVE_MASTER_STATUSES,
@@ -47,6 +48,7 @@ export class OrdersService implements OnModuleInit {
     private readonly disputes: DisputesService,
     @Inject(FILE_STORAGE) private readonly storage: FileStorage,
     private readonly reviews: ReviewsService,
+    private readonly auditLog: AuditLogService,
   ) {}
 
   async preview(clientId: string, dto: PreviewOrderDto) {
@@ -277,6 +279,67 @@ export class OrdersService implements OnModuleInit {
     return this.findOrThrow(orderId);
   }
 
+  /** Операторское назначение зависшего в поиске заказа конкретному мастеру, в обход offer-flow. */
+  async manualAssign(operatorId: string, orderId: string, masterUserId: string): Promise<Order> {
+    const losers = await this.prisma.$transaction(async (tx) => {
+      const order = await tx.order.findUnique({ where: { id: orderId } });
+      if (!order) throw new NotFoundException('Заявка не найдена');
+      if (order.clientId === masterUserId) {
+        throw new ConflictException('Нельзя назначить клиента заявки мастером на неё же');
+      }
+
+      // masterUserId приходит из тела запроса оператора — нельзя доверять,
+      // что он взят из /candidates: типо/устаревший id иначе даёт либо сырую
+      // P2003 (FK) на updateMany ниже, либо тихое двойное бронирование занятого
+      // мастера. Валидируем «активный мастер» + «сейчас свободен» тем же
+      // критерием, что и candidates()/matching.service.ts.
+      const profile = await tx.masterProfile.findUnique({ where: { userId: masterUserId } });
+      if (!profile) throw new NotFoundException('Мастер не найден');
+      if (profile.status !== 'ACTIVE' || (profile.blockedUntil && profile.blockedUntil > new Date())) {
+        throw new ConflictException('Мастер недоступен для назначения');
+      }
+      const busy = await tx.order.count({
+        where: { masterId: masterUserId, status: { in: ACTIVE_MASTER_STATUSES } },
+      });
+      if (busy > 0) throw new ConflictException('Мастер уже занят другой заявкой');
+
+      const gate = await tx.order.updateMany({
+        where: { id: orderId, status: 'SEARCHING' },
+        data: { status: 'ACCEPTED', masterId: masterUserId, acceptedAt: new Date() },
+      });
+      if (gate.count === 0) throw new ConflictException('Заявка больше не в поиске');
+
+      const rest = await tx.orderOffer.findMany({
+        where: { orderId, attempt: order.searchAttempt, outcome: 'PENDING' },
+      });
+      await tx.orderOffer.updateMany({
+        where: { id: { in: rest.map((o) => o.id) } },
+        data: { outcome: 'LOST', respondedAt: new Date() },
+      });
+
+      await this.auditLog.write(
+        {
+          actorType: 'OPERATOR',
+          actorId: operatorId,
+          action: 'ORDER_MANUALLY_ASSIGNED',
+          targetType: 'ORDER',
+          targetId: orderId,
+          comment: `назначен мастер ${masterUserId}`,
+        },
+        tx,
+      );
+
+      return rest;
+    });
+
+    await this.payments.capture(orderId); // идемпотентен: при повторном поиске capture уже есть
+    for (const o of losers) {
+      this.gateway.emitToUser(o.masterUserId, 'offer:closed', { orderId, reason: 'Заявку назначил оператор' });
+    }
+    await this.emitOrderStatus(orderId);
+    return this.findOrThrow(orderId);
+  }
+
   /** SEARCHING → NO_MASTERS: void холда, гашение PENDING-офферов, WS. */
   async markNoMasters(orderId: string): Promise<void> {
     const pending = await this.prisma.$transaction(async (tx) => {
@@ -390,6 +453,7 @@ export class OrdersService implements OnModuleInit {
     if (!order || order.status !== 'DONE') return;
     if (await this.disputes.hasOpenDispute({ orderId })) return;
     await this.closeOrder(orderId);
+    await this.auditLog.write({ actorType: 'SYSTEM', action: 'AUTO_CLOSED', targetType: 'ORDER', targetId: orderId });
   }
 
   /** DONE → CLOSED + компенсация мастеру (§3.8). */

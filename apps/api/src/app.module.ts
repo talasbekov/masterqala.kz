@@ -26,6 +26,7 @@ import { validateEnvironment } from './config/environment';
 import { AdminUsersModule } from './admin-users/admin-users.module';
 import { AdminMastersModule } from './admin-masters/admin-masters.module';
 import { AdminOrdersModule } from './admin-orders/admin-orders.module';
+import { AdminMetricsModule } from './admin-metrics/admin-metrics.module';
 
 @Module({
   imports: [
@@ -44,6 +45,7 @@ import { AdminOrdersModule } from './admin-orders/admin-orders.module';
     AdminUsersModule,
     AdminMastersModule,
     AdminOrdersModule,
+    AdminMetricsModule,
     PaymentsModule,
     RoutingModule,
     PricingModule,

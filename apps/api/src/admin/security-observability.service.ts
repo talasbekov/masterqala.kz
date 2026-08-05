@@ -1,4 +1,5 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { HealthService } from '../health.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { SecurityAlertDeliveryService } from './security-alert-delivery.service';
@@ -8,6 +9,8 @@ import {
   SecurityAlertStatus,
   SecurityAlertTransitionDto,
 } from './security-observability.dto';
+
+type Tx = Prisma.TransactionClient;
 
 type AlertRow = {
   id: string;
@@ -214,19 +217,12 @@ export class SecurityObservabilityService {
         throw new ConflictException('Недопустимый переход состояния security alert');
       }
 
-      await tx.$executeRaw`
-        INSERT INTO "SecurityAuditEvent" (
-          "action", "severity", "outcome", "resourceType", "resourceId", "actorUserId", "metadata"
-        ) VALUES (
-          ${dto.status === SecurityAlertStatus.ACKNOWLEDGED ? 'SECURITY_ALERT_ACKNOWLEDGED' : 'SECURITY_ALERT_RESOLVED'},
-          'INFO',
-          'SUCCESS',
-          'SECURITY_ALERT',
-          ${alertId},
-          ${operatorId},
-          jsonb_strip_nulls(jsonb_build_object('ruleKey', ${changed.ruleKey}, 'note', ${note}))
-        )
-      `;
+      await this.insertAuditEvent(tx, {
+        action: dto.status === SecurityAlertStatus.ACKNOWLEDGED ? 'SECURITY_ALERT_ACKNOWLEDGED' : 'SECURITY_ALERT_RESOLVED',
+        alertId,
+        operatorId,
+        metadata: { ruleKey: changed.ruleKey, note },
+      });
 
       return changed;
     });
@@ -259,16 +255,36 @@ export class SecurityObservabilityService {
         throw new ConflictException('Закрытый security alert нельзя переназначить');
       }
 
-      await tx.$executeRaw`
-        INSERT INTO "SecurityAuditEvent" (
-          "action", "severity", "outcome", "resourceType", "resourceId", "actorUserId", "metadata"
-        ) VALUES (
-          ${assigneeUserId ? 'SECURITY_ALERT_ASSIGNED' : 'SECURITY_ALERT_UNASSIGNED'},
-          'INFO', 'SUCCESS', 'SECURITY_ALERT', ${alertId}, ${operatorId},
-          jsonb_strip_nulls(jsonb_build_object('assigneeUserId', ${assigneeUserId}, 'ruleKey', ${changed.ruleKey}))
-        )
-      `;
+      await this.insertAuditEvent(tx, {
+        action: assigneeUserId ? 'SECURITY_ALERT_ASSIGNED' : 'SECURITY_ALERT_UNASSIGNED',
+        alertId,
+        operatorId,
+        metadata: { assigneeUserId, ruleKey: changed.ruleKey },
+      });
       return changed;
     });
+  }
+
+  /**
+   * Общий insert в SecurityAuditEvent. Метаданные сериализуются в JS и передаются
+   * одним jsonb-параметром — так Postgres не пытается вывести тип отдельных NULL
+   * внутри jsonb_build_object(...) (ошибка 42P18), которая ловилась здесь дважды
+   * до консолидации в один хелпер.
+   */
+  private async insertAuditEvent(
+    tx: Tx,
+    params: { action: string; alertId: string; operatorId: string; metadata: Record<string, unknown> },
+  ): Promise<void> {
+    const metadata = Object.fromEntries(
+      Object.entries(params.metadata).filter(([, v]) => v !== null && v !== undefined),
+    );
+    await tx.$executeRaw`
+      INSERT INTO "SecurityAuditEvent" (
+        "action", "severity", "outcome", "resourceType", "resourceId", "actorUserId", "metadata"
+      ) VALUES (
+        ${params.action}, 'INFO', 'SUCCESS', 'SECURITY_ALERT', ${params.alertId}, ${params.operatorId},
+        ${JSON.stringify(metadata)}::jsonb
+      )
+    `;
   }
 }

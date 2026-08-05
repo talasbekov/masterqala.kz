@@ -17,6 +17,7 @@ import { validateUploadedFile } from '../storage/upload-security';
 import { PAYMENT_PROVIDER, PaymentProvider } from '../payments/payment.interface';
 import { MasterPenaltyService } from '../common/master-penalty.service';
 import { CompensationService } from '../common/compensation.service';
+import { AuditLogService } from '../audit-log/audit-log.service';
 import { OpenDisputeDto, ResolveDisputeDto } from './dto';
 
 const DISPUTE_WINDOW_AFTER_CLOSE_MS = 48 * 3600 * 1000;
@@ -43,6 +44,7 @@ export class DisputesService {
     @Inject(PAYMENT_PROVIDER) private readonly payments: PaymentProvider,
     private readonly penalties: MasterPenaltyService,
     private readonly compensation: CompensationService,
+    private readonly auditLog: AuditLogService,
   ) {}
 
   async openForOrder(user: User, orderId: string, dto: OpenDisputeDto) {
@@ -229,6 +231,18 @@ export class DisputesService {
         },
       });
       if (gated.count === 0) throw new ConflictException('Спор уже разрешён');
+
+      await this.auditLog.write(
+        {
+          actorType: 'OPERATOR',
+          actorId: operatorId,
+          action: 'DISPUTE_RESOLVED',
+          targetType: 'DISPUTE',
+          targetId: disputeId,
+          comment: dto.resolutionNote,
+        },
+        tx,
+      );
 
       if (orderId) {
         const order = await tx.order.findUniqueOrThrow({ where: { id: orderId } });

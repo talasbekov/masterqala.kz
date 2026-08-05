@@ -60,6 +60,7 @@ describe('DisputesService evidence upload security', () => {
         {} as never,
         {} as never,
         {} as never,
+        { write: jest.fn() } as never,
       ),
       prisma,
       storage,

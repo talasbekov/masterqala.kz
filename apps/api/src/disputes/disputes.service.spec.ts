@@ -6,6 +6,7 @@ import { FILE_STORAGE } from '../storage/storage.interface';
 import { PersistentFileScansService } from '../storage/persistent-file-scans.service';
 import { MasterPenaltyService } from '../common/master-penalty.service';
 import { CompensationService } from '../common/compensation.service';
+import { AuditLogService } from '../audit-log/audit-log.service';
 import { DisputesService } from './disputes.service';
 
 describe('DisputesService.resolve — коммерческий режим возврата', () => {
@@ -36,6 +37,7 @@ describe('DisputesService.resolve — коммерческий режим воз
         { provide: PAYMENT_PROVIDER, useValue: payments },
         { provide: MasterPenaltyService, useValue: { applyPenalty: jest.fn() } },
         { provide: CompensationService, useValue: { accrueCallout: jest.fn() } },
+        { provide: AuditLogService, useValue: { write: jest.fn() } },
       ],
     }).compile();
     service = moduleRef.get(DisputesService);

@@ -1,5 +1,21 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { OrderStatus, PlannedOrderStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { ACTIVE_MASTER_STATUSES } from '../orders/order.constants';
+
+const ORDER_STATUSES = new Set<string>(Object.values(OrderStatus));
+const PLANNED_ORDER_STATUSES = new Set<string>(Object.values(PlannedOrderStatus));
+
+export interface AssignCandidate {
+  masterUserId: string;
+  name: string;
+  distanceKm: number;
+  isOnline: boolean;
+}
+
+const ACTIVE_MASTER_STATUSES_SQL = Prisma.join(
+  ACTIVE_MASTER_STATUSES.map((s) => Prisma.sql`${s}::"OrderStatus"`),
+);
 
 export interface AdminOrderRow {
   id: string;
@@ -21,52 +37,90 @@ export class AdminOrdersService {
   constructor(private readonly prisma: PrismaService) {}
 
   async list(opts: { type?: 'urgent' | 'planned'; status?: string; search?: string }): Promise<AdminOrderRow[]> {
-    const rows: AdminOrderRow[] = [];
     const searchFilter = opts.search
       ? [{ id: { startsWith: opts.search } }, { client: { phone: { contains: opts.search } } }]
       : undefined;
 
-    if (opts.type !== 'planned') {
-      const orders = await this.prisma.order.findMany({
-        where: { status: opts.status as any, OR: searchFilter },
-        include: { client: true, master: true, category: true },
-        orderBy: { createdAt: 'desc' },
-        take: 100,
-      });
-      rows.push(
-        ...orders.map((o) => ({
-          id: o.id,
-          type: 'urgent' as const,
-          client: o.client.name ?? o.client.phone,
-          master: o.master ? o.master.name ?? o.master.phone : null,
-          category: o.category.name,
-          status: o.status,
-          createdAt: o.createdAt,
-        })),
-      );
-    }
+    // status может относиться только к одному из двух enum'ов (фронт сводит их в
+    // один общий dropdown при типе "все типы") — если он не входит в enum текущей
+    // ветки, эта ветка не может вернуть ни одной строки, а не 500 от Prisma.
+    const statusInvalidForOrder = opts.status !== undefined && !ORDER_STATUSES.has(opts.status);
+    const statusInvalidForPlanned = opts.status !== undefined && !PLANNED_ORDER_STATUSES.has(opts.status);
 
-    if (opts.type !== 'urgent') {
-      const planned = await this.prisma.plannedOrder.findMany({
-        where: { status: opts.status as any, OR: searchFilter },
-        include: { client: true, master: true, category: true },
-        orderBy: { createdAt: 'desc' },
-        take: 100,
-      });
-      rows.push(
-        ...planned.map((o) => ({
-          id: o.id,
-          type: 'planned' as const,
-          client: o.client.name ?? o.client.phone,
-          master: o.master ? o.master.name ?? o.master.phone : null,
-          category: o.category.name,
-          status: o.status,
-          createdAt: o.createdAt,
-        })),
-      );
-    }
+    const [orders, planned] = await Promise.all([
+      opts.type !== 'planned' && !statusInvalidForOrder
+        ? this.prisma.order.findMany({
+            where: { status: opts.status as OrderStatus | undefined, OR: searchFilter },
+            include: { client: true, master: true, category: true },
+            orderBy: { createdAt: 'desc' },
+            take: 100,
+          })
+        : Promise.resolve([]),
+      opts.type !== 'urgent' && !statusInvalidForPlanned
+        ? this.prisma.plannedOrder.findMany({
+            where: { status: opts.status as PlannedOrderStatus | undefined, OR: searchFilter },
+            include: { client: true, master: true, category: true },
+            orderBy: { createdAt: 'desc' },
+            take: 100,
+          })
+        : Promise.resolve([]),
+    ]);
+
+    const rows: AdminOrderRow[] = [
+      ...orders.map((o) => ({
+        id: o.id,
+        type: 'urgent' as const,
+        client: o.client.name ?? o.client.phone,
+        master: o.master ? o.master.name ?? o.master.phone : null,
+        category: o.category.name,
+        status: o.status,
+        createdAt: o.createdAt,
+      })),
+      ...planned.map((o) => ({
+        id: o.id,
+        type: 'planned' as const,
+        client: o.client.name ?? o.client.phone,
+        master: o.master ? o.master.name ?? o.master.phone : null,
+        category: o.category.name,
+        status: o.status,
+        createdAt: o.createdAt,
+      })),
+    ];
 
     return rows.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()).slice(0, 100);
+  }
+
+  async candidates(orderId: string, type: 'urgent' | 'planned' = 'urgent'): Promise<AssignCandidate[]> {
+    if (type === 'planned') {
+      throw new BadRequestException('Подбор кандидатов недоступен для плановых заказов');
+    }
+
+    const order = await this.prisma.order.findUnique({ where: { id: orderId } });
+    if (!order) throw new NotFoundException('Заказ не найден');
+
+    const rows = await this.prisma.$queryRaw<{ id: string; name: string | null; meters: number }[]>`
+      SELECT u.id, u.name, ST_Distance(mp.location, o.location) AS meters
+      FROM "MasterPresence" mp
+      JOIN "User" u ON u.id = mp."masterUserId"
+      JOIN "MasterProfile" pr ON pr."userId" = u.id AND pr.status = 'ACTIVE'
+      JOIN "MasterCategory" mc ON mc."masterProfileId" = pr.id AND mc."categoryId" = ${order.categoryId}
+      JOIN "Order" o ON o.id = ${orderId}
+      WHERE mp."isOnline" = true
+        AND (pr."blockedUntil" IS NULL OR pr."blockedUntil" < now())
+        AND mp.location IS NOT NULL AND o.location IS NOT NULL
+        AND u.id <> ${order.clientId}
+        AND NOT EXISTS (
+          SELECT 1 FROM "Order" ao WHERE ao."masterId" = u.id AND ao.status IN (${ACTIVE_MASTER_STATUSES_SQL})
+        )
+      ORDER BY meters ASC
+      LIMIT 10`;
+
+    return rows.map((r) => ({
+      masterUserId: r.id,
+      name: r.name ?? '—',
+      distanceKm: Math.round(r.meters / 100) / 10,
+      isOnline: true,
+    }));
   }
 
   async detail(id: string, type: 'urgent' | 'planned') {
