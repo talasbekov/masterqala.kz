@@ -1,3 +1,4 @@
+import type { BadgeTone } from '@masterqala/ui';
 import { api } from './api';
 
 export type OrderType = 'urgent' | 'planned';
@@ -39,12 +40,14 @@ export const PLANNED_STATUS_LABELS: Record<string, string> = {
 
 export type StatusVariant = 'info' | 'active' | 'success' | 'danger' | 'warning';
 
-const VARIANT_CLASSES: Record<StatusVariant, string> = {
-  info: 'bg-fill-soft text-primary',
-  active: 'bg-fill-soft text-primary',
-  success: 'bg-success-bg text-success-ink',
-  danger: 'bg-danger-bg text-danger',
-  warning: 'bg-warning-bg text-warning-ink',
+/* Цвет статуса — тон Badge из @masterqala/ui, а не собственный набор классов:
+ * пары «текст на подложке» там посчитаны на контраст. */
+const VARIANT_TONES: Record<StatusVariant, BadgeTone> = {
+  info: 'neutral',
+  active: 'primary',
+  success: 'success',
+  danger: 'danger',
+  warning: 'warning',
 };
 
 const URGENT_VARIANTS: Record<string, StatusVariant> = {
@@ -81,9 +84,9 @@ export function statusLabel(type: OrderType, status: string): string {
   return (type === 'planned' ? PLANNED_STATUS_LABELS : STATUS_LABELS)[status] ?? status;
 }
 
-export function statusPillClass(type: OrderType, status: string): string {
+export function statusTone(type: OrderType, status: string): BadgeTone {
   const variant = (type === 'planned' ? PLANNED_VARIANTS : URGENT_VARIANTS)[status] ?? 'info';
-  return VARIANT_CLASSES[variant];
+  return VARIANT_TONES[variant];
 }
 
 export interface OrderListRow {

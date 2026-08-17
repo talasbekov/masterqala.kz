@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
+import { Button, Card, CheckIcon, CloseIcon, IconButton, StarIcon } from '@masterqala/ui';
 import { api } from '@/lib/api';
 import { STATUS_LABELS } from '@/lib/orderStatus';
 import type { OrderDetail } from '@/lib/orderTypes';
@@ -29,54 +30,60 @@ export default function ClosedView({ order, onChanged }: { order: OrderDetail; o
   }
 
   return (
-    <div className="mx-auto flex min-h-[80vh] w-full max-w-[560px] flex-col items-center justify-center gap-3.5 px-6 text-center">
-      <div
-        className={`flex h-19 w-19 items-center justify-center rounded-full text-4xl text-white ${
-          isCancelled ? 'bg-ink-soft' : 'bg-success'
+    <div className="mx-auto flex min-h-[80vh] w-full max-w-xl flex-col items-center justify-center gap-3.5 px-6 text-center">
+      <span
+        className={`flex size-19 items-center justify-center rounded-full ${
+          isCancelled ? 'bg-ink-soft text-surface' : 'bg-success text-on-success'
         }`}
+        aria-hidden="true"
       >
-        {isCancelled ? '×' : '✓'}
-      </div>
-      <div className="text-xl font-extrabold text-ink">
+        {isCancelled ? <CloseIcon size={36} /> : <CheckIcon size={36} />}
+      </span>
+      <h1 className="text-xl font-extrabold text-ink">
         {isCancelled ? t('orderDetail.closedCancelledTitle') : t('orderDetail.closedTitle')}
-      </div>
-      {isCancelled && order.cancelReason && <div className="text-sm text-ink-soft">{order.cancelReason}</div>}
+      </h1>
+      {isCancelled && order.cancelReason && <p className="text-sm text-ink-soft">{order.cancelReason}</p>}
       {!isCancelled && (
-        <div className="w-full rounded-md border border-border bg-surface p-3.5">
+        <Card className="w-full">
           {order.review ? (
-            <div className="text-sm font-extrabold text-ink">{t('orderDetail.rateThanks')}</div>
+            <p className="text-sm font-extrabold text-ink">{t('orderDetail.rateThanks')}</p>
           ) : (
             <>
-              <div className="mb-2 text-[13px] font-extrabold text-ink">{t('orderDetail.rateTitle')}</div>
-              <div className="flex justify-center gap-1 text-[28px]">
+              <p className="mb-2 text-xs font-extrabold text-ink">{t('orderDetail.rateTitle')}</p>
+              <div className="flex justify-center gap-1" role="group" aria-label={t('orderDetail.rateTitle')}>
                 {[1, 2, 3, 4, 5].map((s) => (
-                  <button
+                  <IconButton
                     key={s}
-                    type="button"
+                    label={t('orderDetail.rateStars', { n: s })}
                     disabled={submitting}
+                    aria-pressed={s <= rating}
                     onClick={() => submitRating(s)}
-                    className={s <= rating ? 'text-primary' : 'text-border'}
-                  >
-                    ★
-                  </button>
+                    icon={
+                      <StarIcon
+                        size={26}
+                        filled={s <= rating}
+                        className={s <= rating ? 'text-warning' : 'text-border-strong'}
+                      />
+                    }
+                  />
                 ))}
               </div>
-              {error && <div className="mt-2 text-xs font-semibold text-danger">{error}</div>}
+              {error && (
+                <p role="alert" className="mt-2 text-xs font-semibold text-danger">
+                  {error}
+                </p>
+              )}
             </>
           )}
-        </div>
+        </Card>
       )}
-      <button
-        type="button"
-        onClick={() => router.push('/')}
-        className="w-full rounded-pill bg-primary p-4 text-sm font-extrabold text-white"
-      >
+      <Button size="lg" fullWidth onClick={() => router.push('/')}>
         {t('orderDetail.toHome')}
-      </button>
+      </Button>
       {!isCancelled && (
-        <button type="button" onClick={() => router.push(`/order/${order.id}/dispute`)} className="text-xs font-bold text-ink-soft">
+        <Button variant="ghost" size="sm" onClick={() => router.push(`/order/${order.id}/dispute`)}>
           {STATUS_LABELS[order.status]}? {t('orderDetail.openDispute')}
-        </button>
+        </Button>
       )}
     </div>
   );

@@ -1,11 +1,13 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
+import { Alert, IconButton, Skeleton, CloseIcon } from '@masterqala/ui';
 import { apiBlob } from '@/lib/api';
 
 export function Lightbox({ path, title, onClose }: { path: string; title: string; onClose: () => void }) {
   const [state, setState] = useState<'loading' | 'error' | 'ready'>('loading');
   const [objectUrl, setObjectUrl] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState('');
+  const titleId = useId();
 
   useEffect(() => {
     let cancelled = false;
@@ -37,20 +39,38 @@ export function Lightbox({ path, title, onClose }: { path: string; title: string
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [path]);
 
+  // Просмотрщик — модальное окно: без выхода по Escape пользователь клавиатуры
+  // остаётся в нём запертым.
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') onClose();
+    }
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [onClose]);
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-8" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/60 p-4 sm:p-8" onClick={onClose}>
       <div
-        className="max-h-full max-w-3xl overflow-auto rounded-lg bg-surface p-4"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        className="max-h-full w-full max-w-3xl overflow-auto rounded-lg bg-surface p-4 shadow-overlay"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-3 flex items-center justify-between gap-6">
-          <span className="text-sm font-extrabold text-ink">{title}</span>
-          <button type="button" onClick={onClose} className="text-sm font-bold text-ink-soft">
-            Закрыть ✕
-          </button>
+          <h2 id={titleId} className="text-sm font-extrabold text-ink">
+            {title}
+          </h2>
+          <IconButton label="Закрыть" icon={<CloseIcon />} onClick={onClose} />
         </div>
-        {state === 'loading' && <div className="p-8 text-center text-ink-soft">Загрузка…</div>}
-        {state === 'error' && <div className="p-8 text-center text-danger">Ошибка: {errorMessage}</div>}
+        {state === 'loading' && (
+          <div role="status" aria-busy="true">
+            <span className="sr-only">Загрузка документа</span>
+            <Skeleton className="h-64 w-full" />
+          </div>
+        )}
+        {state === 'error' && <Alert tone="danger" title="Не удалось открыть документ">{errorMessage}</Alert>}
         {state === 'ready' && objectUrl && (
           <img src={objectUrl} alt={title} className="max-h-[70vh] max-w-full" />
         )}

@@ -6,6 +6,15 @@ import { useAuth } from '../../../auth';
 import { useCommercialMode } from '../../../commercial-mode';
 import { getSocket } from '../../../socket';
 import { STATUS_LABELS } from '../../../orderStatus';
+import {
+  BoltIcon,
+  Badge,
+  CalendarIcon,
+  ChevronRightIcon,
+  HelpIcon,
+  ShieldIcon,
+  SkeletonList,
+} from '@masterqala/ui';
 import { categoryMeta } from '../categoryMeta';
 
 interface Category {
@@ -45,19 +54,22 @@ export default function HomePage() {
     };
   }, []);
 
-  if (loading) return <div className="p-6 text-ink-soft">{t('common.loading')}</div>;
+  if (loading) {
+    return <SkeletonList rows={3} label={t('common.loading')} className="px-5 pt-1.5" />;
+  }
 
   return (
     <div className="flex flex-col gap-3.5 px-5 pb-3.5 pt-1.5">
       <div className="flex items-center justify-between">
-        <div className="text-[22px] font-extrabold text-ink">
+        <h1 className="text-xl font-extrabold text-ink">
           {t('home.greeting', { name: user?.name ?? t('home.guestName') })}
-        </div>
+        </h1>
         <Link
           to="/support"
-          className="flex h-10 w-10 items-center justify-center rounded-full border border-border bg-surface text-base"
+          aria-label={t('common.help')}
+          className="flex size-11 shrink-0 items-center justify-center rounded-full border border-border bg-surface text-ink-soft"
         >
-          ?
+          <HelpIcon />
         </Link>
       </div>
 
@@ -67,14 +79,14 @@ export default function HomePage() {
           onClick={() => navigate(`/order/${order.id}`)}
           className="flex items-center gap-3 rounded-lg bg-primary p-4 text-left"
         >
-          <div className="flex h-9.5 w-9.5 shrink-0 items-center justify-center rounded-full bg-fill text-[13px] font-extrabold text-ink">
+          <div className="flex h-9.5 w-9.5 shrink-0 items-center justify-center rounded-full bg-fill text-xs font-extrabold text-ink">
             {order.category?.name?.slice(0, 2).toUpperCase() ?? '—'}
           </div>
           <div className="min-w-0 flex-1">
-            <div className="truncate text-sm font-extrabold text-white">{order.category?.name}</div>
+            <div className="truncate text-sm font-extrabold text-on-primary">{order.category?.name}</div>
             <div className="truncate text-xs font-semibold text-fill">{STATUS_LABELS[order.status]}</div>
           </div>
-          <span className="text-lg text-fill">›</span>
+          <ChevronRightIcon className="shrink-0 text-fill" />
         </button>
       )}
 
@@ -83,18 +95,20 @@ export default function HomePage() {
         onClick={() => navigate('/order/new')}
         className="rounded-lg border-2 border-primary bg-surface p-4 text-left shadow-card"
       >
-        <div className="flex items-center justify-between">
-          <span className="text-[17px] font-extrabold text-ink">⚡ {t('home.urgentTitle')}</span>
-          <span className="rounded-pill bg-fill-soft px-2.5 py-1 text-[11.5px] font-extrabold text-primary">
-            {t('home.urgentEta')}
+        <div className="flex items-center justify-between gap-2">
+          <span className="inline-flex items-center gap-1.5 text-base font-extrabold text-ink">
+            <BoltIcon size={20} className="text-urgent" />
+            {t('home.urgentTitle')}
           </span>
+          {/* Оранжевый = срочность: режим «Сейчас» — единственное его место. */}
+          <Badge tone="urgent">{t('home.urgentEta')}</Badge>
         </div>
-        <div className="mt-1.5 text-[12.5px] leading-snug text-ink-soft">
+        <div className="mt-1.5 text-xs leading-snug text-ink-soft">
           {paymentsEnabled
             ? t('home.urgentDescription')
             : 'Найдём ближайшего мастера. Выезд бесплатный, стоимость работ подтвердите после осмотра и оплатите мастеру напрямую.'}
         </div>
-        <div className="mt-2.5 rounded-pill bg-primary p-2.5 text-center text-sm font-extrabold text-white">
+        <div className="mt-2.5 min-h-11 rounded-pill bg-urgent p-2.5 text-center text-sm font-extrabold text-on-urgent">
           {t('home.urgentButton')}
         </div>
       </button>
@@ -103,14 +117,15 @@ export default function HomePage() {
         to="/planned/new"
         className="rounded-lg border-2 border-border bg-surface p-4 text-left shadow-card"
       >
-        <div className="flex items-center justify-between">
-          <span className="text-[17px] font-extrabold text-ink">📅 {t('home.plannedTitle')}</span>
-          <span className="rounded-pill bg-fill-soft px-2.5 py-1 text-[11.5px] font-extrabold text-primary">
-            {t('home.plannedBadge')}
+        <div className="flex items-center justify-between gap-2">
+          <span className="inline-flex items-center gap-1.5 text-base font-extrabold text-ink">
+            <CalendarIcon size={20} className="text-primary" />
+            {t('home.plannedTitle')}
           </span>
+          <Badge tone="primary">{t('home.plannedBadge')}</Badge>
         </div>
-        <div className="mt-1.5 text-[12.5px] leading-snug text-ink-soft">{t('home.plannedDescription')}</div>
-        <div className="mt-2.5 rounded-pill border-[1.5px] border-primary p-2.5 text-center text-sm font-extrabold text-primary">
+        <div className="mt-1.5 text-xs leading-snug text-ink-soft">{t('home.plannedDescription')}</div>
+        <div className="mt-2.5 min-h-11 rounded-pill border border-primary p-2.5 text-center text-sm font-extrabold text-primary">
           {t('home.plannedButton')}
         </div>
       </Link>
@@ -118,8 +133,8 @@ export default function HomePage() {
       {categories.length > 0 && (
         <div>
           <div className="mb-2 flex items-baseline justify-between">
-            <span className="text-[15px] font-extrabold text-ink">{t('home.categoriesTitle')}</span>
-            <Link to="/catalog" className="text-[12.5px] font-extrabold text-primary">
+            <span className="text-sm font-extrabold text-ink">{t('home.categoriesTitle')}</span>
+            <Link to="/catalog" className="text-xs font-extrabold text-primary">
               {t('home.categoriesAll')}
             </Link>
           </div>
@@ -131,10 +146,10 @@ export default function HomePage() {
                   key={c.id}
                   type="button"
                   onClick={() => navigate('/order/new')}
-                  className="rounded-md border border-border bg-surface px-1.5 py-3 text-center"
+                  className="min-h-11 rounded-md border border-border bg-surface px-1.5 py-3 text-center"
                 >
-                  <div className="mb-1 text-xl">{meta.icon}</div>
-                  <div className="text-[11.5px] font-bold text-ink">{c.name}</div>
+                  <div className="mb-1 flex justify-center text-primary">{meta.icon}</div>
+                  <div className="text-2xs font-bold text-ink">{c.name}</div>
                 </button>
               );
             })}
@@ -143,7 +158,7 @@ export default function HomePage() {
       )}
 
       <div className="flex items-center gap-2.5 rounded-md bg-fill px-3.5 py-3">
-        <span className="text-lg">🛡️</span>
+        <ShieldIcon size={20} className="shrink-0 text-primary" />
         <div className="text-xs font-semibold leading-snug text-ink">
           {paymentsEnabled
             ? t('home.trustBanner')

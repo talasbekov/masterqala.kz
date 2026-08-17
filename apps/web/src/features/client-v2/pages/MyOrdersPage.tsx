@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../../api';
+import { Alert, Badge, BoltIcon, CalendarIcon, Card, EmptyState, SkeletonList } from '@masterqala/ui';
 import {
   STATUS_LABELS,
   PLANNED_STATUS_LABELS,
@@ -57,12 +58,14 @@ export default function MyOrdersPage() {
 
   return (
     <div className="flex flex-col gap-3 px-5 pb-3.5 pt-1.5">
-      <div className="text-[22px] font-extrabold text-ink">{t('myOrders.title')}</div>
-      <div className="flex rounded-pill bg-fill p-1">
+      <h1 className="text-xl font-extrabold text-ink">{t('myOrders.title')}</h1>
+      <div role="tablist" className="flex rounded-pill bg-fill p-1">
         <button
           type="button"
+          role="tab"
+          aria-selected={tab === 'active'}
           onClick={() => setTab('active')}
-          className={`flex-1 rounded-pill py-2 text-[13px] font-extrabold ${
+          className={`min-h-11 flex-1 rounded-pill py-2 text-xs font-extrabold ${
             tab === 'active' ? 'bg-surface text-ink shadow-card' : 'text-ink-soft'
           }`}
         >
@@ -70,52 +73,55 @@ export default function MyOrdersPage() {
         </button>
         <button
           type="button"
+          role="tab"
+          aria-selected={tab === 'history'}
           onClick={() => setTab('history')}
-          className={`flex-1 rounded-pill py-2 text-[13px] font-extrabold ${
+          className={`min-h-11 flex-1 rounded-pill py-2 text-xs font-extrabold ${
             tab === 'history' ? 'bg-surface text-ink shadow-card' : 'text-ink-soft'
           }`}
         >
           {t('myOrders.history')}
         </button>
       </div>
-      {error && <p className="text-sm font-semibold text-danger">{error}</p>}
+      {error && <Alert tone="danger">{error}</Alert>}
+      {loading && <SkeletonList rows={3} label={t('common.loading')} />}
       {!loading && shown.length === 0 && (
-        <div className="rounded-lg border-[1.5px] border-dashed border-border bg-surface p-6 text-center text-sm font-semibold text-ink-soft">
-          {tab === 'active' ? t('myOrders.emptyActive') : t('myOrders.emptyHistory')}
-        </div>
+        <EmptyState title={tab === 'active' ? t('myOrders.emptyActive') : t('myOrders.emptyHistory')} />
       )}
       {shown.map((it) => {
         const label = it.kind === 'urgent' ? STATUS_LABELS[it.status] : PLANNED_STATUS_LABELS[it.status];
         const variant = it.kind === 'urgent' ? urgentStatusVariant(it.status) : plannedStatusVariant(it.status);
         const price = it.kind === 'urgent' ? (it.workPrice ?? it.calloutPrice) : (it.workPrice ?? it.budget);
         return (
-          <Link
-            key={it.id}
-            to={it.kind === 'urgent' ? `/order/${it.id}` : `/planned/${it.id}`}
-            className="rounded-lg border border-border bg-surface p-3.5"
-          >
-            <div className="flex items-center justify-between">
-              <span className="truncate text-sm font-extrabold text-ink">
-                {it.kind === 'urgent' ? '⚡' : '📅'} {it.category?.name} · №{it.id.slice(0, 8)}
+          <Card key={it.id} padding="none">
+            <Link
+              to={it.kind === 'urgent' ? `/order/${it.id}` : `/planned/${it.id}`}
+              className="block p-3.5"
+            >
+            <div className="flex items-center justify-between gap-2">
+              <span className="inline-flex min-w-0 items-center gap-1.5 truncate text-sm font-extrabold text-ink">
+                {it.kind === 'urgent' ? (
+                  <BoltIcon size={16} className="shrink-0 text-urgent" />
+                ) : (
+                  <CalendarIcon size={16} className="shrink-0 text-primary" />
+                )}
+                <span className="truncate">
+                  {it.category?.name} · №{it.id.slice(0, 8)}
+                </span>
               </span>
-              <span
-                className={`shrink-0 rounded-pill px-2.5 py-1 text-[10.5px] font-extrabold ${
-                  variant === 'success'
-                    ? 'bg-success-bg text-success-ink'
-                    : variant === 'danger'
-                      ? 'bg-danger-bg text-danger-ink'
-                      : 'bg-fill-soft text-primary'
-                }`}
+              <Badge
+                tone={variant === 'success' ? 'success' : variant === 'danger' ? 'danger' : 'primary'}
               >
                 {label}
-              </span>
+              </Badge>
             </div>
             <div className="mt-1 text-xs text-ink-soft">
               {new Date(it.createdAt).toLocaleDateString('ru-RU')}
               {price != null && ` · ${price} ₸`}
               {it.master?.name && ` · ${it.master.name}`}
             </div>
-          </Link>
+            </Link>
+          </Card>
         );
       })}
     </div>

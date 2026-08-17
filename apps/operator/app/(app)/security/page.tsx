@@ -1,6 +1,18 @@
 'use client';
 import { useCallback, useEffect, useState } from 'react';
+import {
+  Alert,
+  Badge,
+  Button,
+  Card,
+  EmptyState,
+  SkeletonList,
+  Table,
+  type BadgeTone,
+  type TableColumn,
+} from '@masterqala/ui';
 import { useAuth } from '@/lib/auth';
+import { SecurityAlertCard } from '@/components/SecurityAlertCard';
 import {
   fetchSecurityDashboard,
   transitionAlert,
@@ -11,11 +23,7 @@ import {
   type Dependency,
 } from '@/lib/security';
 
-const SEVERITY_CLASS: Record<SecurityAlert['severity'], string> = {
-  CRITICAL: 'border-danger bg-danger-bg text-danger-ink',
-  HIGH: 'border-warning-ink bg-warning-bg text-warning-ink',
-  WARNING: 'border-warning-ink bg-warning-bg text-warning-ink',
-};
+type AuditEvent = SecurityDashboard['recentEvents'][number];
 
 function formatDate(value: string | null): string {
   if (!value) return '—';
@@ -28,24 +36,19 @@ function isOverdue(value: string | null): boolean {
 
 function DependencyCard({ title, dependency }: { title: string; dependency: Dependency }) {
   const healthy = dependency.status === 'UP' || dependency.status === 'DISABLED';
+  const tone: BadgeTone = healthy ? 'success' : 'danger';
   return (
-    <div className="rounded-lg border border-border bg-surface p-4">
+    <Card>
       <div className="flex items-center justify-between gap-3">
-        <span className="text-sm font-extrabold text-ink">{title}</span>
-        <span
-          className={`rounded-pill px-2 py-1 text-[10px] font-extrabold ${
-            healthy ? 'bg-success-bg text-success-ink' : 'bg-danger-bg text-danger'
-          }`}
-        >
-          {dependency.status}
-        </span>
+        <h3 className="text-sm font-extrabold text-ink">{title}</h3>
+        <Badge tone={tone}>{dependency.status}</Badge>
       </div>
-      <div className="mt-2 text-xs text-ink-soft">
+      <p className="mt-2 text-xs text-ink-soft">
         {dependency.latencyMs !== undefined && <span>{dependency.latencyMs} мс</span>}
         {dependency.mode && <span> · {dependency.mode}</span>}
-      </div>
+      </p>
       {dependency.lastError && <p className="mt-2 break-words text-xs text-danger">{dependency.lastError}</p>}
-    </div>
+    </Card>
   );
 }
 
@@ -53,6 +56,7 @@ export default function SecurityPage() {
   const { user } = useAuth();
   const [dashboard, setDashboard] = useState<SecurityDashboard | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
   const [actionId, setActionId] = useState<string | null>(null);
   const [openForm, setOpenForm] = useState<{ alertId: string; status: 'ACKNOWLEDGED' | 'RESOLVED' } | null>(null);
@@ -78,6 +82,12 @@ export default function SecurityPage() {
     }, 15_000);
     return () => window.clearInterval(timer);
   }, [load]);
+
+  async function manualRefresh() {
+    setRefreshing(true);
+    await load();
+    setRefreshing(false);
+  }
 
   function startForm(alert: SecurityAlert, status: 'ACKNOWLEDGED' | 'RESOLVED') {
     setOpenForm({ alertId: alert.id, status });
@@ -128,242 +138,156 @@ export default function SecurityPage() {
     }
   }
 
-  if (loading) return <div className="p-8 text-sm text-ink-soft">Загрузка security dashboard…</div>;
+  const eventColumns: TableColumn<AuditEvent>[] = [
+    {
+      key: 'when',
+      header: 'Время',
+      width: '170px',
+      cell: (event) => <span className="text-ink-soft">{formatDate(event.createdAt)}</span>,
+    },
+    {
+      key: 'event',
+      header: 'Событие',
+      cell: (event) => (
+        <span className="font-bold text-ink">
+          {event.action}{' '}
+          <span className="font-normal text-ink-soft">
+            · {event.severity} · {event.outcome}
+          </span>
+        </span>
+      ),
+    },
+    {
+      key: 'resource',
+      header: 'Ресурс',
+      width: '180px',
+      hideBelow: 'md',
+      cell: (event) => (
+        <span className="text-xs text-ink-soft">
+          {event.resourceType} · {event.resourceId}
+        </span>
+      ),
+    },
+  ];
+
+  if (loading) return <SkeletonList rows={5} label="Загрузка security dashboard" className="p-4 lg:p-8" />;
 
   return (
-    <div className="flex flex-col gap-6 p-8">
+    <div className="flex flex-col gap-6 p-4 lg:p-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <div className="text-2xl font-extrabold text-ink">Безопасность платформы</div>
+          <h1 className="text-2xl font-extrabold text-ink">Безопасность платформы</h1>
           <p className="text-sm text-ink-soft">Инфраструктура, SLA инцидентов, внешняя доставка и audit trail.</p>
         </div>
-        <button
-          type="button"
-          onClick={() => void load()}
-          className="rounded-md border-[1.5px] border-border bg-surface px-4 py-2 text-sm font-extrabold text-ink"
-        >
+        <Button variant="secondary" loading={refreshing} onClick={() => void manualRefresh()}>
           Обновить
-        </button>
+        </Button>
       </div>
 
-      {error && <div className="rounded-md bg-danger-bg p-3 text-sm text-danger">{error}</div>}
+      {error && <Alert tone="danger">{error}</Alert>}
 
       {dashboard && (
         <>
           <section className="flex flex-col gap-3">
-            <div className="flex items-center gap-3">
-              <div className="text-lg font-extrabold text-ink">Готовность</div>
-              <span
-                className={`rounded-pill px-3 py-1 text-xs font-extrabold ${
-                  dashboard.readiness.status === 'ready' ? 'bg-success-bg text-success-ink' : 'bg-danger-bg text-danger'
-                }`}
-              >
+            <div className="flex flex-wrap items-center gap-3">
+              <h2 className="text-lg font-extrabold text-ink">Готовность</h2>
+              <Badge tone={dashboard.readiness.status === 'ready' ? 'success' : 'danger'}>
                 {dashboard.readiness.status === 'ready' ? 'READY' : 'NOT READY'}
-              </span>
+              </Badge>
               <span className="text-xs text-ink-soft">{dashboard.readiness.environment}</span>
             </div>
-            <div className="grid grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <DependencyCard title="PostgreSQL" dependency={dashboard.readiness.dependencies.database} />
               <DependencyCard title="pg-boss" dependency={dashboard.readiness.dependencies.queue} />
               <DependencyCard title="ClamAV" dependency={dashboard.readiness.dependencies.scanner} />
-              <div className="rounded-lg border border-border bg-surface p-4">
+              <Card>
                 <div className="flex items-center justify-between gap-3">
-                  <span className="text-sm font-extrabold text-ink">Alert webhook</span>
-                  <span
-                    className={`rounded-pill px-2 py-1 text-[10px] font-extrabold ${
-                      dashboard.delivery.enabled ? 'bg-success-bg text-success-ink' : 'bg-fill-soft text-ink-soft'
-                    }`}
-                  >
+                  <h3 className="text-sm font-extrabold text-ink">Alert webhook</h3>
+                  <Badge tone={dashboard.delivery.enabled ? 'success' : 'neutral'}>
                     {dashboard.delivery.enabled ? 'ENABLED' : 'DISABLED'}
-                  </span>
+                  </Badge>
                 </div>
                 <p className="mt-2 text-xs text-ink-soft">
                   {dashboard.delivery.timeoutMs} мс · {dashboard.delivery.maxAttempts} попыток
                 </p>
-              </div>
+              </Card>
             </div>
             {dashboard.readiness.warnings.length > 0 && (
-              <ul className="rounded-md bg-warning-bg p-3 text-sm text-warning-ink">
-                {dashboard.readiness.warnings.map((w) => (
-                  <li key={w}>• {w}</li>
-                ))}
-              </ul>
+              <Alert tone="warning" title="Предупреждения готовности">
+                <ul className="list-disc pl-4">
+                  {dashboard.readiness.warnings.map((w) => (
+                    <li key={w}>{w}</li>
+                  ))}
+                </ul>
+              </Alert>
             )}
           </section>
 
-          <section className="grid grid-cols-4 gap-3">
-            {[
-              ['Открытые alerts', dashboard.metrics.openAlerts],
-              ['Просрочено подтверждение', dashboard.metrics.overdueAcknowledgementAlerts],
-              ['Просрочено решение', dashboard.metrics.overdueResolutionAlerts],
-              ['Исчерпана доставка', dashboard.metrics.exhaustedDeliveries],
-              ['Заражено за 24 ч', dashboard.metrics.infected24h],
-              ['Ошибки scan за 24 ч', dashboard.metrics.scanFailed24h],
-              ['Ожидают webhook', dashboard.metrics.pendingDeliveries],
-              ['Audit events за 24 ч', dashboard.metrics.events24h],
-            ].map(([label, value]) => (
-              <div key={label as string} className="rounded-lg border border-border bg-surface p-4">
+          <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            {(
+              [
+                ['Открытые alerts', dashboard.metrics.openAlerts],
+                ['Просрочено подтверждение', dashboard.metrics.overdueAcknowledgementAlerts],
+                ['Просрочено решение', dashboard.metrics.overdueResolutionAlerts],
+                ['Исчерпана доставка', dashboard.metrics.exhaustedDeliveries],
+                ['Заражено за 24 ч', dashboard.metrics.infected24h],
+                ['Ошибки scan за 24 ч', dashboard.metrics.scanFailed24h],
+                ['Ожидают webhook', dashboard.metrics.pendingDeliveries],
+                ['Audit events за 24 ч', dashboard.metrics.events24h],
+              ] as [string, number][]
+            ).map(([label, value]) => (
+              <Card key={label}>
                 <div className="text-2xl font-extrabold text-ink">{value}</div>
                 <div className="mt-1 text-sm text-ink-soft">{label}</div>
-              </div>
+              </Card>
             ))}
           </section>
 
           <section className="flex flex-col gap-3">
-            <div className="flex items-center justify-between">
-              <div className="text-lg font-extrabold text-ink">Открытые alerts</div>
-              <span className="text-xs text-ink-soft">Старейший: {formatDate(dashboard.metrics.oldestOpenAlertAt)}</span>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h2 className="text-lg font-extrabold text-ink">Открытые alerts</h2>
+              <span className="text-xs text-ink-soft">
+                Старейший: {formatDate(dashboard.metrics.oldestOpenAlertAt)}
+              </span>
             </div>
             <div className="flex flex-col gap-3">
-              {dashboard.alerts.map((alert) => {
-                const actionPending = actionId?.startsWith(`${alert.id}:`) ?? false;
-                const ackOverdue = alert.status === 'OPEN' && isOverdue(alert.acknowledgeBy);
-                const resolveOverdue = alert.status === 'ACKNOWLEDGED' && isOverdue(alert.resolveBy);
-                const formOpenHere = openForm?.alertId === alert.id;
-                return (
-                  <article key={alert.id} className={`rounded-lg border-2 p-4 ${SEVERITY_CLASS[alert.severity]}`}>
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="rounded-pill bg-surface/70 px-2 py-1 text-[10px] font-extrabold">
-                            {alert.severity}
-                          </span>
-                          <span className="rounded-pill bg-surface/70 px-2 py-1 text-[10px] font-bold">{alert.status}</span>
-                          {alert.escalationLevel > 0 && (
-                            <span className="rounded-pill bg-danger px-2 py-1 text-[10px] font-extrabold text-white">
-                              ESC L{alert.escalationLevel}
-                            </span>
-                          )}
-                          {alert.occurrenceCount > 1 && (
-                            <span className="text-[10px] font-bold">Повторений: {alert.occurrenceCount}</span>
-                          )}
-                        </div>
-                        <h3 className="mt-2 text-sm font-extrabold">{alert.title}</h3>
-                        <p className="mt-1 break-all text-xs opacity-80">
-                          {alert.resourceType} · {alert.resourceId}
-                        </p>
-                        <div className="mt-3 grid grid-cols-2 gap-1 text-xs opacity-90">
-                          <span>Ответственный: {alert.assignedToUserId === user?.id ? 'Вы' : alert.assignedToUserId ?? 'не назначен'}</span>
-                          <span>Последнее событие: {formatDate(alert.lastSeenAt)}</span>
-                          <span className={ackOverdue ? 'font-extrabold' : ''}>Принять до: {formatDate(alert.acknowledgeBy)}</span>
-                          <span className={resolveOverdue ? 'font-extrabold' : ''}>Решить до: {formatDate(alert.resolveBy)}</span>
-                        </div>
-                      </div>
-                      <div className="flex flex-wrap justify-end gap-2">
-                        {alert.assignedToUserId !== user?.id && user && (
-                          <button
-                            type="button"
-                            disabled={actionPending}
-                            onClick={() => void assign(alert, user.id)}
-                            className="rounded-md border border-current bg-surface/70 px-3 py-2 text-xs font-extrabold disabled:opacity-50"
-                          >
-                            Назначить себе
-                          </button>
-                        )}
-                        {alert.assignedToUserId === user?.id && (
-                          <button
-                            type="button"
-                            disabled={actionPending}
-                            onClick={() => void assign(alert, null)}
-                            className="rounded-md border border-current bg-surface/70 px-3 py-2 text-xs font-extrabold disabled:opacity-50"
-                          >
-                            Снять
-                          </button>
-                        )}
-                        {alert.status === 'OPEN' && (
-                          <button
-                            type="button"
-                            disabled={actionPending}
-                            onClick={() => startForm(alert, 'ACKNOWLEDGED')}
-                            className="rounded-md border border-current bg-surface/70 px-3 py-2 text-xs font-extrabold disabled:opacity-50"
-                          >
-                            Принять
-                          </button>
-                        )}
-                        {dashboard.delivery.enabled && (
-                          <button
-                            type="button"
-                            disabled={actionPending}
-                            onClick={() => void retryDelivery(alert)}
-                            className="rounded-md border border-current bg-surface/70 px-3 py-2 text-xs font-extrabold disabled:opacity-50"
-                          >
-                            Повторить webhook
-                          </button>
-                        )}
-                        <button
-                          type="button"
-                          disabled={actionPending}
-                          onClick={() => startForm(alert, 'RESOLVED')}
-                          className="rounded-md border border-current bg-surface/70 px-3 py-2 text-xs font-extrabold disabled:opacity-50"
-                        >
-                          Закрыть
-                        </button>
-                      </div>
-                    </div>
-
-                    {formOpenHere && (
-                      <div className="mt-3 flex flex-col gap-2 rounded-md bg-surface/70 p-3">
-                        <textarea
-                          value={formNote}
-                          onChange={(e) => setFormNote(e.target.value)}
-                          placeholder={
-                            openForm.status === 'ACKNOWLEDGED' ? 'Комментарий оператора (необязательно)' : 'Как был устранён инцидент?'
-                          }
-                          className="min-h-14 rounded-md border-[1.5px] border-current bg-surface p-2 text-sm text-ink"
-                        />
-                        <div className="flex gap-2">
-                          <button
-                            type="button"
-                            disabled={actionPending}
-                            onClick={() => void submitForm()}
-                            className="rounded-pill bg-primary px-3 py-1.5 text-xs font-extrabold text-white disabled:opacity-40"
-                          >
-                            Подтвердить
-                          </button>
-                          <button
-                            type="button"
-                            onClick={cancelForm}
-                            className="rounded-pill border-[1.5px] border-current px-3 py-1.5 text-xs font-extrabold"
-                          >
-                            Отмена
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </article>
-                );
-              })}
-              {dashboard.alerts.length === 0 && (
-                <div className="rounded-lg border border-border p-6 text-center text-sm text-ink-soft">
-                  Открытых alerts нет
-                </div>
-              )}
+              {dashboard.alerts.map((alert) => (
+                <SecurityAlertCard
+                  key={alert.id}
+                  alert={alert}
+                  currentUserId={user?.id ?? null}
+                  formatDate={formatDate}
+                  isOverdue={isOverdue}
+                  pendingAction={actionId}
+                  deliveryEnabled={dashboard.delivery.enabled}
+                  formOpen={openForm?.alertId === alert.id ? { status: openForm.status } : null}
+                  formNote={formNote}
+                  onFormNoteChange={setFormNote}
+                  onStartForm={(status) => startForm(alert, status)}
+                  onCancelForm={cancelForm}
+                  onSubmitForm={() => void submitForm()}
+                  onAssign={(assigneeUserId) => void assign(alert, assigneeUserId)}
+                  onRetryDelivery={() => void retryDelivery(alert)}
+                />
+              ))}
+              {dashboard.alerts.length === 0 && <EmptyState title="Открытых alerts нет" />}
             </div>
           </section>
 
           <section className="flex flex-col gap-3">
-            <div className="text-lg font-extrabold text-ink">Последние audit events</div>
-            <div className="overflow-x-auto rounded-lg border border-border bg-surface">
-              <div className="grid grid-cols-[130px_1fr_150px] gap-3 border-b border-fill-soft px-4 py-2 text-[11px] font-extrabold uppercase text-ink-soft">
-                <span>Время</span>
-                <span>Событие</span>
-                <span>Ресурс</span>
-              </div>
-              {dashboard.recentEvents.map((event) => (
-                <div
-                  key={event.id}
-                  className="grid grid-cols-[130px_1fr_150px] items-start gap-3 border-b border-fill-soft px-4 py-2.5 text-sm"
-                >
-                  <span className="text-ink-soft">{formatDate(event.createdAt)}</span>
-                  <span className="font-bold text-ink">
-                    {event.action} <span className="text-ink-soft">· {event.severity} · {event.outcome}</span>
-                  </span>
-                  <span className="truncate text-xs text-ink-soft">
-                    {event.resourceType} · {event.resourceId}
-                  </span>
-                </div>
-              ))}
-            </div>
+            <h2 className="text-lg font-extrabold text-ink">Последние audit events</h2>
+            {dashboard.recentEvents.length === 0 ? (
+              <EmptyState title="Событий нет" />
+            ) : (
+              <Card padding="none">
+                <Table
+                  caption="Последние audit events: время, действие и затронутый ресурс"
+                  columns={eventColumns}
+                  rows={dashboard.recentEvents}
+                  rowKey={(event) => event.id}
+                />
+              </Card>
+            )}
           </section>
 
           <p className="text-right text-xs text-ink-soft">Обновлено: {formatDate(dashboard.generatedAt)}</p>

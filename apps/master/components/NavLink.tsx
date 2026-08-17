@@ -10,11 +10,12 @@ export function NavLink({ href, icon, children }: { href: string; icon: ReactNod
   return (
     <Link
       href={href}
-      className={`flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-bold transition-colors ${
+      aria-current={isActive ? 'page' : undefined}
+      className={`flex shrink-0 items-center gap-2 rounded-md px-3 py-2.5 text-sm font-bold transition-colors duration-(--duration-fast) ease-(--ease-out) md:gap-3 ${
         isActive ? 'bg-fill-soft text-primary' : 'text-ink-soft hover:bg-fill-faint'
       }`}
     >
-      <span className="text-lg">{icon}</span>
+      <span className="shrink-0">{icon}</span>
       {children}
     </Link>
   );

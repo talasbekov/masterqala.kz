@@ -1,11 +1,12 @@
 @import "tailwindcss";
 @import "@masterqala/ui/tokens.css";
+@import "@masterqala/ui/base.css";
+
 @source "../app";
 @source "../components";
 @source "../lib";
-
-body {
-  background: var(--color-background);
-  color: var(--color-ink);
-  font-family: var(--font-sans);
-}
+/* Без этой строки классы Tailwind, использованные внутри @masterqala/ui,
+ * не попадают в CSS приложения: сканируются только каталоги, перечисленные в
+ * @source. До редизайна её не было ни в одном из Next-приложений — общие
+ * компоненты пришли бы без стилей. */
+@source "../../../packages/ui/src";

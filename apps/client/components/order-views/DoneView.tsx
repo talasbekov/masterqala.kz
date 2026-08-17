@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
+import { Alert, Button, Card, CheckIcon, ScaleIcon } from '@masterqala/ui';
 import { api } from '@/lib/api';
 import type { OrderDetail } from '@/lib/orderTypes';
 
@@ -24,17 +25,17 @@ export default function DoneView({ order, orderId, onChanged }: { order: OrderDe
   const total = order.calloutPrice + (order.workPrice ?? 0);
 
   return (
-    <div className="mx-auto flex w-full max-w-[560px] flex-col gap-3.5 px-5 pb-3.5 pt-1.5">
-      <div className="text-lg font-extrabold text-ink">{t('orderDetail.doneTitle')}</div>
-      <div className="rounded-md border border-border bg-surface p-3.5">
-        <div className="mb-2.5 text-sm font-extrabold text-ink">{order.master?.name}</div>
+    <div className="mx-auto flex w-full max-w-xl flex-col gap-3.5 px-5 pt-1.5 pb-3.5 sm:px-8 sm:py-6">
+      <h1 className="text-lg font-extrabold text-ink">{t('orderDetail.doneTitle')}</h1>
+      <Card>
+        <p className="mb-2.5 text-sm font-extrabold text-ink">{order.master?.name}</p>
         {paymentsEnabled && (
-          <div className="flex justify-between text-[13.5px] font-semibold text-ink-soft">
+          <div className="flex justify-between text-xs font-semibold text-ink-soft">
             <span>{t('orderDetail.doneCalloutLabel')}</span>
             <span>{order.calloutPrice} ₸</span>
           </div>
         )}
-        <div className={`${paymentsEnabled ? 'mt-1' : ''} flex justify-between text-[13.5px] font-semibold text-ink-soft`}>
+        <div className={`${paymentsEnabled ? 'mt-1' : ''} flex justify-between text-xs font-semibold text-ink-soft`}>
           <span>{t('orderDetail.doneWorkLabel')}</span>
           <span>{order.workPrice} ₸</span>
         </div>
@@ -43,28 +44,25 @@ export default function DoneView({ order, orderId, onChanged }: { order: OrderDe
           <span>{t('orderDetail.doneTotalLabel')}</span>
           <span>{total} ₸</span>
         </div>
-      </div>
+      </Card>
       <p className="text-xs leading-relaxed text-ink-soft">
         {paymentsEnabled
           ? t('orderDetail.doneNote')
           : 'Проверьте результат и подтвердите выполнение. Оплата работ производится мастеру напрямую. При проблеме откройте спор.'}
       </p>
-      {error && <p className="text-sm font-semibold text-danger">{error}</p>}
+      {error && <Alert tone="danger">{error}</Alert>}
       <div className="mt-auto" />
-      <button
-        type="button"
-        onClick={confirmDone}
-        className="rounded-pill bg-success p-4 text-[15.5px] font-extrabold text-white"
-      >
+      <Button variant="success" size="lg" fullWidth icon={<CheckIcon size={18} />} onClick={confirmDone}>
         {t('orderDetail.confirmDone')}
-      </button>
-      <button
-        type="button"
+      </Button>
+      <Button
+        variant="secondary"
+        fullWidth
+        icon={<ScaleIcon size={18} />}
         onClick={() => router.push(`/order/${orderId}/dispute`)}
-        className="rounded-pill border-[1.5px] border-danger p-3.5 text-sm font-extrabold text-danger"
       >
         {t('orderDetail.openDispute')}
-      </button>
+      </Button>
     </div>
   );
 }

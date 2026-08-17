@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
+import { Alert, ArrowLeftIcon, Button, IconButton, SkeletonList } from '@masterqala/ui';
 import { api } from '@/lib/api';
 import SelectBidConfirm from '@/components/planned-order-views/SelectBidConfirm';
 import type { PlannedOrderDetail, PlannedBid } from '@/lib/plannedOrderTypes';
@@ -22,12 +23,22 @@ export default function PlannedComparePage() {
     return <SelectBidConfirm plannedOrderId={id} bid={selected} onBack={() => setSelected(null)} />;
   }
 
-  if (error) return <div className="p-6 text-sm font-semibold text-danger">{error}</div>;
-  if (!order || !id) return <div className="p-6 text-ink-soft">{t('common.loading')}</div>;
+  if (error)
+    return (
+      <div className="p-6">
+        <Alert tone="danger">{error}</Alert>
+      </div>
+    );
+  if (!order || !id)
+    return (
+      <div className="p-6">
+        <SkeletonList rows={3} label={t('common.loading')} />
+      </div>
+    );
 
   const rows: { label: string; render: (b: PlannedBid) => string }[] = [
     { label: t('plannedDetail.comparePrice'), render: (b) => `${b.price} ₸` },
-    { label: t('plannedDetail.compareRating'), render: (b) => `★ ${b.master.rating?.toFixed(1) ?? '—'}` },
+    { label: t('plannedDetail.compareRating'), render: (b) => b.master.rating?.toFixed(1) ?? '—' },
     { label: t('plannedDetail.compareOrders'), render: (b) => String(b.master.completedCount) },
     { label: t('plannedDetail.compareExperience'), render: (b) => `${b.master.experienceYears} лет` },
     { label: t('plannedDetail.compareTerm'), render: (b) => b.term },
@@ -35,23 +46,29 @@ export default function PlannedComparePage() {
   ];
 
   return (
-    <div className="flex w-full flex-col gap-3 px-8 pb-3.5 pt-1.5">
+    <div className="flex w-full flex-col gap-3 px-5 pt-1.5 pb-3.5 sm:px-8 sm:py-6">
       <div className="flex items-center gap-2.5">
-        <button type="button" onClick={() => router.push(`/planned/${id}`)} className="text-xl text-primary">
-          ←
-        </button>
-        <span className="text-lg font-extrabold text-ink">{t('plannedDetail.compareTitle')}</span>
+        <IconButton
+          label={t('common.back')}
+          icon={<ArrowLeftIcon size={20} />}
+          onClick={() => router.push(`/planned/${id}`)}
+        />
+        <h1 className="text-lg font-extrabold text-ink">{t('plannedDetail.compareTitle')}</h1>
       </div>
-      <div className="overflow-x-auto">
-        <table className="w-full border-collapse overflow-hidden rounded-lg border border-border text-[12.5px]">
+      {/* Широкая таблица скроллится внутри своего контейнера, а не страницей. */}
+      <div className="w-full overflow-x-auto">
+        <table className="w-full border-collapse rounded-lg border border-border text-xs">
+          <caption className="sr-only">{t('plannedDetail.compareTitle')}</caption>
           <thead>
             <tr>
-              <th className="bg-fill-soft p-3" />
+              <th scope="col" className="bg-surface-sunken p-3">
+                <span className="sr-only">{t('plannedDetail.compareCriterion')}</span>
+              </th>
               {order.bids.map((b) => (
-                <th key={b.id} className="border-l border-border bg-fill-soft p-2 text-center">
-                  <div className="mx-auto mb-1 flex h-9 w-9 items-center justify-center rounded-full bg-fill text-xs font-extrabold text-ink">
+                <th key={b.id} scope="col" className="border-l border-border bg-surface-sunken p-2 text-center">
+                  <span className="mx-auto mb-1 flex size-9 items-center justify-center rounded-full bg-fill text-2xs font-extrabold text-ink">
                     {b.master.name?.slice(0, 2).toUpperCase() ?? '—'}
-                  </div>
+                  </span>
                   <span className="font-extrabold text-ink">{b.master.name}</span>
                 </th>
               ))}
@@ -60,9 +77,11 @@ export default function PlannedComparePage() {
           <tbody>
             {rows.map((row) => (
               <tr key={row.label}>
-                <td className="border-t border-border p-2.5 font-bold text-ink-soft">{row.label}</td>
+                <th scope="row" className="border-t border-border p-2.5 text-left font-bold text-ink-soft">
+                  {row.label}
+                </th>
                 {order.bids.map((b) => (
-                  <td key={b.id} className="border-l border-t border-border p-2.5 text-center font-extrabold text-ink">
+                  <td key={b.id} className="border-t border-l border-border p-2.5 text-center font-extrabold text-ink">
                     {row.render(b)}
                   </td>
                 ))}
@@ -71,17 +90,12 @@ export default function PlannedComparePage() {
           </tbody>
         </table>
       </div>
-      <p className="text-center text-[11.5px] text-ink-soft">{t('plannedDetail.compareHint')}</p>
-      <div className="flex gap-2">
+      <p className="text-center text-2xs text-ink-soft">{t('plannedDetail.compareHint')}</p>
+      <div className="flex flex-col gap-2 sm:flex-row">
         {order.bids.map((b) => (
-          <button
-            key={b.id}
-            type="button"
-            onClick={() => setSelected(b)}
-            className="flex-1 rounded-pill border-[1.5px] border-primary p-3 text-[12.5px] font-extrabold text-primary"
-          >
+          <Button key={b.id} variant="secondary" fullWidth onClick={() => setSelected(b)}>
             {t('plannedDetail.select')} {b.master.name}
-          </button>
+          </Button>
         ))}
       </div>
     </div>

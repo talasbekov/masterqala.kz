@@ -2,6 +2,16 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
+import {
+  Alert,
+  ArrowLeftIcon,
+  Badge,
+  Button,
+  Card,
+  IconButton,
+  PlusIcon,
+  Textarea,
+} from '@masterqala/ui';
 import { api, apiUpload } from '@/lib/api';
 
 interface Dispute {
@@ -21,6 +31,7 @@ export default function DisputeView({ kind }: { kind: 'orders' | 'planned-orders
   const [freePilot, setFreePilot] = useState(false);
   const [category, setCategory] = useState<(typeof CATEGORY_KEYS)[number]>('categoryQuality');
   const [text, setText] = useState('');
+  const [textError, setTextError] = useState('');
   const [evidenceCount, setEvidenceCount] = useState(0);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -35,6 +46,11 @@ export default function DisputeView({ kind }: { kind: 'orders' | 'planned-orders
   }, [id, kind]);
 
   async function send() {
+    if (!text.trim()) {
+      setTextError(t('dispute.textRequired'));
+      return;
+    }
+    setTextError('');
     setError('');
     setSubmitting(true);
     try {
@@ -62,96 +78,91 @@ export default function DisputeView({ kind }: { kind: 'orders' | 'planned-orders
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-[560px] flex-col gap-3 px-5 pb-3.5 pt-1.5">
+    <div className="mx-auto flex w-full max-w-xl flex-col gap-3 px-5 pt-1.5 pb-3.5 sm:px-8 sm:py-6">
       <div className="flex items-center gap-2.5">
-        <button type="button" onClick={() => router.back()} className="text-xl text-primary">
-          ←
-        </button>
-        <span className="flex-1 text-[17px] font-extrabold text-ink">{t('dispute.title', { id: id?.slice(0, 8) })}</span>
-        {dispute && (
-          <span className="rounded-pill bg-warning-bg px-2.5 py-1 text-[11px] font-extrabold text-warning-ink">
-            {t('dispute.opened')}
-          </span>
-        )}
+        <IconButton label={t('common.back')} icon={<ArrowLeftIcon size={20} />} onClick={() => router.back()} />
+        <h1 className="flex-1 text-base font-extrabold text-ink">{t('dispute.title', { id: id?.slice(0, 8) })}</h1>
+        {dispute && <Badge tone="warning">{t('dispute.opened')}</Badge>}
       </div>
 
       {!dispute && (
         <>
-          <div className="text-sm font-extrabold text-ink">{t('dispute.reasonLabel')}</div>
-          <div className="flex flex-wrap gap-1.5">
+          <p className="text-sm font-extrabold text-ink">{t('dispute.reasonLabel')}</p>
+          <div className="flex flex-wrap gap-1.5" role="group" aria-label={t('dispute.reasonLabel')}>
             {CATEGORY_KEYS.map((key) => (
-              <button
+              <Button
                 key={key}
-                type="button"
+                size="sm"
+                variant={category === key ? 'primary' : 'secondary'}
+                aria-pressed={category === key}
                 onClick={() => setCategory(key)}
-                className={`rounded-pill px-3.5 py-1.5 text-xs font-bold ${
-                  category === key ? 'bg-primary text-white' : 'border-[1.5px] border-border text-ink-soft'
-                }`}
               >
                 {t(`dispute.${key}`)}
-              </button>
+              </Button>
             ))}
           </div>
-          <textarea
+          <Textarea
+            label={t('dispute.detailsLabel')}
+            required
+            rows={4}
             value={text}
+            error={textError}
             onChange={(e) => setText(e.target.value)}
             placeholder={t('dispute.placeholder')}
-            className="min-h-24 rounded-md border-[1.5px] border-border bg-surface p-3.5 text-sm text-ink outline-none placeholder:text-muted"
           />
-          <div className="rounded-md bg-fill p-3 text-xs font-semibold leading-relaxed text-ink">
+          <p className="rounded-md bg-surface-sunken p-3 text-xs leading-relaxed font-semibold text-on-fill">
             {freePilot
               ? 'Мастер сможет дать пояснение, после чего оператор рассмотрит спор. Платформа не может вернуть оплату, переданную мастеру напрямую, но может зафиксировать нарушение, ограничить мастера и помочь сторонам урегулировать ситуацию.'
               : t('dispute.note')}
-          </div>
-          {error && <p className="text-sm font-semibold text-danger">{error}</p>}
+          </p>
+          {error && <Alert tone="danger">{error}</Alert>}
           <div className="mt-auto" />
-          <button
-            type="button"
-            onClick={send}
-            disabled={submitting || !text}
-            className="rounded-pill bg-primary p-4 text-[15px] font-extrabold text-white disabled:opacity-40"
-          >
+          <Button size="lg" fullWidth loading={submitting} onClick={send}>
             {t('dispute.send')}
-          </button>
+          </Button>
         </>
       )}
 
       {dispute && (
         <>
-          <div className="rounded-md border border-border bg-surface p-3.5">
-            <div className="text-sm font-extrabold text-ink">{dispute.reason}</div>
+          <Card>
+            <p className="text-sm font-extrabold text-ink">{dispute.reason}</p>
             {evidenceCount > 0 && (
-              <div className="mt-1 text-xs text-ink-soft">{t('common.photosCount', { n: evidenceCount })}</div>
+              <p className="mt-1 text-xs text-ink-soft">{t('common.photosCount', { n: evidenceCount })}</p>
             )}
-          </div>
-          <div className="text-sm font-extrabold text-ink">
-            {t('dispute.evidenceLabel')} <span className="text-xs font-semibold text-ink-soft">{t('dispute.evidenceHint')}</span>
-          </div>
-          <label className="flex h-16 w-16 cursor-pointer items-center justify-center rounded-md border-[1.5px] border-dashed border-primary text-xl text-primary">
-            ＋
+          </Card>
+          <p className="text-sm font-extrabold text-ink">
+            {t('dispute.evidenceLabel')}{' '}
+            <span className="text-xs font-semibold text-ink-soft">{t('dispute.evidenceHint')}</span>
+          </p>
+          <label className="flex size-16 cursor-pointer items-center justify-center rounded-md border border-dashed border-primary text-primary">
+            <PlusIcon size={22} />
+            <span className="sr-only">{t('dispute.addEvidence')}</span>
             <input
               type="file"
               accept="image/jpeg,image/png"
-              className="hidden"
+              className="sr-only"
               onChange={(e) => e.target.files?.[0] && uploadEvidence(e.target.files[0])}
             />
           </label>
-          {error && <p className="text-sm font-semibold text-danger">{error}</p>}
-          <div className="flex flex-col gap-2 text-xs">
-            <div className="flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-success" />
+          {error && <Alert tone="danger">{error}</Alert>}
+          <ol className="flex flex-col gap-2 text-xs">
+            <li className="flex items-center gap-2">
+              <span className="size-2 rounded-full bg-success" aria-hidden="true" />
               <span className="font-bold text-ink">{t('dispute.sentAt')}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="h-2 w-2 animate-pulse rounded-full bg-primary" />
+            </li>
+            <li className="flex items-center gap-2">
+              <span className="size-2 animate-pulse rounded-full bg-primary" aria-hidden="true" />
               <span className="font-bold text-ink">{t('dispute.waitingMaster')}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-border" />
+            </li>
+            <li className="flex items-center gap-2">
+              <span className="size-2 rounded-full bg-border" aria-hidden="true" />
               <span className="font-semibold text-ink-soft">{t('dispute.waitingOperator')}</span>
-            </div>
-          </div>
-          <div className="rounded-md bg-fill p-3 text-xs font-semibold leading-relaxed text-ink">{t('dispute.pausedNote')}</div>
+            </li>
+          </ol>
+          <p className="rounded-md bg-surface-sunken p-3 text-xs leading-relaxed font-semibold text-on-fill">
+            {t('dispute.pausedNote')}
+          </p>
         </>
       )}
     </div>

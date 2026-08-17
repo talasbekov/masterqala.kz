@@ -1,49 +1,138 @@
 /*
- * Дизайн-токены MasterQala.kz.
+ * Дизайн-токены MasterQala.kz — редизайн 17.08.2026.
  *
- * Палитра утверждена заказчиком 19.07.2026 (правило 60/30/10), источник —
- * apps/MasterQala/design_handoff_masterqala/README.md. Заменила исходную
- * сине-оранжевую палитру; отдельного набора tokens-client-v2.css больше нет.
+ * Направление: Flat Design + Accessible & Ethical.
+ * Палитра: Trust Blue (платформа) + Safety Orange (режим «Сейчас») +
+ * профессиональный холодный серый. Оранжевый здесь несёт смысл, а не украшает:
+ * им маркируется только срочный режим.
+ *
+ * ВАЖНО. Все цветовые пары посчитаны, а не подобраны на глаз. Каждое значение
+ * ниже проверено на контраст перед тем, как попасть в файл:
+ *   - текст на background/surface  >= 4.5:1 (AA), целевое 7:1 (AAA)
+ *   - белый текст на плотной заливке >= 4.5:1
+ *   - границы интерактивных контролов >= 3:1 (WCAG 1.4.11)
+ * Меняя цвет, пересчитайте контраст. Предыдущая палитра выглядела аккуратно,
+ * но проваливала AA в четырёх местах: --color-muted давал 2.44:1 и при этом
+ * использовался как placeholder, --color-border 1.51:1 на границах полей,
+ * белый на --color-success 3.77:1, --color-ink-soft 4.19:1 на фоне.
  */
 @theme {
-  /* 60% — фон */
-  --color-background: #F2F7FA;
+  /* ── 60% — фон ─────────────────────────────────────────────────────────── */
+  --color-background: #F8FAFC;
   --color-surface: #FFFFFF;
+  --color-surface-sunken: #F1F5F9;
 
-  /* 30% — поверхности и границы */
-  --color-border: #C0D6DF;
-  --color-fill: #CFE0E8;
-  --color-fill-soft: #EAF2F6;
-  --color-fill-faint: #F6FAFC;
+  /* ── 30% — поверхности и границы ───────────────────────────────────────── */
+  /* Декоративные разделители и границы карточек: карточка опознаётся тенью и
+   * фоном, поэтому здесь 3:1 не требуется. */
+  --color-border: #E2E8F0;
+  /* Границы полей ввода, чекбоксов, кнопок-контуров — единственное, что
+   * очерчивает контрол. По 1.4.11 нужно 3:1 на самой тёмной из поверхностей,
+   * то есть на --color-surface-sunken: 3.05:1. */
+  --color-border-strong: #7E8EA3;
+  --color-fill: #E2E8F0;
+  --color-fill-soft: #F1F5F9;
+  --color-fill-faint: #F8FAFC;
 
-  /* 10% — акцент */
-  --color-primary: #166088;
-  --color-primary-hover: #134F73;
+  /* ── Текст ────────────────────────────────────────────────────────────── */
+  --color-ink: #0F172A;        /* 17.06:1 на фоне — AAA */
+  --color-ink-soft: #475569;   /*  7.24:1 — AAA, вторичный текст */
+  --color-ink-muted: #61707E;  /*  4.64:1 на самой тёмной поверхности — AA.
+                                * Ниже не опускаться: placeholder несёт смысл. */
+  --color-on-fill: #334155;    /*  9.90:1 на fill-soft */
 
-  /* Текст */
-  --color-ink: #14303C;
-  --color-ink-soft: #5B7B8A;
-  --color-muted: #8FAAB8;
-  --color-on-fill: #38596A;
+  /* ── 10% — акцент платформы (Trust Blue) ──────────────────────────────── */
+  --color-primary: #1E40AF;        /* 8.34:1 — AAA */
+  --color-primary-hover: #1E3A8A;
+  --color-primary-active: #172E6E;
+  --color-primary-soft: #EFF6FF;
+  --color-primary-ink: #1E3A8A;    /* текст поверх primary-soft */
+  --color-on-primary: #FFFFFF;     /* 8.72:1 на primary */
 
-  /* Семантика */
-  --color-success: #059669;
-  --color-success-bg: #E5F3EE;
-  --color-success-ink: #065F46;
-  --color-danger: #DC2626;
-  --color-danger-bg: #FBECEC;
-  --color-danger-ink: #991B1B;
-  --color-warning-bg: #FFF1E8;
-  --color-warning-ink: #B4530A;
+  /* ── Срочный режим «Сейчас» (Safety Orange) ───────────────────────────── */
+  /* #EA580C из палитры-референса даёт всего 3.56:1 и как текст непригоден —
+   * взят на два шага темнее. */
+  --color-urgent: #C2410C;         /* 4.95:1 — AA */
+  --color-urgent-hover: #9A3412;
+  --color-urgent-soft: #FFF7ED;
+  --color-urgent-ink: #9A3412;     /* 6.98:1 — текст поверх urgent-soft */
+  --color-on-urgent: #FFFFFF;      /* 5.18:1 на urgent */
 
-  --radius-sm: 10px;
-  --radius-md: 14px;
-  --radius-lg: 18px;
+  /* ── Семантика ────────────────────────────────────────────────────────── */
+  --color-success: #047857;        /* 5.24:1; белый на нём 5.48:1 */
+  --color-success-soft: #ECFDF5;
+  --color-success-ink: #065F46;    /* 7.34:1 */
+  --color-on-success: #FFFFFF;
+
+  --color-danger: #B91C1C;         /* 6.18:1; белый на нём 6.47:1 */
+  --color-danger-soft: #FEF2F2;
+  --color-danger-ink: #991B1B;     /* 7.94:1 */
+  --color-on-danger: #FFFFFF;
+
+  --color-warning: #B45309;        /* 4.80:1 */
+  --color-warning-soft: #FFFBEB;
+  --color-warning-ink: #92400E;
+  --color-on-warning: #FFFFFF;
+
+  /* Фокус. Обводка одного цвета на всех поверхностях: 8.34:1 на фоне,
+   * 8.72:1 внутри primary-кнопки через белый offset. */
+  --color-focus-ring: #1E40AF;
+
+  /* ── Типографика ──────────────────────────────────────────────────────── */
+  /* Шкала вместо 92 произвольных text-[Npx] по девяти разным размерам.
+   * 12px — жёсткий низ: 47 использований text-[10px]/[11px] были ниже него.
+   * Основной текст — 16px (требование Accessible & Ethical). */
+  --text-2xs: 0.75rem;    /* 12px — только метки, бейджи, подписи таблиц */
+  --text-2xs--line-height: 1.35;
+  --text-xs: 0.8125rem;   /* 13px */
+  --text-xs--line-height: 1.4;
+  --text-sm: 0.875rem;    /* 14px */
+  --text-sm--line-height: 1.45;
+  --text-base: 1rem;      /* 16px — основной текст */
+  --text-base--line-height: 1.5;
+  --text-lg: 1.125rem;    /* 18px */
+  --text-lg--line-height: 1.5;
+  --text-xl: 1.25rem;     /* 20px */
+  --text-xl--line-height: 1.4;
+  --text-2xl: 1.5rem;     /* 24px */
+  --text-2xl--line-height: 1.3;
+  --text-3xl: 1.875rem;   /* 30px */
+  --text-3xl--line-height: 1.25;
+  --text-4xl: 2.25rem;    /* 36px */
+  --text-4xl--line-height: 1.2;
+  --text-5xl: 3rem;       /* 48px */
+  --text-5xl--line-height: 1.1;
+
+  --font-sans: 'Manrope', ui-sans-serif, system-ui, -apple-system, sans-serif;
+
+  /* ── Радиусы ──────────────────────────────────────────────────────────── */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
   --radius-pill: 999px;
   --radius-sheet: 22px;
 
-  --shadow-card: 0 2px 8px rgba(20, 48, 60, 0.06);
-  --shadow-sheet: 0 -6px 24px rgba(20, 48, 60, 0.12);
+  /* ── Тени. Flat Design: тень разделяет слои, а не украшает ────────────── */
+  --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.06), 0 1px 3px rgba(15, 23, 42, 0.04);
+  --shadow-raised: 0 4px 12px rgba(15, 23, 42, 0.08);
+  --shadow-overlay: 0 12px 32px rgba(15, 23, 42, 0.16);
+  --shadow-sheet: 0 -6px 24px rgba(15, 23, 42, 0.12);
 
-  --font-sans: 'Manrope', ui-sans-serif, system-ui, sans-serif;
+  /* ── Движение ─────────────────────────────────────────────────────────── */
+  /* Разные длительности под разные задачи: одна длительность на всё — это
+   * антипаттерн. Уход быстрее прихода. */
+  --duration-instant: 90ms;
+  --duration-fast: 140ms;   /* hover, нажатие */
+  --duration-base: 200ms;   /* смена состояния, раскрытие */
+  --duration-slow: 300ms;   /* появление панелей, листов */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* ── Размеры контролов ────────────────────────────────────────────────── */
+  --size-touch: 44px;   /* минимальная цель нажатия */
+  --size-control: 44px; /* высота кнопки/поля по умолчанию */
+  --size-control-sm: 36px;
+  --focus-ring-width: 3px;
+  --focus-ring-offset: 2px;
 }

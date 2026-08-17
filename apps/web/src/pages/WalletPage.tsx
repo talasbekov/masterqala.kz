@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import { Alert, Badge, Button, Card, EmptyState, Input, WalletIcon } from '@masterqala/ui';
+import type { BadgeTone } from '@masterqala/ui';
 import { api } from '../api';
 import { useCommercialMode } from '../commercial-mode';
 
@@ -6,6 +8,12 @@ const STATUS_LABELS: Record<string, string> = {
   PENDING: 'В обработке',
   PAID: 'Выплачено',
   FAILED: 'Отклонено',
+};
+
+const STATUS_TONES: Record<string, BadgeTone> = {
+  PENDING: 'warning',
+  PAID: 'success',
+  FAILED: 'danger',
 };
 
 export default function WalletPage() {
@@ -42,47 +50,62 @@ export default function WalletPage() {
   if (!payoutsEnabled) {
     return (
       <div className="mx-auto max-w-sm space-y-4 p-6">
-        <h1 className="text-2xl font-bold">Кошелёк</h1>
-        <div className="rounded-xl border border-teal-200 bg-teal-50 p-5 text-center">
-          <div className="text-lg font-bold text-teal-800">Расчёт напрямую с клиентом</div>
-          <p className="mt-2 text-sm text-gray-600">
+        <h1 className="text-2xl font-bold text-ink">Кошелёк</h1>
+        <Card padding="lg" className="text-center">
+          <div className="text-lg font-bold text-ink">Расчёт напрямую с клиентом</div>
+          <p className="mt-2 text-sm text-ink-soft">
             В бесплатном пилоте платформа не принимает деньги и не формирует баланс для вывода.
           </p>
-        </div>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className="mx-auto max-w-sm p-6 space-y-4">
-      <h1 className="text-2xl font-bold">Кошелёк</h1>
-      <div className="rounded-xl bg-teal-50 p-4 text-center">
-        <div className="text-3xl font-bold text-teal-700">{balance} ₸</div>
-        <div className="text-sm text-gray-600">доступно к выводу</div>
-      </div>
+    <div className="mx-auto max-w-sm space-y-4 p-6">
+      <h1 className="text-2xl font-bold text-ink">Кошелёк</h1>
+      <Card className="bg-primary-soft text-center">
+        <div className="text-3xl font-bold text-primary-ink">{balance} ₸</div>
+        <div className="text-sm text-primary-ink">доступно к выводу</div>
+      </Card>
       <div className="space-y-2">
-        <input
-          type="number" min="5000" placeholder="Сумма вывода, ₸"
-          className="w-full rounded border p-3" value={amount} onChange={(e) => setAmount(e.target.value)}
+        <Input
+          label="Сумма вывода, ₸"
+          type="number"
+          min={5000}
+          hint="Минимальная сумма вывода — 5000 ₸"
+          value={amount}
+          onChange={(e) => setAmount(e.target.value)}
         />
-        {error && <p className="text-sm text-red-600">{error}</p>}
-        <button
-          className="w-full rounded bg-teal-700 p-3 text-white disabled:opacity-40"
-          disabled={!Number(amount) || Number(amount) < 5000 || submitting}
+        {error && <Alert tone="danger">{error}</Alert>}
+        <Button
+          fullWidth
+          loading={submitting}
+          loadingLabel="Отправляем…"
+          disabled={!Number(amount) || Number(amount) < 5000}
           onClick={submit}
         >
-          {submitting ? 'Отправляем…' : 'Вывести'}
-        </button>
+          Вывести
+        </Button>
       </div>
       <div className="space-y-2">
-        <h2 className="font-semibold">История</h2>
-        {history.length === 0 && <p className="text-gray-500">Заявок пока нет</p>}
-        {history.map((w) => (
-          <div key={w.id} className="flex justify-between rounded-xl border p-3">
-            <span>{w.amount} ₸</span>
-            <span className="text-sm text-gray-500">{STATUS_LABELS[w.status]}</span>
-          </div>
-        ))}
+        <h2 className="font-bold text-ink">История</h2>
+        {history.length === 0 ? (
+          <EmptyState
+            icon={<WalletIcon size={32} />}
+            title="Заявок пока нет"
+            subtitle="Здесь появятся ваши запросы на вывод средств."
+          />
+        ) : (
+          history.map((w) => (
+            <Card key={w.id} padding="sm" className="flex items-center justify-between gap-3">
+              <span className="font-semibold text-ink">{w.amount} ₸</span>
+              <Badge tone={STATUS_TONES[w.status] ?? 'neutral'}>
+                {STATUS_LABELS[w.status] ?? w.status}
+              </Badge>
+            </Card>
+          ))
+        )}
       </div>
     </div>
   );

@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Alert, Button, Card, Input, PlusIcon, StarIcon, TrashIcon } from '@masterqala/ui';
 import { api } from '@/lib/api';
 
 interface Address {
@@ -22,6 +23,9 @@ export default function AddressesPage() {
   const [editingId, setEditingId] = useState<string | 'new' | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [error, setError] = useState('');
+  /* Ошибки полей живут отдельно от ошибки запроса: они встают у самого поля и
+   * связываются с ним через aria-describedby (см. Field в @masterqala/ui). */
+  const [fieldErrors, setFieldErrors] = useState<{ label?: string; address?: string }>({});
   const [submitting, setSubmitting] = useState(false);
   const [loaded, setLoaded] = useState(false);
 
@@ -53,16 +57,24 @@ export default function AddressesPage() {
       isDefault: a.isDefault,
     });
     setError('');
+    setFieldErrors({});
     setEditingId(a.id);
   }
   function startNew() {
     setForm(emptyForm);
     setError('');
+    setFieldErrors({});
     setEditingId('new');
   }
 
   async function save() {
     setError('');
+    const nextErrors: { label?: string; address?: string } = {};
+    if (!form.label.trim()) nextErrors.label = t('addresses.labelRequired');
+    if (!form.address.trim()) nextErrors.address = t('addresses.addressRequired');
+    setFieldErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) return;
+
     setSubmitting(true);
     try {
       const body = JSON.stringify({
@@ -103,115 +115,116 @@ export default function AddressesPage() {
   }
 
   return (
-    <div className="flex flex-col gap-4 px-8 py-6">
-      <span className="text-xl font-extrabold text-ink">{t('addresses.title')}</span>
-      <div className="flex gap-6">
-        <div className="flex w-[360px] shrink-0 flex-col gap-2">
+    <div className="flex flex-col gap-4 px-5 py-6 sm:px-8">
+      <h1 className="text-xl font-extrabold text-ink">{t('addresses.title')}</h1>
+      {/* Ниже lg колонки складываются: фиксированные 360px + 420px не помещались
+       * уже на 1100px и резали форму. */}
+      <div className="flex flex-col gap-6 lg:flex-row">
+        <div className="flex flex-col gap-2 lg:w-[360px] lg:shrink-0">
           {addresses.length === 0 && (
-            <div className="rounded-lg border-[1.5px] border-dashed border-border bg-surface p-6 text-center text-sm font-semibold text-ink-soft">
+            <p className="rounded-lg border border-dashed border-border bg-surface p-6 text-center text-sm font-semibold text-ink-soft">
               {t('addresses.empty')}
-            </div>
+            </p>
           )}
-          {addresses.map((a) => (
-            <button
-              key={a.id}
-              type="button"
-              onClick={() => startEdit(a)}
-              className={`rounded-md border px-3.5 py-3.5 text-left ${
-                editingId === a.id ? 'border-primary bg-fill-soft' : 'border-border bg-surface'
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-extrabold text-ink">
-                  {a.label} {a.isDefault && '★'}
-                </span>
-                <span className="text-xs font-extrabold text-primary">{t('addresses.change')}</span>
-              </div>
-              <div className="mt-0.5 text-xs text-ink-soft">
-                {a.address}
-                {a.entrance && ` · под. ${a.entrance}`}
-                {a.floor && `, эт. ${a.floor}`}
-                {a.apartment && `, кв. ${a.apartment}`}
-              </div>
-            </button>
-          ))}
-          <button
-            type="button"
-            onClick={startNew}
-            className="rounded-md border-[1.5px] border-dashed border-primary p-3.5 text-center text-sm font-extrabold text-primary"
-          >
-            ＋ {t('addresses.addNew')}
-          </button>
+          <ul className="flex flex-col gap-2">
+            {addresses.map((a) => (
+              <li
+                key={a.id}
+                aria-current={editingId === a.id ? 'true' : undefined}
+                className={`rounded-md border px-3.5 py-3 transition-colors duration-(--duration-fast) ease-(--ease-out) ${
+                  editingId === a.id ? 'border-primary bg-primary-soft' : 'border-border bg-surface'
+                }`}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="flex items-center gap-1 text-sm font-extrabold text-ink">
+                    {a.label}
+                    {a.isDefault && (
+                      <StarIcon size={16} filled className="text-primary" title={t('addresses.defaultBadge')} />
+                    )}
+                  </span>
+                  <Button size="sm" variant="ghost" onClick={() => startEdit(a)}>
+                    {t('addresses.change')}
+                  </Button>
+                </div>
+                <p className="mt-0.5 text-xs text-ink-soft">
+                  {a.address}
+                  {a.entrance && ` · под. ${a.entrance}`}
+                  {a.floor && `, эт. ${a.floor}`}
+                  {a.apartment && `, кв. ${a.apartment}`}
+                </p>
+              </li>
+            ))}
+          </ul>
+          <Button variant="secondary" fullWidth icon={<PlusIcon size={18} />} onClick={startNew}>
+            {t('addresses.addNew')}
+          </Button>
         </div>
-        <div className="flex w-[420px] flex-col gap-3 rounded-lg border border-border bg-surface p-5">
-          <span className="text-sm font-extrabold text-ink">
+
+        <Card padding="lg" className="flex flex-col gap-3 lg:w-[420px]" as="section">
+          <h2 className="text-sm font-extrabold text-ink">
             {editingId === 'new' ? t('addresses.addTitle') : t('addresses.editTitle')}
-          </span>
-          <input
+          </h2>
+          <Input
+            label={t('addresses.labelLabel')}
+            required
             value={form.label}
+            error={fieldErrors.label}
             onChange={(e) => setForm({ ...form, label: e.target.value })}
             placeholder={t('addresses.labelPlaceholder')}
-            className="rounded-md border-[1.5px] border-border bg-surface p-3 text-sm text-ink outline-none placeholder:text-muted"
           />
-          <input
+          <Input
+            label={t('addresses.addressLabel')}
+            required
             value={form.address}
+            error={fieldErrors.address}
             onChange={(e) => setForm({ ...form, address: e.target.value })}
             placeholder={t('addresses.addressPlaceholder')}
-            className="rounded-md border-[1.5px] border-border bg-surface p-3 text-sm text-ink outline-none placeholder:text-muted"
           />
           <div className="grid grid-cols-3 gap-2">
-            <input
+            <Input
+              label={t('addresses.entrance')}
               value={form.entrance}
+              inputMode="numeric"
               onChange={(e) => setForm({ ...form, entrance: e.target.value })}
-              placeholder={t('addresses.entrance')}
-              className="rounded-md border-[1.5px] border-border bg-surface p-2.5 text-center text-sm text-ink outline-none placeholder:text-muted"
             />
-            <input
+            <Input
+              label={t('addresses.floor')}
               value={form.floor}
+              inputMode="numeric"
               onChange={(e) => setForm({ ...form, floor: e.target.value })}
-              placeholder={t('addresses.floor')}
-              className="rounded-md border-[1.5px] border-border bg-surface p-2.5 text-center text-sm text-ink outline-none placeholder:text-muted"
             />
-            <input
+            <Input
+              label={t('addresses.apartment')}
               value={form.apartment}
+              inputMode="numeric"
               onChange={(e) => setForm({ ...form, apartment: e.target.value })}
-              placeholder={t('addresses.apartment')}
-              className="rounded-md border-[1.5px] border-border bg-surface p-2.5 text-center text-sm text-ink outline-none placeholder:text-muted"
             />
           </div>
-          <input
+          <Input
+            label={t('addresses.commentLabel')}
             value={form.comment}
             onChange={(e) => setForm({ ...form, comment: e.target.value })}
             placeholder={t('addresses.commentPlaceholder')}
-            className="rounded-md border-[1.5px] border-border bg-surface p-3 text-sm text-ink outline-none placeholder:text-muted"
           />
-          <label className="flex items-center gap-2 text-sm font-semibold text-ink">
+          <label className="flex min-h-11 items-center gap-2 text-sm font-semibold text-ink">
             <input
               type="checkbox"
+              className="size-4.5 accent-primary"
               checked={form.isDefault}
               onChange={(e) => setForm({ ...form, isDefault: e.target.checked })}
             />
             {t('addresses.setDefault')}
           </label>
-          {error && <p className="text-sm font-semibold text-danger">{error}</p>}
-          <button
-            type="button"
-            onClick={save}
-            disabled={submitting || !form.label || !form.address}
-            className="rounded-pill bg-primary p-3.5 text-sm font-extrabold text-white disabled:opacity-40"
-          >
+          {error && <Alert tone="danger">{error}</Alert>}
+          <Button fullWidth loading={submitting} loadingLabel={t('common.saving')} onClick={save}>
             {t('addresses.save')}
-          </button>
+          </Button>
           {editingId !== 'new' && editingId != null && (
-            <button
-              type="button"
-              onClick={() => remove(editingId)}
-              className="rounded-pill border-[1.5px] border-danger p-3 text-sm font-extrabold text-danger"
-            >
+            <Button variant="danger" fullWidth icon={<TrashIcon size={18} />} onClick={() => remove(editingId)}>
               {t('addresses.delete')}
-            </button>
+            </Button>
           )}
-        </div>
+        </Card>
       </div>
     </div>
   );

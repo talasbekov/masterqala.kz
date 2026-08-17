@@ -1,7 +1,8 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
+import { Alert, ArrowLeftIcon, Button, Input, Spinner } from '@masterqala/ui';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 
@@ -21,9 +22,10 @@ export default function LoginPage() {
   const [phone, setPhone] = useState('');
   const [code, setCode] = useState('');
   const [error, setError] = useState('');
+  const [phoneError, setPhoneError] = useState('');
+  const [codeError, setCodeError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [resendIn, setResendIn] = useState(60);
-  const codeInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (step !== 'splash') return;
@@ -40,6 +42,11 @@ export default function LoginPage() {
   const normalizedPhone = `+7${phone.replace(/\D/g, '').slice(-10)}`;
 
   async function requestCode() {
+    if (phone.replace(/\D/g, '').length < 10) {
+      setPhoneError(t('auth.phoneInvalid'));
+      return;
+    }
+    setPhoneError('');
     setError('');
     setSubmitting(true);
     try {
@@ -54,6 +61,11 @@ export default function LoginPage() {
   }
 
   async function verify() {
+    if (code.length < 6) {
+      setCodeError(t('auth.codeInvalid'));
+      return;
+    }
+    setCodeError('');
     setError('');
     setSubmitting(true);
     try {
@@ -72,113 +84,98 @@ export default function LoginPage() {
 
   if (step === 'splash') {
     return (
-      <button
-        type="button"
-        onClick={() => setStep('phone')}
-        className="flex min-h-screen w-full flex-col items-center justify-center gap-4.5 bg-primary"
-      >
-        <div className="flex h-22 w-22 items-center justify-center rounded-lg bg-white text-4xl font-extrabold text-primary">
+      <div className="flex min-h-screen w-full flex-col items-center justify-center gap-4 bg-primary px-6">
+        <span className="flex size-22 items-center justify-center rounded-lg bg-surface text-4xl font-extrabold text-primary">
           M
-        </div>
-        <div className="text-[28px] font-extrabold tracking-tight text-white">MasterQala</div>
-        <div className="text-sm text-fill">{t('auth.splashTagline')}</div>
-        <div className="mt-3 h-6.5 w-6.5 animate-spin rounded-full border-[3px] border-fill border-t-white" />
-      </button>
+        </span>
+        <p className="text-2xl font-extrabold tracking-tight text-on-primary sm:text-3xl">MasterQala</p>
+        <p className="text-sm text-on-primary">{t('auth.splashTagline')}</p>
+        <Spinner size={26} label={t('common.loading')} className="mt-3 text-on-primary" />
+        <Button variant="secondary" className="mt-3" onClick={() => setStep('phone')}>
+          {t('auth.splashSkip')}
+        </Button>
+      </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen flex-col gap-3.5 bg-background px-6 py-5.5">
+    <main id="main" className="mx-auto flex min-h-screen w-full max-w-xl flex-col gap-3.5 bg-background px-6 py-6">
       {step === 'sms' && (
-        <button
-          type="button"
+        <Button
+          variant="ghost"
+          size="sm"
+          className="self-start"
+          icon={<ArrowLeftIcon size={18} />}
           onClick={() => setStep('phone')}
-          className="self-start text-sm font-extrabold text-primary"
         >
-          ← {t('auth.changeNumber')}
-        </button>
+          {t('auth.changeNumber')}
+        </Button>
       )}
 
       {step === 'phone' && (
         <>
-          <div className="mt-6 text-[26px] font-extrabold leading-tight text-ink">{t('auth.phoneTitle')}</div>
-          <div className="text-sm text-ink-soft">{t('auth.phoneSubtitle')}</div>
-          <div className="mt-2 flex items-center gap-2 rounded-md border-[1.5px] border-border bg-surface px-4 py-3.5">
-            <span className="text-[17px] font-extrabold text-ink">+7</span>
-            <input
-              className="flex-1 bg-transparent text-[17px] font-bold text-ink outline-none placeholder:text-muted"
-              placeholder={t('auth.phonePlaceholder')}
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              inputMode="numeric"
-              autoFocus
-            />
-          </div>
-          <div className="text-xs leading-normal text-ink-soft">
+          <h1 className="mt-6 text-2xl leading-tight font-extrabold text-ink sm:text-3xl">{t('auth.phoneTitle')}</h1>
+          <p className="text-sm text-ink-soft">{t('auth.phoneSubtitle')}</p>
+          <Input
+            label={t('auth.phoneLabel')}
+            prefix="+7"
+            required
+            className="font-bold"
+            fieldClassName="mt-2"
+            placeholder={t('auth.phonePlaceholder')}
+            value={phone}
+            error={phoneError}
+            onChange={(e) => setPhone(e.target.value)}
+            inputMode="numeric"
+            autoComplete="tel-national"
+            autoFocus
+          />
+          <p className="text-xs leading-normal text-ink-soft">
             {t('auth.termsPrefix')} <span className="font-bold text-primary">{t('auth.termsLink')}</span>
-          </div>
-          {error && <p className="text-sm font-semibold text-danger">{error}</p>}
+          </p>
+          {error && <Alert tone="danger">{error}</Alert>}
           <div className="mt-auto" />
-          <button
-            type="button"
-            onClick={requestCode}
-            disabled={submitting || phone.replace(/\D/g, '').length < 10}
-            className="rounded-pill bg-primary p-4 text-base font-extrabold text-white disabled:opacity-40"
-          >
+          <Button fullWidth size="lg" loading={submitting} onClick={requestCode}>
             {t('auth.getCodeButton')}
-          </button>
+          </Button>
         </>
       )}
 
       {step === 'sms' && (
         <>
-          <div className="mt-2.5 text-[26px] font-extrabold leading-tight text-ink">{t('auth.smsTitle')}</div>
-          <div className="text-sm text-ink-soft">{t('auth.smsSubtitle', { phone: `+7 ${phone}` })}</div>
-          <div className="relative mt-2 w-fit" onClick={() => codeInputRef.current?.focus()}>
-            <div className="flex gap-1.5">
-              {[0, 1, 2, 3, 4, 5].map((i) => (
-                <div
-                  key={i}
-                  className={`flex h-14 w-10 items-center justify-center rounded-md border-[1.5px] bg-surface text-xl font-extrabold text-ink ${
-                    code[i] ? 'border-primary' : 'border-border'
-                  }`}
-                >
-                  {code[i] ?? ''}
-                </div>
-              ))}
-            </div>
-            <input
-              ref={codeInputRef}
-              type="text"
-              inputMode="numeric"
-              autoFocus
-              maxLength={6}
-              value={code}
-              onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-              className="absolute inset-0 opacity-0"
-            />
-          </div>
-          <div className="text-[13px] text-ink-soft">
+          <h1 className="mt-2.5 text-2xl leading-tight font-extrabold text-ink sm:text-3xl">{t('auth.smsTitle')}</h1>
+          <p className="text-sm text-ink-soft">{t('auth.smsSubtitle', { phone: `+7 ${phone}` })}</p>
+          {/* Раньше код набирался в шести декоративных квадратах поверх скрытого
+           * поля: у контрола не было ни подписи, ни видимого значения. */}
+          <Input
+            label={t('auth.codeLabel')}
+            required
+            fieldClassName="mt-2"
+            className="text-center text-xl font-extrabold tracking-[0.4em]"
+            value={code}
+            error={codeError}
+            onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            maxLength={6}
+            autoFocus
+          />
+          <div className="text-xs text-ink-soft">
             {resendIn > 0 ? (
               t('auth.resendIn', { time: formatTime(resendIn) })
             ) : (
-              <button type="button" onClick={requestCode} className="font-bold text-primary">
+              <Button variant="ghost" size="sm" onClick={requestCode}>
                 {t('auth.resendNow')}
-              </button>
+              </Button>
             )}
           </div>
-          {error && <p className="text-sm font-semibold text-danger">{error}</p>}
+          {error && <Alert tone="danger">{error}</Alert>}
           <div className="mt-auto" />
-          <button
-            type="button"
-            onClick={verify}
-            disabled={submitting || code.length < 6}
-            className="rounded-pill bg-primary p-4 text-base font-extrabold text-white disabled:opacity-40"
-          >
+          <Button fullWidth size="lg" loading={submitting} onClick={verify}>
             {t('auth.loginButton')}
-          </button>
+          </Button>
         </>
       )}
-    </div>
+    </main>
   );
 }

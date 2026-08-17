@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import { Alert, Button, Card, CheckIcon, Input, SkeletonList } from '@masterqala/ui';
 import {
   APPLICATION_STATUS_RU,
   DOCUMENT_TYPES,
@@ -19,6 +20,8 @@ export default function BecomeMasterPage() {
   const [form, setForm] = useState({ fullName: '', iin: '', district: '', experienceYears: 0 });
   const [selectedCats, setSelectedCats] = useState<string[]>([]);
   const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [uploading, setUploading] = useState('');
 
   async function load() {
     const cats = await fetchCategories();
@@ -38,88 +41,104 @@ export default function BecomeMasterPage() {
 
   async function submit() {
     setError('');
+    setSubmitting(true);
     try {
       await submitApplication({ ...form, experienceYears: Number(form.experienceYears), categoryIds: selectedCats });
       setEditing(false);
       await load();
     } catch (e) {
       setError((e as Error).message);
+    } finally {
+      setSubmitting(false);
     }
   }
 
   async function upload(type: string, file: File) {
     setError('');
+    setUploading(type);
     try {
       await uploadApplicationDocument(type, file);
       await load();
     } catch (e) {
       setError((e as Error).message);
+    } finally {
+      setUploading('');
     }
   }
 
-  if (!loaded) return <p className="p-8 text-ink-soft">Загрузка…</p>;
+  if (!loaded) {
+    return (
+      <div className="mx-auto w-full max-w-xl p-4 sm:p-6 md:p-8">
+        <SkeletonList rows={4} label="Загружаем анкету" />
+      </div>
+    );
+  }
 
   const showForm = editing || !app;
   const canUpload = app && (app.status === 'PENDING_REVIEW' || app.status === 'NEEDS_INFO');
   const canResubmit = app && (app.status === 'NEEDS_INFO' || app.status === 'REJECTED');
 
   return (
-    <div className="mx-auto max-w-[560px] space-y-4 p-8">
+    <div className="mx-auto w-full max-w-xl space-y-4 p-4 sm:p-6 md:p-8">
       <h1 className="text-xl font-extrabold text-ink">Анкета мастера</h1>
 
       {app && !editing && (
-        <div className="space-y-2 rounded-lg border border-border bg-surface p-4">
+        <Card className="space-y-2">
           <p className="font-extrabold text-ink">Статус: {APPLICATION_STATUS_RU[app.status]}</p>
           {app.status === 'REJECTED' && app.rejectionReason && (
-            <p className="text-sm text-danger">Причина: {app.rejectionReason}</p>
+            <Alert tone="danger" title="Анкета отклонена">
+              {app.rejectionReason}
+            </Alert>
           )}
           {app.status === 'NEEDS_INFO' && app.latestDecisionComment && (
-            <p className="text-sm text-ink-soft">Что нужно дополнить: {app.latestDecisionComment}</p>
+            <Alert tone="warning" title="Что нужно дополнить">
+              {app.latestDecisionComment}
+            </Alert>
           )}
           {canResubmit && (
-            <button
-              className="rounded-pill bg-primary px-4 py-2 text-sm font-extrabold text-white"
-              onClick={() => setEditing(true)}
-            >
+            <Button size="sm" onClick={() => setEditing(true)}>
               Подать заново
-            </button>
+            </Button>
           )}
-        </div>
+        </Card>
       )}
 
       {showForm && (
-        <div className="space-y-3 rounded-lg border border-border bg-surface p-5">
-          <input
-            className="w-full rounded-md border-[1.5px] border-border bg-surface p-3 text-sm text-ink outline-none placeholder:text-muted"
-            placeholder="ФИО полностью"
+        <Card padding="lg" className="space-y-3">
+          <Input
+            label="ФИО полностью"
+            autoComplete="name"
             value={form.fullName}
             onChange={(e) => setForm({ ...form, fullName: e.target.value })}
           />
-          <input
-            className="w-full rounded-md border-[1.5px] border-border bg-surface p-3 text-sm text-ink outline-none placeholder:text-muted"
-            placeholder="ИИН (12 цифр)"
+          <Input
+            label="ИИН"
+            hint="12 цифр"
+            inputMode="numeric"
+            maxLength={12}
             value={form.iin}
             onChange={(e) => setForm({ ...form, iin: e.target.value })}
           />
-          <input
-            className="w-full rounded-md border-[1.5px] border-border bg-surface p-3 text-sm text-ink outline-none placeholder:text-muted"
-            placeholder="Район"
+          <Input
+            label="Район"
             value={form.district}
             onChange={(e) => setForm({ ...form, district: e.target.value })}
           />
-          <input
-            className="w-full rounded-md border-[1.5px] border-border bg-surface p-3 text-sm text-ink outline-none placeholder:text-muted"
+          <Input
+            label="Опыт, лет"
             type="number"
-            placeholder="Опыт, лет"
+            min="0"
+            inputMode="numeric"
             value={form.experienceYears}
             onChange={(e) => setForm({ ...form, experienceYears: Number(e.target.value) })}
           />
           <fieldset className="space-y-1">
-            <legend className="text-sm font-extrabold text-ink">Категории</legend>
+            <legend className="text-sm font-bold text-ink">Категории</legend>
             {categories.map((c) => (
-              <label key={c.id} className="flex items-center gap-2 text-sm text-ink">
+              <label key={c.id} className="flex min-h-11 items-center gap-2 text-sm text-ink">
                 <input
                   type="checkbox"
+                  className="size-5 accent-primary"
                   checked={selectedCats.includes(c.id)}
                   onChange={(e) =>
                     setSelectedCats(
@@ -131,41 +150,52 @@ export default function BecomeMasterPage() {
               </label>
             ))}
           </fieldset>
-          <button
-            className="w-full rounded-pill bg-primary p-3.5 text-sm font-extrabold text-white"
-            onClick={submit}
-          >
+          <Button fullWidth loading={submitting} loadingLabel="Отправляем…" onClick={submit}>
             Отправить на проверку
-          </button>
-        </div>
+          </Button>
+        </Card>
       )}
 
       {canUpload && (
-        <div className="space-y-3 rounded-lg border border-border bg-surface p-5">
+        <Card padding="lg" className="space-y-4">
           <h2 className="text-sm font-extrabold text-ink">Документы</h2>
-          {DOCUMENT_TYPES.map((dt) => (
-            <div key={dt.value}>
-              <label className="block text-sm text-ink-soft">{dt.label}</label>
-              <input
-                type="file"
-                accept="image/jpeg,image/png,application/pdf"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  e.target.value = '';
-                  if (file) upload(dt.value, file);
-                }}
-              />
-              <ul className="text-sm text-ink-soft">
-                {app!.documents.filter((d) => d.type === dt.value).map((d) => (
-                  <li key={d.id}>✓ {d.originalName}</li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </div>
+          {DOCUMENT_TYPES.map((dt) => {
+            const inputId = `doc-${dt.value}`;
+            const uploaded = app!.documents.filter((d) => d.type === dt.value);
+            return (
+              <div key={dt.value} className="space-y-1.5">
+                <label htmlFor={inputId} className="block text-sm font-bold text-ink">
+                  {dt.label}
+                </label>
+                <input
+                  id={inputId}
+                  type="file"
+                  accept="image/jpeg,image/png,application/pdf"
+                  disabled={uploading === dt.value}
+                  className="block w-full text-sm text-ink-soft file:mr-3 file:min-h-11 file:rounded-pill file:border file:border-border-strong file:bg-surface file:px-4 file:text-sm file:font-bold file:text-ink"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    e.target.value = '';
+                    if (file) upload(dt.value, file);
+                  }}
+                />
+                {uploaded.length > 0 && (
+                  <ul className="space-y-1 text-sm text-ink-soft">
+                    {uploaded.map((d) => (
+                      <li key={d.id} className="flex items-center gap-1.5">
+                        <CheckIcon size={16} className="shrink-0 text-success" />
+                        {d.originalName}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            );
+          })}
+        </Card>
       )}
 
-      {error && <p className="text-sm text-danger">{error}</p>}
+      {error && <Alert tone="danger">{error}</Alert>}
     </div>
   );
 }

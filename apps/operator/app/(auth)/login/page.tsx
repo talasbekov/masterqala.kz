@@ -1,6 +1,7 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Alert, ArrowLeftIcon, Button, Input, Spinner } from '@masterqala/ui';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 
@@ -21,7 +22,6 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [resendIn, setResendIn] = useState(60);
-  const codeInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (step !== 'splash') return;
@@ -75,103 +75,111 @@ export default function LoginPage() {
         onClick={() => setStep('phone')}
         className="flex min-h-screen w-full flex-col items-center justify-center gap-4.5 bg-primary"
       >
-        <div className="flex h-22 w-22 items-center justify-center rounded-lg bg-white text-4xl font-extrabold text-primary">
+        <span className="flex h-22 w-22 items-center justify-center rounded-lg bg-surface text-4xl font-extrabold text-primary">
           M
-        </div>
-        <div className="text-[28px] font-extrabold tracking-tight text-white">MasterQala · Панель оператора</div>
-        <div className="text-sm text-fill">Заявки, пользователи, мастера и споры в одной панели</div>
-        <div className="mt-3 h-6.5 w-6.5 animate-spin rounded-full border-[3px] border-fill border-t-white" />
+        </span>
+        <span className="text-2xl font-extrabold tracking-tight text-on-primary">
+          MasterQala · Панель оператора
+        </span>
+        <span className="text-sm text-on-primary">
+          Заявки, пользователи, мастера и споры в одной панели
+        </span>
+        <span className="mt-3 text-on-primary">
+          <Spinner size={26} label="Загрузка" />
+        </span>
       </button>
     );
   }
 
   return (
-    <div className="flex min-h-screen flex-col gap-3.5 bg-background px-6 py-5.5">
+    <div className="mx-auto flex min-h-screen w-full max-w-md flex-col gap-3.5 bg-background px-6 py-5.5">
       {step === 'sms' && (
-        <button
-          type="button"
+        <Button
+          variant="ghost"
+          size="sm"
+          icon={<ArrowLeftIcon size={16} />}
           onClick={() => setStep('phone')}
-          className="self-start text-sm font-extrabold text-primary"
+          className="self-start"
         >
-          ← Изменить номер
-        </button>
+          Изменить номер
+        </Button>
       )}
 
       {step === 'phone' && (
         <>
-          <div className="mt-6 text-[26px] font-extrabold leading-tight text-ink">Вход по номеру телефона</div>
-          <div className="text-sm text-ink-soft">Отправим SMS с кодом подтверждения</div>
-          <div className="mt-2 flex items-center gap-2 rounded-md border-[1.5px] border-border bg-surface px-4 py-3.5">
-            <span className="text-[17px] font-extrabold text-ink">+7</span>
-            <input
-              className="flex-1 bg-transparent text-[17px] font-bold text-ink outline-none placeholder:text-muted"
-              placeholder="700 000 00 01"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              inputMode="numeric"
-              autoFocus
-            />
-          </div>
-          {error && <p className="text-sm font-semibold text-danger">{error}</p>}
+          <h1 className="mt-6 text-2xl font-extrabold text-ink">Вход по номеру телефона</h1>
+          <p className="text-sm text-ink-soft">Отправим SMS с кодом подтверждения</p>
+          <Input
+            label="Номер телефона"
+            prefix="+7"
+            placeholder="700 000 00 01"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            inputMode="numeric"
+            autoComplete="tel-national"
+            autoFocus
+            className="mt-2"
+          />
+          {error && <Alert tone="danger">{error}</Alert>}
           <div className="mt-auto" />
-          <button
-            type="button"
+          <Button
             onClick={requestCode}
-            disabled={submitting || phone.replace(/\D/g, '').length < 10}
-            className="rounded-pill bg-primary p-4 text-base font-extrabold text-white disabled:opacity-40"
+            loading={submitting}
+            disabled={phone.replace(/\D/g, '').length < 10}
+            fullWidth
           >
             Получить код
-          </button>
+          </Button>
         </>
       )}
 
       {step === 'sms' && (
         <>
-          <div className="mt-2.5 text-[26px] font-extrabold leading-tight text-ink">Код из SMS</div>
-          <div className="text-sm text-ink-soft">Отправили на +7 {phone}</div>
-          <div className="relative mt-2 w-fit" onClick={() => codeInputRef.current?.focus()}>
-            <div className="flex gap-1.5">
+          <h1 className="mt-2.5 text-2xl font-extrabold text-ink">Код из SMS</h1>
+          <p className="text-sm text-ink-soft">Отправили на +7 {phone}</p>
+          <div className="relative mt-2 w-fit">
+            {/* Видимые ячейки — оформление; ввод принимает поле ниже, у него
+                есть настоящая подпись, а не только placeholder. */}
+            <div className="flex gap-1.5" aria-hidden="true">
               {[0, 1, 2, 3, 4, 5].map((i) => (
-                <div
+                <span
                   key={i}
-                  className={`flex h-14 w-10 items-center justify-center rounded-md border-[1.5px] bg-surface text-xl font-extrabold text-ink ${
-                    code[i] ? 'border-primary' : 'border-border'
+                  className={`flex h-14 w-10 items-center justify-center rounded-md border-2 bg-surface text-xl font-extrabold text-ink ${
+                    code[i] ? 'border-primary' : 'border-border-strong'
                   }`}
                 >
                   {code[i] ?? ''}
-                </div>
+                </span>
               ))}
             </div>
-            <input
-              ref={codeInputRef}
+            <Input
+              label="Код из SMS"
+              labelHidden
               type="text"
               inputMode="numeric"
+              autoComplete="one-time-code"
               autoFocus
               maxLength={6}
               value={code}
               onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-              className="absolute inset-0 opacity-0"
+              className="absolute inset-0 h-full opacity-0"
+              fieldClassName="absolute inset-0"
             />
           </div>
-          <div className="text-[13px] text-ink-soft">
+          <p className="text-xs text-ink-soft">
             {resendIn > 0 ? (
               `Отправить снова через ${formatTime(resendIn)}`
             ) : (
-              <button type="button" onClick={requestCode} className="font-bold text-primary">
+              <Button variant="ghost" size="sm" onClick={requestCode} loading={submitting}>
                 Отправить код повторно
-              </button>
+              </Button>
             )}
-          </div>
-          {error && <p className="text-sm font-semibold text-danger">{error}</p>}
+          </p>
+          {error && <Alert tone="danger">{error}</Alert>}
           <div className="mt-auto" />
-          <button
-            type="button"
-            onClick={verify}
-            disabled={submitting || code.length < 6}
-            className="rounded-pill bg-primary p-4 text-base font-extrabold text-white disabled:opacity-40"
-          >
+          <Button onClick={verify} loading={submitting} disabled={code.length < 6} fullWidth>
             Войти
-          </button>
+          </Button>
         </>
       )}
     </div>

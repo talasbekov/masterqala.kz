@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import { Alert, Badge, Button, Card, EmptyState, Input, WalletIcon } from '@masterqala/ui';
 import { api } from '@/lib/api';
 import { useCommercialMode } from '@/lib/commercial-mode';
 
@@ -7,6 +8,12 @@ const STATUS_LABELS: Record<string, string> = {
   PENDING: 'В обработке',
   PAID: 'Выплачено',
   FAILED: 'Отклонено',
+};
+
+const STATUS_TONES: Record<string, 'neutral' | 'success' | 'danger'> = {
+  PENDING: 'neutral',
+  PAID: 'success',
+  FAILED: 'danger',
 };
 
 interface Withdrawal {
@@ -52,53 +59,75 @@ export default function WalletPage() {
 
   if (!payoutsEnabled) {
     return (
-      <div className="mx-auto max-w-[480px] space-y-4 p-8">
+      <div className="mx-auto w-full max-w-lg space-y-4 p-4 sm:p-6 md:p-8">
         <h1 className="text-xl font-extrabold text-ink">Кошелёк</h1>
-        <div className="rounded-lg border border-border bg-fill-soft p-5 text-center">
-          <div className="text-lg font-extrabold text-primary">Расчёт напрямую с клиентом</div>
+        <Card padding="lg" className="text-center">
+          <p className="text-lg font-extrabold text-primary">Расчёт напрямую с клиентом</p>
           <p className="mt-2 text-sm text-ink-soft">
             В бесплатном пилоте платформа не принимает деньги и не формирует баланс для вывода.
           </p>
-        </div>
+        </Card>
       </div>
     );
   }
 
+  const amountNumber = Number(amount);
+  const tooSmall = amount !== '' && (!amountNumber || amountNumber < 5000);
+
   return (
-    <div className="mx-auto max-w-[480px] space-y-4 p-8">
+    <div className="mx-auto w-full max-w-lg space-y-4 p-4 sm:p-6 md:p-8">
       <h1 className="text-xl font-extrabold text-ink">Кошелёк</h1>
-      <div className="rounded-lg bg-fill-soft p-4 text-center">
-        <div className="text-3xl font-extrabold text-primary">{balance} ₸</div>
-        <div className="text-sm text-ink-soft">доступно к выводу</div>
-      </div>
-      <div className="space-y-2">
-        <input
+
+      <Card className="bg-fill-soft text-center">
+        <p className="text-3xl font-extrabold text-primary">{balance} ₸</p>
+        <p className="text-sm text-ink-soft">доступно к выводу</p>
+      </Card>
+
+      <div className="space-y-3">
+        <Input
+          label="Сумма вывода, ₸"
           type="number"
           min="5000"
-          placeholder="Сумма вывода, ₸"
-          className="w-full rounded-md border-[1.5px] border-border bg-surface p-3 text-sm text-ink outline-none placeholder:text-muted"
+          inputMode="numeric"
+          hint="Минимальная сумма вывода — 5000 ₸"
+          error={tooSmall ? 'Минимальная сумма вывода — 5000 ₸' : undefined}
+          placeholder="Например, 15000"
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
         />
-        {error && <p className="text-sm text-danger">{error}</p>}
-        <button
-          className="w-full rounded-pill bg-primary p-3.5 text-sm font-extrabold text-white disabled:opacity-40"
-          disabled={!Number(amount) || Number(amount) < 5000 || submitting}
+        {error && <Alert tone="danger">{error}</Alert>}
+        <Button
+          fullWidth
+          loading={submitting}
+          loadingLabel="Отправляем…"
+          disabled={!amountNumber || amountNumber < 5000}
           onClick={submit}
         >
-          {submitting ? 'Отправляем…' : 'Вывести'}
-        </button>
+          Вывести
+        </Button>
       </div>
-      <div className="space-y-2">
+
+      <section className="space-y-2">
         <h2 className="text-sm font-extrabold text-ink">История</h2>
-        {history.length === 0 && <p className="text-sm text-ink-soft">Заявок пока нет</p>}
-        {history.map((w) => (
-          <div key={w.id} className="flex justify-between rounded-lg border border-border p-3 text-sm">
-            <span className="text-ink">{w.amount} ₸</span>
-            <span className="text-ink-soft">{STATUS_LABELS[w.status]}</span>
-          </div>
-        ))}
-      </div>
+        {history.length === 0 ? (
+          <EmptyState
+            icon={<WalletIcon size={32} />}
+            title="Заявок пока нет"
+            subtitle="Здесь появятся ваши заявки на вывод средств."
+          />
+        ) : (
+          <ul className="space-y-2">
+            {history.map((w) => (
+              <Card as="li" key={w.id} padding="sm" className="flex items-center justify-between gap-3">
+                <span className="text-sm font-bold text-ink">{w.amount} ₸</span>
+                <Badge tone={STATUS_TONES[w.status] ?? 'neutral'}>
+                  {STATUS_LABELS[w.status] ?? w.status}
+                </Badge>
+              </Card>
+            ))}
+          </ul>
+        )}
+      </section>
     </div>
   );
 }

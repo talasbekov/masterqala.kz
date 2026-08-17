@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { Alert, ArrowLeftIcon, Button, Field, Input, Spinner, useFieldIds } from '@masterqala/ui';
 import { api } from '../../../api';
 import { useAuth } from '../../../auth';
 
@@ -23,6 +24,7 @@ export default function LoginPage() {
   const [submitting, setSubmitting] = useState(false);
   const [resendIn, setResendIn] = useState(60);
   const codeInputRef = useRef<HTMLInputElement>(null);
+  const codeIds = useFieldIds(undefined, error || undefined);
 
   useEffect(() => {
     if (step !== 'splash') return;
@@ -79,9 +81,11 @@ export default function LoginPage() {
         <div className="flex h-22 w-22 items-center justify-center rounded-lg bg-white text-4xl font-extrabold text-primary">
           M
         </div>
-        <div className="text-[28px] font-extrabold tracking-tight text-white">MasterQala</div>
+        <div className="text-2xl font-extrabold tracking-tight text-on-primary">MasterQala</div>
         <div className="text-sm text-fill">{t('auth.splashTagline')}</div>
-        <div className="mt-3 h-6.5 w-6.5 animate-spin rounded-full border-[3px] border-fill border-t-white" />
+        <div className="mt-3 text-on-primary">
+          <Spinner size={26} label={t('common.loading')} />
+        </div>
       </button>
     );
   }
@@ -89,93 +93,97 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen flex-col gap-3.5 bg-background px-6 py-5.5">
       {step === 'sms' && (
-        <button
-          type="button"
+        <Button
+          variant="ghost"
+          size="sm"
+          className="self-start"
+          icon={<ArrowLeftIcon size={18} />}
           onClick={() => setStep('phone')}
-          className="self-start text-sm font-extrabold text-primary"
         >
-          ← {t('auth.changeNumber')}
-        </button>
+          {t('auth.changeNumber')}
+        </Button>
       )}
 
       {step === 'phone' && (
         <>
-          <div className="mt-6 text-[26px] font-extrabold leading-tight text-ink">{t('auth.phoneTitle')}</div>
+          <h1 className="mt-6 text-2xl font-extrabold leading-tight text-ink">{t('auth.phoneTitle')}</h1>
           <div className="text-sm text-ink-soft">{t('auth.phoneSubtitle')}</div>
-          <div className="mt-2 flex items-center gap-2 rounded-md border-[1.5px] border-border bg-surface px-4 py-3.5">
-            <span className="text-[17px] font-extrabold text-ink">+7</span>
-            <input
-              className="flex-1 bg-transparent text-[17px] font-bold text-ink outline-none placeholder:text-muted"
-              placeholder={t('auth.phonePlaceholder')}
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              inputMode="numeric"
-              autoFocus
-            />
-          </div>
+          <Input
+            fieldClassName="mt-2"
+            label={t('auth.phoneLabel')}
+            prefix="+7"
+            placeholder={t('auth.phonePlaceholder')}
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            inputMode="numeric"
+            autoComplete="tel-national"
+            autoFocus
+          />
           <div className="text-xs leading-normal text-ink-soft">
             {t('auth.termsPrefix')} <span className="font-bold text-primary">{t('auth.termsLink')}</span>
           </div>
-          {error && <p className="text-sm font-semibold text-danger">{error}</p>}
+          {error && <Alert tone="danger">{error}</Alert>}
           <div className="mt-auto" />
-          <button
-            type="button"
+          <Button
+            fullWidth
+            size="lg"
+            loading={submitting}
+            disabled={phone.replace(/\D/g, '').length < 10}
             onClick={requestCode}
-            disabled={submitting || phone.replace(/\D/g, '').length < 10}
-            className="rounded-pill bg-primary p-4 text-base font-extrabold text-white disabled:opacity-40"
           >
             {t('auth.getCodeButton')}
-          </button>
+          </Button>
         </>
       )}
 
       {step === 'sms' && (
         <>
-          <div className="mt-2.5 text-[26px] font-extrabold leading-tight text-ink">{t('auth.smsTitle')}</div>
+          <h1 className="mt-2.5 text-2xl font-extrabold leading-tight text-ink">{t('auth.smsTitle')}</h1>
           <div className="text-sm text-ink-soft">{t('auth.smsSubtitle', { phone: `+7 ${phone}` })}</div>
-          <div className="relative mt-2 w-fit" onClick={() => codeInputRef.current?.focus()}>
-            <div className="flex gap-1.5">
-              {[0, 1, 2, 3, 4, 5].map((i) => (
-                <div
-                  key={i}
-                  className={`flex h-14 w-10 items-center justify-center rounded-md border-[1.5px] bg-surface text-xl font-extrabold text-ink ${
-                    code[i] ? 'border-primary' : 'border-border'
-                  }`}
-                >
-                  {code[i] ?? ''}
-                </div>
-              ))}
+          <Field label={t('auth.codeLabel')} ids={codeIds} error={error || undefined}>
+            {/* Поле лежит поверх шести клеток: клетки — оформление, ввод идёт в него. */}
+            <div className="relative w-fit">
+              <div className="flex gap-1.5" aria-hidden="true">
+                {[0, 1, 2, 3, 4, 5].map((i) => (
+                  <div
+                    key={i}
+                    className={`flex h-14 w-10 items-center justify-center rounded-md border bg-surface text-xl font-extrabold text-ink ${
+                      code[i] ? 'border-primary' : 'border-border-strong'
+                    }`}
+                  >
+                    {code[i] ?? ''}
+                  </div>
+                ))}
+              </div>
+              <input
+                ref={codeInputRef}
+                id={codeIds.id}
+                aria-describedby={codeIds.describedBy}
+                aria-invalid={codeIds.invalid || undefined}
+                type="text"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                autoFocus
+                maxLength={6}
+                value={code}
+                onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                className="absolute inset-0 opacity-0"
+              />
             </div>
-            <input
-              ref={codeInputRef}
-              type="text"
-              inputMode="numeric"
-              autoFocus
-              maxLength={6}
-              value={code}
-              onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-              className="absolute inset-0 opacity-0"
-            />
-          </div>
-          <div className="text-[13px] text-ink-soft">
+          </Field>
+          <div className="text-xs text-ink-soft">
             {resendIn > 0 ? (
               t('auth.resendIn', { time: formatTime(resendIn) })
             ) : (
-              <button type="button" onClick={requestCode} className="font-bold text-primary">
+              <Button variant="ghost" size="sm" onClick={requestCode}>
                 {t('auth.resendNow')}
-              </button>
+              </Button>
             )}
           </div>
-          {error && <p className="text-sm font-semibold text-danger">{error}</p>}
           <div className="mt-auto" />
-          <button
-            type="button"
-            onClick={verify}
-            disabled={submitting || code.length < 6}
-            className="rounded-pill bg-primary p-4 text-base font-extrabold text-white disabled:opacity-40"
-          >
+          <Button fullWidth size="lg" loading={submitting} disabled={code.length < 6} onClick={verify}>
             {t('auth.loginButton')}
-          </button>
+          </Button>
         </>
       )}
     </div>

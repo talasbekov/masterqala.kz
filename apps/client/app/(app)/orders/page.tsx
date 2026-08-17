@@ -2,6 +2,17 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
+import {
+  Alert,
+  Badge,
+  BoltIcon,
+  Button,
+  CalendarIcon,
+  EmptyState,
+  SkeletonList,
+  Table,
+  type TableColumn,
+} from '@masterqala/ui';
 import { api } from '@/lib/api';
 import {
   STATUS_LABELS,
@@ -57,83 +68,100 @@ export default function MyOrdersPage() {
     it.kind === 'urgent' ? !isTerminalStatus(it.status) : !isPlannedTerminalStatus(it.status);
   const shown = items.filter((it) => (tab === 'active' ? isActive(it) : !isActive(it)));
 
+  const columns: TableColumn<Item>[] = [
+    {
+      key: 'mode',
+      header: t('myOrders.columns.mode'),
+      width: '104px',
+      cell: (it) =>
+        it.kind === 'urgent' ? (
+          <Badge tone="urgent" icon={<BoltIcon size={14} />}>
+            {t('myOrders.modeUrgent')}
+          </Badge>
+        ) : (
+          <Badge tone="primary" icon={<CalendarIcon size={14} />}>
+            {t('myOrders.modePlanned')}
+          </Badge>
+        ),
+    },
+    {
+      key: 'category',
+      header: t('myOrders.columns.category'),
+      cell: (it) => <span className="font-bold text-ink">{it.category?.name ?? '—'}</span>,
+    },
+    {
+      key: 'number',
+      header: t('myOrders.columns.number'),
+      hideBelow: 'lg',
+      cell: (it) => <span className="text-ink-soft">№{it.id.slice(0, 8)}</span>,
+    },
+    {
+      key: 'status',
+      header: t('myOrders.columns.status'),
+      cell: (it) => {
+        const label = it.kind === 'urgent' ? STATUS_LABELS[it.status] : PLANNED_STATUS_LABELS[it.status];
+        const variant = it.kind === 'urgent' ? urgentStatusVariant(it.status) : plannedStatusVariant(it.status);
+        const tone = variant === 'success' ? 'success' : variant === 'danger' ? 'danger' : 'primary';
+        return <Badge tone={tone}>{label}</Badge>;
+      },
+    },
+    {
+      key: 'date',
+      header: t('myOrders.columns.date'),
+      hideBelow: 'md',
+      cell: (it) => <span className="text-ink-soft">{new Date(it.createdAt).toLocaleDateString('ru-RU')}</span>,
+    },
+    {
+      key: 'price',
+      header: t('myOrders.columns.price'),
+      align: 'right',
+      cell: (it) => {
+        const price = it.kind === 'urgent' ? (it.workPrice ?? it.calloutPrice) : (it.workPrice ?? it.budget);
+        return <span className="font-bold text-ink">{price != null ? `${price} ₸` : '—'}</span>;
+      },
+    },
+    {
+      key: 'master',
+      header: t('myOrders.columns.master'),
+      hideBelow: 'md',
+      cell: (it) => <span className="text-ink-soft">{it.master?.name ?? '—'}</span>,
+    },
+  ];
+
   return (
-    <div className="flex flex-col gap-4 px-8 py-6">
-      <div className="text-[22px] font-extrabold text-ink">{t('myOrders.title')}</div>
-      <div className="flex w-fit rounded-pill bg-fill p-1">
-        <button
-          type="button"
+    <div className="flex flex-col gap-4 px-5 py-6 sm:px-8">
+      <h1 className="text-xl font-extrabold text-ink sm:text-2xl">{t('myOrders.title')}</h1>
+      <div className="flex w-fit gap-1 rounded-pill bg-fill-soft p-1" role="group" aria-label={t('myOrders.title')}>
+        <Button
+          variant={tab === 'active' ? 'primary' : 'ghost'}
+          size="sm"
+          aria-pressed={tab === 'active'}
           onClick={() => setTab('active')}
-          className={`rounded-pill px-6 py-2 text-[13px] font-extrabold ${
-            tab === 'active' ? 'bg-surface text-ink shadow-card' : 'text-ink-soft'
-          }`}
         >
           {t('myOrders.active')}
-        </button>
-        <button
-          type="button"
+        </Button>
+        <Button
+          variant={tab === 'history' ? 'primary' : 'ghost'}
+          size="sm"
+          aria-pressed={tab === 'history'}
           onClick={() => setTab('history')}
-          className={`rounded-pill px-6 py-2 text-[13px] font-extrabold ${
-            tab === 'history' ? 'bg-surface text-ink shadow-card' : 'text-ink-soft'
-          }`}
         >
           {t('myOrders.history')}
-        </button>
+        </Button>
       </div>
-      {error && <p className="text-sm font-semibold text-danger">{error}</p>}
-      {!loading && shown.length === 0 && (
-        <div className="rounded-lg border-[1.5px] border-dashed border-border bg-surface p-6 text-center text-sm font-semibold text-ink-soft">
-          {tab === 'active' ? t('myOrders.emptyActive') : t('myOrders.emptyHistory')}
-        </div>
-      )}
-      {shown.length > 0 && (
-        <table className="w-full border-collapse overflow-hidden rounded-lg border border-border text-sm">
-          <thead>
-            <tr className="bg-fill-soft text-left text-xs font-extrabold text-ink-soft">
-              <th className="p-3">Режим</th>
-              <th className="p-3">Категория</th>
-              <th className="p-3">№</th>
-              <th className="p-3">Статус</th>
-              <th className="p-3">Дата</th>
-              <th className="p-3">Цена</th>
-              <th className="p-3">Мастер</th>
-            </tr>
-          </thead>
-          <tbody>
-            {shown.map((it) => {
-              const label = it.kind === 'urgent' ? STATUS_LABELS[it.status] : PLANNED_STATUS_LABELS[it.status];
-              const variant = it.kind === 'urgent' ? urgentStatusVariant(it.status) : plannedStatusVariant(it.status);
-              const price = it.kind === 'urgent' ? (it.workPrice ?? it.calloutPrice) : (it.workPrice ?? it.budget);
-              return (
-                <tr
-                  key={it.id}
-                  onClick={() => router.push(it.kind === 'urgent' ? `/order/${it.id}` : `/planned/${it.id}`)}
-                  className="cursor-pointer border-t border-border hover:bg-fill-faint"
-                >
-                  <td className="p-3">{it.kind === 'urgent' ? '⚡' : '📅'}</td>
-                  <td className="p-3 font-bold text-ink">{it.category?.name ?? '—'}</td>
-                  <td className="p-3 text-ink-soft">№{it.id.slice(0, 8)}</td>
-                  <td className="p-3">
-                    <span
-                      className={`rounded-pill px-2.5 py-1 text-[10.5px] font-extrabold ${
-                        variant === 'success'
-                          ? 'bg-success-bg text-success-ink'
-                          : variant === 'danger'
-                            ? 'bg-danger-bg text-danger-ink'
-                            : 'bg-fill-soft text-primary'
-                      }`}
-                    >
-                      {label}
-                    </span>
-                  </td>
-                  <td className="p-3 text-ink-soft">{new Date(it.createdAt).toLocaleDateString('ru-RU')}</td>
-                  <td className="p-3 font-bold text-ink">{price != null ? `${price} ₸` : '—'}</td>
-                  <td className="p-3 text-ink-soft">{it.master?.name ?? '—'}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+      {error && <Alert tone="danger">{error}</Alert>}
+      {loading && <SkeletonList rows={4} label={t('common.loading')} />}
+      {!loading && (
+        <Table
+          caption={t('myOrders.tableCaption')}
+          columns={columns}
+          rows={shown}
+          rowKey={(it) => it.id}
+          onRowClick={(it) => router.push(it.kind === 'urgent' ? `/order/${it.id}` : `/planned/${it.id}`)}
+          empty={
+            <EmptyState title={tab === 'active' ? t('myOrders.emptyActive') : t('myOrders.emptyHistory')} />
+          }
+        />
       )}
     </div>
   );

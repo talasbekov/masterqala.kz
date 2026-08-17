@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Alert, Badge, Button, Card, ClockIcon } from '@masterqala/ui';
 import { api } from '../../../../api';
 import type { OrderDetail } from '../../pages/OrderPage';
 
@@ -45,14 +46,14 @@ export default function PriceView({ order, orderId, onChanged }: { order: OrderD
     <div className="flex flex-col gap-3 px-5 pb-3.5 pt-1.5">
       <div className="flex items-center justify-between">
         <span className="text-lg font-extrabold text-ink">{t('orderDetail.priceTitle')}</span>
-        <span className="rounded-pill bg-primary px-3 py-1.5 text-[13px] font-extrabold text-white">
-          ⏱ {mm}:{String(ss).padStart(2, '0')}
-        </span>
+        <Badge tone="primary" icon={<ClockIcon size={14} />}>
+          {mm}:{String(ss).padStart(2, '0')}
+        </Badge>
       </div>
       <div className="text-sm font-semibold text-ink">{t('orderDetail.priceOffered', { name: order.master?.name })}</div>
-      <div className="rounded-md border border-border bg-surface p-3.5">
+      <Card padding="sm">
         {paymentsEnabled && (
-          <div className="flex justify-between text-[13.5px] font-semibold text-ink-soft">
+          <div className="flex justify-between text-sm font-semibold text-ink-soft">
             <span>{t('orderDetail.priceCalloutLabel')}</span>
             <span>{order.calloutPrice} ₸</span>
           </div>
@@ -66,31 +67,23 @@ export default function PriceView({ order, orderId, onChanged }: { order: OrderD
           <span>{t('orderDetail.priceTotalLabel')}</span>
           <span className="text-primary">{total} ₸</span>
         </div>
-      </div>
+      </Card>
       {order.workComment && (
-        <div className="rounded-md bg-fill p-3 text-[13px] leading-relaxed text-ink">«{order.workComment}»</div>
+        <div className="rounded-md bg-fill p-3 text-xs leading-relaxed text-ink">«{order.workComment}»</div>
       )}
       <p className="text-xs leading-relaxed text-ink-soft">
         {paymentsEnabled
           ? t('orderDetail.priceRejectNote')
           : 'В бесплатном пилоте платформа не списывает деньги. После подтверждения вы рассчитываетесь с мастером напрямую; при отклонении заявка отменится.'}
       </p>
-      {error && <p className="text-sm font-semibold text-danger">{error}</p>}
+      {error && <Alert tone="danger">{error}</Alert>}
       <div className="mt-auto" />
-      <button
-        type="button"
-        onClick={confirm}
-        className="rounded-pill bg-primary p-4 text-[15.5px] font-extrabold text-white"
-      >
+      <Button fullWidth onClick={confirm}>
         {t('orderDetail.priceConfirm', { price: order.workPrice })}
-      </button>
-      <button
-        type="button"
-        onClick={reject}
-        className="rounded-pill border-[1.5px] border-danger p-3.5 text-sm font-extrabold text-danger"
-      >
+      </Button>
+      <Button variant="danger" fullWidth onClick={reject}>
         {t('orderDetail.priceReject')}
-      </button>
+      </Button>
     </div>
   );
 }

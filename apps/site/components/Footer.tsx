@@ -9,10 +9,16 @@ export function Footer() {
           <p className="font-semibold text-ink">MasterQala</p>
           <p>Мастер на дом — быстро и по понятной цене</p>
         </div>
-        <nav className="flex flex-col gap-2 md:flex-row md:gap-6">
-          <Link href="/about" className="hover:text-ink">О нас</Link>
-          <Link href="/faq" className="hover:text-ink">Вопросы</Link>
-          <Link href="/become-a-master" className="hover:text-ink">Стать мастером</Link>
+        <nav aria-label="Ссылки в подвале" className="flex flex-col gap-2 md:flex-row md:gap-6">
+          <Link href="/about" className="inline-flex min-h-11 items-center hover:text-ink md:min-h-0">
+            О нас
+          </Link>
+          <Link href="/faq" className="inline-flex min-h-11 items-center hover:text-ink md:min-h-0">
+            Вопросы
+          </Link>
+          <Link href="/become-a-master" className="inline-flex min-h-11 items-center hover:text-ink md:min-h-0">
+            Стать мастером
+          </Link>
         </nav>
         <div>
           <p>{getContactPhone()}</p>

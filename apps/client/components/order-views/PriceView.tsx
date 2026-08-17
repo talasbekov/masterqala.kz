@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Alert, Badge, Button, Card, ClockIcon } from '@masterqala/ui';
 import { api } from '@/lib/api';
 import type { OrderDetail } from '@/lib/orderTypes';
 
@@ -43,17 +44,18 @@ export default function PriceView({ order, orderId, onChanged }: { order: OrderD
   const total = order.calloutPrice + (order.workPrice ?? 0);
 
   return (
-    <div className="mx-auto flex w-full max-w-[560px] flex-col gap-3 px-5 pb-3.5 pt-1.5">
-      <div className="flex items-center justify-between">
-        <span className="text-lg font-extrabold text-ink">{t('orderDetail.priceTitle')}</span>
-        <span className="rounded-pill bg-primary px-3 py-1.5 text-[13px] font-extrabold text-white">
-          ⏱ {mm}:{String(ss).padStart(2, '0')}
-        </span>
+    <div className="mx-auto flex w-full max-w-xl flex-col gap-3 px-5 pt-1.5 pb-3.5 sm:px-8 sm:py-6">
+      <div className="flex items-center justify-between gap-2">
+        <h1 className="text-lg font-extrabold text-ink">{t('orderDetail.priceTitle')}</h1>
+        {/* Таймер срочного режима: оранжевый = срочность. */}
+        <Badge tone="urgent" icon={<ClockIcon size={14} />}>
+          {mm}:{String(ss).padStart(2, '0')}
+        </Badge>
       </div>
-      <div className="text-sm font-semibold text-ink">{t('orderDetail.priceOffered', { name: order.master?.name })}</div>
-      <div className="rounded-md border border-border bg-surface p-3.5">
+      <p className="text-sm font-semibold text-ink">{t('orderDetail.priceOffered', { name: order.master?.name })}</p>
+      <Card>
         {paymentsEnabled && (
-          <div className="flex justify-between text-[13.5px] font-semibold text-ink-soft">
+          <div className="flex justify-between text-xs font-semibold text-ink-soft">
             <span>{t('orderDetail.priceCalloutLabel')}</span>
             <span>{order.calloutPrice} ₸</span>
           </div>
@@ -63,35 +65,27 @@ export default function PriceView({ order, orderId, onChanged }: { order: OrderD
           <span>{order.workPrice} ₸</span>
         </div>
         <div className="my-2.5 border-t border-dashed border-border" />
-        <div className="flex justify-between text-lg font-extrabold">
+        <div className="flex justify-between text-lg font-extrabold text-ink">
           <span>{t('orderDetail.priceTotalLabel')}</span>
           <span className="text-primary">{total} ₸</span>
         </div>
-      </div>
+      </Card>
       {order.workComment && (
-        <div className="rounded-md bg-fill p-3 text-[13px] leading-relaxed text-ink">«{order.workComment}»</div>
+        <p className="rounded-md bg-surface-sunken p-3 text-xs leading-relaxed text-on-fill">«{order.workComment}»</p>
       )}
       <p className="text-xs leading-relaxed text-ink-soft">
         {paymentsEnabled
           ? t('orderDetail.priceRejectNote')
           : 'В бесплатном пилоте платформа не списывает деньги. После подтверждения вы рассчитываетесь с мастером напрямую; при отклонении заявка отменится.'}
       </p>
-      {error && <p className="text-sm font-semibold text-danger">{error}</p>}
+      {error && <Alert tone="danger">{error}</Alert>}
       <div className="mt-auto" />
-      <button
-        type="button"
-        onClick={confirm}
-        className="rounded-pill bg-primary p-4 text-[15.5px] font-extrabold text-white"
-      >
+      <Button size="lg" fullWidth onClick={confirm}>
         {t('orderDetail.priceConfirm', { price: order.workPrice })}
-      </button>
-      <button
-        type="button"
-        onClick={reject}
-        className="rounded-pill border-[1.5px] border-danger p-3.5 text-sm font-extrabold text-danger"
-      >
+      </Button>
+      <Button variant="secondary" fullWidth onClick={reject}>
         {t('orderDetail.priceReject')}
-      </button>
+      </Button>
     </div>
   );
 }

@@ -14,13 +14,13 @@ export function Hero() {
         <div className="mx-auto flex flex-col gap-4 sm:flex-row">
           <a
             href={appUrl}
-            className="rounded-pill bg-primary px-8 py-3 font-semibold text-white hover:bg-primary-hover"
+            className="inline-flex min-h-11 items-center justify-center rounded-pill bg-primary px-8 font-semibold text-on-primary hover:bg-primary-hover"
           >
             Оставить заявку
           </a>
           <a
             href="/become-a-master"
-            className="rounded-pill border border-primary px-8 py-3 font-semibold text-primary hover:bg-fill-soft"
+            className="inline-flex min-h-11 items-center justify-center rounded-pill border border-primary px-8 font-semibold text-primary hover:bg-primary-soft"
           >
             Стать мастером
           </a>

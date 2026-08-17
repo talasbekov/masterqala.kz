@@ -1,14 +1,14 @@
 'use client';
 import { useTranslation } from 'react-i18next';
-import { EmptyState } from '@masterqala/ui';
+import { BellIcon, EmptyState } from '@masterqala/ui';
 
 export default function NotificationsPage() {
   const { t } = useTranslation();
   return (
-    <div className="flex flex-col gap-3.5 px-8 py-6">
-      <div className="text-[22px] font-extrabold text-ink">{t('notifications.title')}</div>
+    <div className="mx-auto flex w-full max-w-2xl flex-col gap-3.5 px-5 py-6 sm:px-8">
+      <h1 className="text-xl font-extrabold text-ink sm:text-2xl">{t('notifications.title')}</h1>
       <EmptyState
-        icon={<span className="text-3xl">🔔</span>}
+        icon={<BellIcon size={32} />}
         title={t('notifications.emptyTitle')}
         subtitle={t('notifications.emptySubtitle')}
       />

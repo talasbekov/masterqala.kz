@@ -1,5 +1,16 @@
 'use client';
 import { useEffect, useState } from 'react';
+import {
+  Alert,
+  Card,
+  EmptyState,
+  Input,
+  Select,
+  SkeletonList,
+  StarIcon,
+  Table,
+  type TableColumn,
+} from '@masterqala/ui';
 import { fetchCategories, fetchMasters, type Category, type OperatorMasterRow } from '@/lib/masters';
 
 export default function MastersPage() {
@@ -30,14 +41,54 @@ export default function MastersPage() {
     return () => clearTimeout(timer);
   }, [category, district]);
 
+  const columns: TableColumn<OperatorMasterRow>[] = [
+    { key: 'name', header: 'Мастер', cell: (row) => <span className="font-bold">{row.name ?? '—'}</span> },
+    {
+      key: 'categories',
+      header: 'Категории',
+      width: '200px',
+      hideBelow: 'md',
+      cell: (row) => <span className="text-ink-soft">{row.categories.join(', ')}</span>,
+    },
+    {
+      key: 'rating',
+      header: 'Рейтинг',
+      width: '110px',
+      cell: (row) =>
+        row.rating === null ? (
+          '—'
+        ) : (
+          <span className="inline-flex items-center gap-1">
+            <StarIcon size={16} className="text-warning" />
+            {row.rating.toFixed(1)}
+          </span>
+        ),
+    },
+    {
+      key: 'orders',
+      header: 'Заказов',
+      width: '100px',
+      align: 'right',
+      hideBelow: 'lg',
+      cell: (row) => row.orders,
+    },
+    {
+      key: 'status',
+      header: 'Статус',
+      width: '180px',
+      cell: (row) => <span className="text-ink-soft">{row.status}</span>,
+    },
+  ];
+
   return (
-    <div className="flex flex-col gap-4 p-8">
-      <div className="flex items-center gap-3">
-        <div className="text-2xl font-extrabold text-ink">Мастера</div>
-        <select
+    <div className="flex flex-col gap-4 p-4 lg:p-8">
+      <h1 className="text-2xl font-extrabold text-ink">Мастера</h1>
+      <div className="flex flex-wrap items-end gap-3">
+        <Select
+          label="Категория"
           value={category}
           onChange={(e) => setCategory(e.target.value)}
-          className="rounded-md border-[1.5px] border-border bg-surface px-3 py-1.5 text-sm"
+          fieldClassName="w-full sm:w-64"
         >
           <option value="">все категории</option>
           {categories.map((c) => (
@@ -45,38 +96,32 @@ export default function MastersPage() {
               {c.name}
             </option>
           ))}
-        </select>
-        <input
+        </Select>
+        <Input
+          label="Район"
+          hint="Точное совпадение"
           value={district}
           onChange={(e) => setDistrict(e.target.value)}
-          placeholder="Район (точное совпадение)"
-          className="rounded-md border-[1.5px] border-border bg-surface px-3 py-1.5 text-sm"
+          placeholder="Например, Алмалинский"
+          fieldClassName="w-full sm:w-64"
         />
       </div>
-      {error && <div className="text-sm text-danger">{error}</div>}
-      <div className="rounded-lg border border-border bg-surface">
-        <div className="grid grid-cols-[1fr_170px_100px_100px_180px] gap-3 border-b border-fill-soft px-4 py-2 text-[11px] font-extrabold uppercase text-ink-soft">
-          <span>Мастер</span>
-          <span>Категории</span>
-          <span>Рейтинг</span>
-          <span>Заказов</span>
-          <span>Статус</span>
-        </div>
-        {loading && <div className="p-4 text-sm text-ink-soft">Загрузка…</div>}
-        {!loading && rows.length === 0 && <div className="p-4 text-sm text-ink-soft">Ничего не найдено</div>}
-        {rows.map((row) => (
-          <div
-            key={row.id}
-            className="grid grid-cols-[1fr_170px_100px_100px_180px] items-center gap-3 border-b border-fill-soft px-4 py-2.5 text-sm font-bold"
-          >
-            <span>{row.name ?? '—'}</span>
-            <span className="text-ink-soft">{row.categories.join(', ')}</span>
-            <span>{row.rating === null ? '—' : `★ ${row.rating.toFixed(1)}`}</span>
-            <span>{row.orders}</span>
-            <span className="text-ink-soft">{row.status}</span>
-          </div>
-        ))}
-      </div>
+      {error && <Alert tone="danger">{error}</Alert>}
+
+      {loading ? (
+        <SkeletonList rows={5} label="Загрузка списка мастеров" />
+      ) : rows.length === 0 ? (
+        <EmptyState title="Ничего не найдено" subtitle="Измените категорию или район." />
+      ) : (
+        <Card padding="none">
+          <Table
+            caption="Мастера: имя, категории, рейтинг, число заказов и статус"
+            columns={columns}
+            rows={rows}
+            rowKey={(row) => row.id}
+          />
+        </Card>
+      )}
     </div>
   );
 }

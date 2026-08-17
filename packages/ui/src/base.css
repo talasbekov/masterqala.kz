@@ -1,0 +1,170 @@
+/*
+ * Базовый слой MasterQala.kz. Импортируется каждым приложением сразу после
+ * tailwindcss и tokens.css.
+ *
+ * Здесь лежит то, что должно действовать во всех пяти приложениях одинаково и
+ * не зависеть от того, вспомнил ли автор конкретной страницы про доступность.
+ */
+
+/* Manrope, самохост. Файлы лежат рядом, с раздельными subset'ами под кириллицу
+ * и латиницу и unicode-range — браузер качает только нужное.
+ * До редизайна эти файлы не подключал никто: четыре Next-приложения
+ * объявляли --font-sans: 'Manrope' и молча откатывались на system-ui, а
+ * apps/web тянул шрифт с CDN Google, хотя субсеты лежали в репозитории. */
+@import "../fonts/manrope.css";
+
+/* ─────────────────────────────────────────────────────────────────────────────
+ * Обводка фокуса.
+ *
+ * Правило намеренно объявлено ВНЕ @layer: неслоёные стили в каскаде сильнее
+ * любых слоёных, поэтому оно перекрывает утилиту Tailwind `outline-none`.
+ * В коде было 32 таких `outline-none` без замены и ни одного focus-visible —
+ * клавиатурная навигация была не видна вообще. Это страхует от повторения:
+ * даже если кто-то снова напишет `outline-none`, фокус останется видимым.
+ *
+ * :focus-visible, а не :focus — обводка не мешает мыши, но всегда есть у
+ * клавиатуры. 3px — минимум из профиля Accessible & Ethical.
+ * ────────────────────────────────────────────────────────────────────────── */
+:focus-visible {
+  outline: var(--focus-ring-width, 3px) solid var(--color-focus-ring, #1E40AF);
+  outline-offset: var(--focus-ring-offset, 2px);
+  border-radius: inherit;
+}
+
+/* Внутри плотной primary-заливки синяя обводка сливается с фоном — отделяем её
+ * белым кольцом. Контраст белого к --color-primary 8.72:1. */
+.bg-primary:focus-visible,
+.bg-urgent:focus-visible,
+.bg-success:focus-visible,
+.bg-danger:focus-visible {
+  outline-color: var(--color-surface, #FFFFFF);
+  box-shadow: 0 0 0 calc(var(--focus-ring-width, 3px) + var(--focus-ring-offset, 2px))
+    var(--color-focus-ring, #1E40AF);
+}
+
+/* Фокус не должен уезжать под залипающие шапки: 2.4.11 Focus Not Obscured. */
+html {
+  scroll-padding-top: 5rem;
+  scroll-padding-bottom: 2rem;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background: var(--color-background);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+ * Уважение к prefers-reduced-motion.
+ *
+ * В коде было 0 упоминаний prefers-reduced-motion при живых animate-spin,
+ * animate-ping и animate-pulse. Здесь глобальный глушитель.
+ *
+ * Крутящиеся индикаторы загрузки НЕ отключаем полностью: они сообщают, что
+ * система занята. Вместо этого замедляем — движение остаётся считываемым, но
+ * не провоцирует вестибулярную реакцию. Декоративные ping/pulse гасим.
+ * ────────────────────────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* Индикатор занятости сохраняем, но спокойный. */
+  .animate-spin {
+    animation: spin 1.6s linear infinite !important;
+    animation-duration: 1.6s !important;
+    animation-iteration-count: infinite !important;
+  }
+
+  /* Чисто декоративная пульсация не нужна. */
+  .animate-ping,
+  .animate-pulse {
+    animation: none !important;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+ * Утилиты доступности
+ * ────────────────────────────────────────────────────────────────────────── */
+
+/* Текст только для скринридера. Нужен для икон-кнопок и живых регионов. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* Ссылка «к основному содержимому»: видна только при фокусе. */
+.skip-link {
+  position: absolute;
+  left: 0.5rem;
+  top: -100%;
+  z-index: 100;
+  padding: 0.75rem 1rem;
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  border-radius: var(--radius-md);
+  font-weight: 700;
+  transition: top var(--duration-fast) var(--ease-out);
+}
+.skip-link:focus {
+  top: 0.5rem;
+}
+
+/* Курсор на всём, что нажимается. */
+button:not(:disabled),
+[role="button"]:not([aria-disabled="true"]),
+label[for],
+summary {
+  cursor: pointer;
+}
+
+button:disabled,
+[aria-disabled="true"] {
+  cursor: not-allowed;
+}
+
+/* Минимальная цель нажатия 44×44. Не растягиваем ссылки внутри текста —
+ * только самостоятельные контролы. */
+button,
+[role="button"],
+input[type="checkbox"],
+input[type="radio"] {
+  touch-action: manipulation;
+}
+
+/* Плейсхолдер — не подпись, но пока он читается, он должен быть читаемым. */
+::placeholder {
+  color: var(--color-ink-muted);
+  opacity: 1; /* Firefox приглушает по умолчанию — вернули контраст */
+}
+
+/* Перенос длинных слов вместо горизонтальной прокрутки страницы. */
+h1, h2, h3, h4, p, li, td, th, dd, dt {
+  overflow-wrap: break-word;
+}
+
+/* Заголовки: сбалансированный перенос вместо висячего слова. */
+h1, h2, h3 {
+  text-wrap: balance;
+}
+
+/* Абзацы: не оставлять одно слово на последней строке. */
+p {
+  text-wrap: pretty;
+}

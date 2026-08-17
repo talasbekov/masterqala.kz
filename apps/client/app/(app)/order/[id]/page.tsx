@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
+import { Alert, Button, SkeletonList } from '@masterqala/ui';
 import { api } from '@/lib/api';
 import { getSocket } from '@/lib/socket';
 import type { OrderDetail } from '@/lib/orderTypes';
@@ -43,19 +44,20 @@ export default function OrderPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  if (loading) return <div className="p-6 text-ink-soft">{t('common.loading')}</div>;
+  if (loading)
+    return (
+      <div className="p-6">
+        <SkeletonList rows={3} label={t('common.loading')} />
+      </div>
+    );
 
   if (error || !order || !id) {
     return (
-      <div className="flex flex-col gap-3 p-6">
-        <p className="text-sm font-semibold text-danger">{error || t('orderDetail.notFound')}</p>
-        <button
-          type="button"
-          onClick={load}
-          className="rounded-pill border-[1.5px] border-primary p-3 text-sm font-extrabold text-primary"
-        >
+      <div className="flex flex-col items-start gap-3 p-6">
+        <Alert tone="danger">{error || t('orderDetail.notFound')}</Alert>
+        <Button variant="secondary" onClick={load}>
           {t('common.retry')}
-        </button>
+        </Button>
       </div>
     );
   }

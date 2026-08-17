@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Alert, Button } from '@masterqala/ui';
 import { api } from '@/lib/api';
 import { WAVE_TEXTS } from '@/lib/orderStatus';
 import MapView from '@/components/MapView';
@@ -33,23 +34,31 @@ export default function SearchView({ order, onChanged }: { order: OrderDetail; o
   const ss = elapsed % 60;
 
   return (
-    <div className="flex h-screen">
-      <MapView mode="pulse" center={{ lat: 0, lng: 0 }} height={undefined} className="flex-1 rounded-none" />
-      <div className="w-[380px] shrink-0 overflow-y-auto border-l border-border bg-surface px-5 py-5">
-        <div className="flex items-baseline justify-between">
-          <div className="text-lg font-extrabold text-ink">{WAVE_TEXTS[order.wave] ?? WAVE_TEXTS[0]}</div>
-          <div className="text-sm font-extrabold text-primary">
+    // Ниже lg карта и панель складываются в колонку: панель в 380px рядом с
+    // картой не помещалась на узком экране.
+    <div className="flex min-h-screen flex-col lg:h-screen lg:flex-row">
+      <MapView
+        mode="pulse"
+        center={{ lat: 0, lng: 0 }}
+        height={undefined}
+        className="h-56 rounded-none lg:h-auto lg:flex-1"
+      />
+      <div className="overflow-y-auto border-border bg-surface px-5 py-5 lg:w-[380px] lg:shrink-0 lg:border-l">
+        <div className="flex items-baseline justify-between gap-2">
+          <p className="text-lg font-extrabold text-ink">{WAVE_TEXTS[order.wave] ?? WAVE_TEXTS[0]}</p>
+          {/* Таймер срочного режима — оранжевый здесь значит «срочно». */}
+          <p className="text-sm font-extrabold text-urgent" aria-live="off">
             {mm}:{String(ss).padStart(2, '0')}
-          </div>
+          </p>
         </div>
-        {error && <p className="mt-2 text-sm font-semibold text-danger">{error}</p>}
-        <button
-          type="button"
-          onClick={cancel}
-          className="mt-3 w-full rounded-pill border-[1.5px] border-danger p-3.5 text-sm font-extrabold text-danger"
-        >
+        {error && (
+          <Alert tone="danger" className="mt-2">
+            {error}
+          </Alert>
+        )}
+        <Button variant="secondary" fullWidth className="mt-3" onClick={cancel}>
           {t('orderDetail.cancelFree')}
-        </button>
+        </Button>
       </div>
     </div>
   );

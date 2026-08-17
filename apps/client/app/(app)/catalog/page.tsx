@@ -1,7 +1,9 @@
 'use client';
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
+import { ArrowLeftIcon, ChevronRightIcon, IconButton, SearchIcon } from '@masterqala/ui';
 import { api } from '@/lib/api';
 import { categoryMeta } from '@/lib/categoryMeta';
 
@@ -21,34 +23,35 @@ export default function CatalogPage() {
   }, []);
 
   return (
-    <div className="flex flex-col gap-3 px-5 pb-3.5 pt-1.5">
+    <div className="mx-auto flex w-full max-w-2xl flex-col gap-3 px-5 pt-1.5 pb-3.5 sm:px-8 sm:py-6">
       <div className="flex items-center gap-2.5">
-        <button type="button" onClick={() => router.push('/')} className="text-xl text-primary">
-          ←
-        </button>
-        <span className="text-xl font-extrabold text-ink">{t('catalog.title')}</span>
+        <IconButton label={t('common.back')} icon={<ArrowLeftIcon size={20} />} onClick={() => router.push('/')} />
+        <h1 className="text-xl font-extrabold text-ink">{t('catalog.title')}</h1>
       </div>
-      <div className="rounded-md border-[1.5px] border-border bg-surface px-3.5 py-3 text-sm text-muted">
+      <div className="flex items-center gap-2 rounded-md border border-border-strong bg-surface px-3.5 py-3 text-sm text-ink-muted">
+        <SearchIcon size={18} />
         {t('catalog.searchPlaceholder')}
       </div>
-      {categories.map((c) => {
-        const meta = categoryMeta(c.slug);
-        return (
-          <button
-            key={c.id}
-            type="button"
-            onClick={() => router.push('/order/new')}
-            className="flex items-center gap-3 rounded-md border border-border bg-surface px-3.5 py-3.5 text-left"
-          >
-            <span className="text-xl">{meta.icon}</span>
-            <div className="flex-1">
-              <div className="text-sm font-extrabold text-ink">{c.name}</div>
-              <div className="text-[11.5px] text-ink-soft">{meta.subtitle}</div>
-            </div>
-            <span className="text-ink-soft">›</span>
-          </button>
-        );
-      })}
+      <ul className="flex flex-col gap-2">
+        {categories.map((c) => {
+          const { Icon, subtitle } = categoryMeta(c.slug);
+          return (
+            <li key={c.id}>
+              <Link
+                href="/order/new"
+                className="flex items-center gap-3 rounded-md border border-border bg-surface px-3.5 py-3.5 text-left transition-colors duration-(--duration-fast) ease-(--ease-out) hover:bg-surface-sunken"
+              >
+                <Icon size={22} className="shrink-0 text-primary" />
+                <span className="flex-1">
+                  <span className="block text-sm font-extrabold text-ink">{c.name}</span>
+                  <span className="block text-2xs text-ink-soft">{subtitle}</span>
+                </span>
+                <ChevronRightIcon size={18} className="shrink-0 text-ink-soft" />
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
     </div>
   );
 }

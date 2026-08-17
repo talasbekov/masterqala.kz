@@ -2,6 +2,18 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
+import {
+  Alert,
+  ArrowLeftIcon,
+  Button,
+  Card,
+  IconButton,
+  Input,
+  MapPinIcon,
+  PhotoIcon,
+  PlusIcon,
+  Textarea,
+} from '@masterqala/ui';
 import { api, apiUpload } from '@/lib/api';
 import { useCommercialMode } from '@/lib/commercial-mode';
 import { categoryMeta } from '@/lib/categoryMeta';
@@ -51,6 +63,7 @@ export default function NewOrderPage() {
   const [floor, setFloor] = useState('');
   const [apartment, setApartment] = useState('');
   const [addressComment, setAddressComment] = useState('');
+  const [addressErrors, setAddressErrors] = useState<{ address?: string; district?: string }>({});
 
   const [preview, setPreview] = useState<Preview | null>(null);
   const [error, setError] = useState('');
@@ -78,6 +91,14 @@ export default function NewOrderPage() {
     setFloor(a.floor ?? '');
     setApartment(a.apartment ?? '');
     if (a.lat != null && a.lng != null) setGeo({ lat: a.lat, lng: a.lng });
+  }
+
+  function goToStep4() {
+    const next: { address?: string; district?: string } = {};
+    if (!addressText.trim()) next.address = t('newOrder.addressRequired');
+    if (!district.trim()) next.district = t('newOrder.districtRequired');
+    setAddressErrors(next);
+    if (Object.keys(next).length === 0) setStep(4);
   }
 
   async function addPhoto(file: File) {
@@ -125,9 +146,16 @@ export default function NewOrderPage() {
   }
 
   const progress = (
-    <div className="flex gap-1.5">
+    <div
+      className="flex gap-1.5"
+      role="progressbar"
+      aria-valuemin={1}
+      aria-valuemax={4}
+      aria-valuenow={step}
+      aria-label={t('common.stepOf', { n: step, total: 4 })}
+    >
       {[1, 2, 3, 4].map((s) => (
-        <div key={s} className={`h-1.5 flex-1 rounded-full ${s <= step ? 'bg-primary' : 'bg-border'}`} />
+        <span key={s} className={`h-1.5 flex-1 rounded-full ${s <= step ? 'bg-urgent' : 'bg-border'}`} />
       ))}
     </div>
   );
@@ -146,11 +174,32 @@ export default function NewOrderPage() {
 
   const header = (
     <div className="flex items-center gap-2.5">
-      <button type="button" onClick={goBack} className="text-xl text-primary">
-        ←
-      </button>
-      <span className="flex-1 text-lg font-extrabold text-ink">{stepTitles[step]}</span>
+      <IconButton label={t('common.back')} icon={<ArrowLeftIcon size={20} />} onClick={goBack} />
+      <h1 className="flex-1 text-lg font-extrabold text-ink">{stepTitles[step]}</h1>
       <span className="text-xs font-bold text-ink-soft">{t('common.stepOf', { n: step, total: 4 })}</span>
+    </div>
+  );
+
+  const photoPicker = (
+    <div className="flex flex-wrap gap-2.5">
+      {photoPaths.map((p) => (
+        <span key={p} className="flex size-18 items-center justify-center rounded-md bg-fill text-ink-soft">
+          <PhotoIcon size={22} />
+        </span>
+      ))}
+      {photoPaths.length < 5 && (
+        <label className="flex size-18 cursor-pointer items-center justify-center rounded-md border border-dashed border-primary text-primary">
+          <PlusIcon size={24} />
+          <span className="sr-only">{t('newOrder.addPhoto')}</span>
+          <input
+            type="file"
+            accept="image/jpeg,image/png"
+            className="sr-only"
+            disabled={uploading}
+            onChange={(e) => e.target.files?.[0] && addPhoto(e.target.files[0])}
+          />
+        </label>
+      )}
     </div>
   );
 
@@ -159,183 +208,146 @@ export default function NewOrderPage() {
   if (step === 1) {
     stepContent = (
       <>
-        <div className="text-xl font-extrabold text-ink">{t('newOrder.step1Question')}</div>
-        <div className="grid grid-cols-2 gap-2.5">
+        <p className="text-xl font-extrabold text-ink">{t('newOrder.step1Question')}</p>
+        <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
           {categories.map((c) => {
-            const meta = categoryMeta(c.slug);
+            const { Icon } = categoryMeta(c.slug);
             const active = c.id === categoryId;
             return (
-              <button
+              <Button
                 key={c.id}
-                type="button"
+                variant={active ? 'primary' : 'secondary'}
+                fullWidth
+                aria-pressed={active}
+                icon={<Icon size={20} />}
                 onClick={() => setCategoryId(c.id)}
-                className={`rounded-md border-2 p-3.5 text-left ${
-                  active ? 'border-primary bg-fill-soft' : 'border-border bg-surface'
-                }`}
               >
-                <div className="mb-1.5 text-xl">{meta.icon}</div>
-                <div className="text-sm font-extrabold text-ink">{c.name}</div>
-              </button>
+                {c.name}
+              </Button>
             );
           })}
         </div>
-        <button
-          type="button"
-          onClick={() => router.push('/support')}
-          className="rounded-md border-[1.5px] border-dashed border-border p-3 text-[13px] font-bold text-ink-soft"
-        >
+        <Button variant="ghost" fullWidth onClick={() => router.push('/support')}>
           {t('newOrder.step1Unknown')}
-        </button>
+        </Button>
         <div className="mt-auto" />
-        <button
-          type="button"
-          onClick={() => setStep(2)}
-          disabled={!categoryId}
-          className="rounded-pill bg-primary p-4 text-[15px] font-extrabold text-white disabled:opacity-40"
-        >
+        <Button variant="urgent" size="lg" fullWidth disabled={!categoryId} onClick={() => setStep(2)}>
           {t('common.next')}
-        </button>
+        </Button>
       </>
     );
   } else if (step === 2) {
     stepContent = (
       <>
-        <textarea
+        <Textarea
+          label={t('newOrder.step2Title')}
+          rows={5}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           placeholder={t('newOrder.step2Placeholder')}
-          className="min-h-28 rounded-md border-[1.5px] border-border bg-surface p-3.5 text-sm text-ink outline-none placeholder:text-muted"
         />
-        <div className="text-sm font-extrabold text-ink">
-          {t('newOrder.step2PhotosLabel')} <span className="text-xs font-semibold text-ink-soft">{t('newOrder.step2PhotosHint')}</span>
-        </div>
-        <div className="flex flex-wrap gap-2.5">
-          {photoPaths.map((p) => (
-            <div key={p} className="h-18 w-18 rounded-md bg-fill" />
-          ))}
-          {photoPaths.length < 5 && (
-            <label className="flex h-18 w-18 cursor-pointer items-center justify-center rounded-md border-[1.5px] border-dashed border-primary text-2xl text-primary">
-              ＋
-              <input
-                type="file"
-                accept="image/jpeg,image/png"
-                className="hidden"
-                disabled={uploading}
-                onChange={(e) => e.target.files?.[0] && addPhoto(e.target.files[0])}
-              />
-            </label>
-          )}
-        </div>
-        {error && <p className="text-sm font-semibold text-danger">{error}</p>}
+        <p className="text-sm font-extrabold text-ink">
+          {t('newOrder.step2PhotosLabel')}{' '}
+          <span className="text-xs font-semibold text-ink-soft">{t('newOrder.step2PhotosHint')}</span>
+        </p>
+        {photoPicker}
+        {error && <Alert tone="danger">{error}</Alert>}
         <div className="mt-auto" />
-        <button
-          type="button"
-          onClick={() => setStep(3)}
-          className="rounded-pill bg-primary p-4 text-[15px] font-extrabold text-white"
-        >
+        <Button variant="urgent" size="lg" fullWidth onClick={() => setStep(3)}>
           {t('newOrder.step2Next')}
-        </button>
+        </Button>
       </>
     );
   } else if (step === 3) {
     stepContent = (
       <>
-        <input
+        <Input
+          label={t('newOrder.step3Title')}
+          required
           value={addressText}
+          error={addressErrors.address}
           onChange={(e) => setAddressText(e.target.value)}
-          placeholder={t('newOrder.step3Title')}
-          className="rounded-md border-[1.5px] border-primary bg-surface p-3 text-sm font-bold text-ink outline-none"
         />
         {savedAddresses.length > 0 && (
           <div className="flex flex-wrap gap-1.5">
             {savedAddresses.map((a) => (
-              <button
-                key={a.id}
-                type="button"
-                onClick={() => selectAddress(a)}
-                className="rounded-pill border-[1.5px] border-border px-3 py-1.5 text-xs font-bold text-ink-soft"
-              >
+              <Button key={a.id} size="sm" variant="secondary" onClick={() => selectAddress(a)}>
                 {a.label}
-              </button>
+              </Button>
             ))}
           </div>
         )}
         <div className="grid grid-cols-3 gap-2">
-          <div className="rounded-md border-[1.5px] border-border bg-surface p-2.5">
-            <div className="text-[10px] font-bold text-ink-soft">{t('newOrder.step3Entrance')}</div>
-            <input
-              value={entrance}
-              onChange={(e) => setEntrance(e.target.value)}
-              className="w-full bg-transparent text-sm font-extrabold text-ink outline-none"
-            />
-          </div>
-          <div className="rounded-md border-[1.5px] border-border bg-surface p-2.5">
-            <div className="text-[10px] font-bold text-ink-soft">{t('newOrder.step3Floor')}</div>
-            <input
-              value={floor}
-              onChange={(e) => setFloor(e.target.value)}
-              className="w-full bg-transparent text-sm font-extrabold text-ink outline-none"
-            />
-          </div>
-          <div className="rounded-md border-[1.5px] border-border bg-surface p-2.5">
-            <div className="text-[10px] font-bold text-ink-soft">{t('newOrder.step3Apartment')}</div>
-            <input
-              value={apartment}
-              onChange={(e) => setApartment(e.target.value)}
-              className="w-full bg-transparent text-sm font-extrabold text-ink outline-none"
-            />
-          </div>
+          <Input
+            label={t('newOrder.step3Entrance')}
+            value={entrance}
+            inputMode="numeric"
+            onChange={(e) => setEntrance(e.target.value)}
+          />
+          <Input
+            label={t('newOrder.step3Floor')}
+            value={floor}
+            inputMode="numeric"
+            onChange={(e) => setFloor(e.target.value)}
+          />
+          <Input
+            label={t('newOrder.step3Apartment')}
+            value={apartment}
+            inputMode="numeric"
+            onChange={(e) => setApartment(e.target.value)}
+          />
         </div>
-        <input
+        <Input
+          label={t('newOrder.step3District')}
+          required
           value={district}
+          error={addressErrors.district}
           onChange={(e) => setDistrict(e.target.value)}
-          placeholder={t('newOrder.step3District')}
-          className="rounded-md border-[1.5px] border-border bg-surface p-3 text-sm text-ink outline-none placeholder:text-muted"
         />
-        <input
+        <Input
+          label={t('newOrder.step3CommentLabel')}
           value={addressComment}
           onChange={(e) => setAddressComment(e.target.value)}
           placeholder={t('newOrder.step3Comment')}
-          className="rounded-md border-[1.5px] border-border bg-surface p-3 text-sm text-ink outline-none placeholder:text-muted"
         />
-        <button
-          type="button"
+        <Button
+          variant="secondary"
+          fullWidth
+          icon={<MapPinIcon size={18} />}
           onClick={() =>
             navigator.geolocation?.getCurrentPosition((pos) =>
               setGeo({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
             )
           }
-          className="rounded-pill border-[1.5px] border-border p-2.5 text-xs font-extrabold text-ink-soft"
         >
-          ◎ {t('newOrder.step3MyLocation')}
-        </button>
+          {t('newOrder.step3MyLocation')}
+        </Button>
         <div className="mt-auto" />
-        <button
-          type="button"
-          onClick={() => setStep(4)}
-          disabled={!addressText || !district}
-          className="rounded-pill bg-primary p-4 text-[15px] font-extrabold text-white disabled:opacity-40"
-        >
+        <Button variant="urgent" size="lg" fullWidth onClick={goToStep4}>
           {t('newOrder.step3Next')}
-        </button>
+        </Button>
       </>
     );
   } else {
+    const selected = categories.find((c) => c.id === categoryId);
+    const { Icon } = categoryMeta(selected?.slug ?? '');
     stepContent = (
       <>
-        <div className="rounded-md bg-fill p-3.5">
-          <div className="text-sm font-extrabold text-ink">
-            {categoryMeta(categories.find((c) => c.id === categoryId)?.slug ?? '').icon}{' '}
-            {categories.find((c) => c.id === categoryId)?.name} · «{description.slice(0, 40)}» ·{' '}
-            {t('common.photosCount', { n: photoPaths.length })}
-          </div>
-          <div className="mt-1 text-xs font-semibold text-on-fill">
-            {addressText} · {t('newOrder.step3Entrance')} {entrance} · {t('newOrder.step3Floor')} {floor} · {t('newOrder.step3Apartment')} {apartment}
-          </div>
+        <div className="rounded-md bg-surface-sunken p-3.5">
+          <p className="flex items-center gap-2 text-sm font-extrabold text-ink">
+            <Icon size={20} className="shrink-0 text-primary" />
+            <span>
+              {selected?.name} · «{description.slice(0, 40)}» · {t('common.photosCount', { n: photoPaths.length })}
+            </span>
+          </p>
+          <p className="mt-1 text-xs font-semibold text-on-fill">
+            {addressText} · {t('newOrder.step3Entrance')} {entrance} · {t('newOrder.step3Floor')} {floor} ·{' '}
+            {t('newOrder.step3Apartment')} {apartment}
+          </p>
         </div>
-        {preview?.available === false && <p className="text-sm font-semibold text-danger">{t('newOrder.unavailable')}</p>}
+        {preview?.available === false && <Alert tone="warning">{t('newOrder.unavailable')}</Alert>}
         {preview?.available && (
-          <div className="rounded-lg border border-border bg-surface p-3.5">
+          <Card>
             <div className="flex justify-between text-sm font-bold text-ink">
               <span>{t('newOrder.step4CalloutLabel')}</span>
               <span className="font-extrabold">{preview.calloutPrice} ₸</span>
@@ -347,12 +359,12 @@ export default function NewOrderPage() {
               </div>
             )}
             <div className="my-2.5 border-t border-dashed border-border" />
-            <div className="text-xs leading-relaxed text-on-fill">
+            <p className="text-xs leading-relaxed text-on-fill">
               {paymentsEnabled
                 ? t('newOrder.step4Note')
                 : 'Выезд в бесплатном пилоте не оплачивается. Стоимость работ мастер назовёт после осмотра; вы подтвердите её и рассчитаетесь с мастером напрямую.'}
-            </div>
-          </div>
+            </p>
+          </Card>
         )}
         <div className="flex items-center justify-between rounded-md border border-border bg-surface p-3">
           <span className="text-sm font-extrabold text-ink">
@@ -364,27 +376,30 @@ export default function NewOrderPage() {
             ? t('newOrder.step4CancelNote')
             : 'Отмена до начала работ не вызывает списаний со стороны платформы. Договорённости по фактическим расходам обсуждаются напрямую с мастером.'}
         </p>
-        {error && <p className="text-sm font-semibold text-danger">{error}</p>}
+        {error && <Alert tone="danger">{error}</Alert>}
         <div className="mt-auto" />
-        <button
-          type="button"
+        <Button
+          variant="urgent"
+          size="lg"
+          fullWidth
+          loading={submitting}
+          disabled={!preview?.available}
           onClick={submit}
-          disabled={submitting || !preview?.available}
-          className="rounded-pill bg-primary p-4 text-[15.5px] font-extrabold text-white disabled:opacity-40"
         >
           {paymentsEnabled ? t('newOrder.step4Submit', { price: preview?.calloutPrice ?? '' }) : 'Найти мастера бесплатно'}
-        </button>
+        </Button>
       </>
     );
   }
 
   return (
-    <div className="mx-auto flex h-screen max-w-6xl flex-col gap-4 px-8 py-6">
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-5 py-6 sm:px-8 lg:h-screen">
       {header}
       {progress}
-      <div className="flex flex-1 gap-6 overflow-hidden">
-        <div className="flex w-[560px] shrink-0 flex-col gap-3 overflow-y-auto pb-2">{stepContent}</div>
-        <div className="flex-1 overflow-hidden rounded-lg">
+      {/* Ниже lg карта уходит под форму: колонка в 560px не помещалась. */}
+      <div className="flex flex-1 flex-col gap-6 lg:flex-row lg:overflow-hidden">
+        <div className="flex flex-col gap-3 pb-2 lg:w-[560px] lg:shrink-0 lg:overflow-y-auto">{stepContent}</div>
+        <div className="h-64 overflow-hidden rounded-lg lg:h-auto lg:flex-1">
           <MapView
             mode="pin"
             center={geo}

@@ -1,6 +1,17 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import {
+  Alert,
+  ArrowLeftIcon,
+  Button,
+  Card,
+  IconButton,
+  Input,
+  MapPinIcon,
+  PlusIcon,
+  Textarea,
+} from '@masterqala/ui';
 import { api, apiUpload } from '../../../api';
 import { useCommercialMode } from '../../../commercial-mode';
 import { categoryMeta } from '../categoryMeta';
@@ -133,10 +144,8 @@ export default function NewOrderPage() {
 
   const header = (title: string, back: () => void) => (
     <div className="flex items-center gap-2.5">
-      <button type="button" onClick={back} className="text-xl text-primary">
-        ←
-      </button>
-      <span className="flex-1 text-lg font-extrabold text-ink">{title}</span>
+      <IconButton label={t('common.back')} icon={<ArrowLeftIcon />} onClick={back} />
+      <h1 className="flex-1 text-lg font-extrabold text-ink">{title}</h1>
       <span className="text-xs font-bold text-ink-soft">
         {t('common.stepOf', { n: step, total: 4 })}
       </span>
@@ -158,32 +167,24 @@ export default function NewOrderPage() {
                 key={c.id}
                 type="button"
                 onClick={() => setCategoryId(c.id)}
-                className={`rounded-md border-2 p-3.5 text-left ${
-                  active ? 'border-primary bg-fill-soft' : 'border-border bg-surface'
+                aria-pressed={active}
+                className={`min-h-11 rounded-md border-2 p-3.5 text-left ${
+                  active ? 'border-primary bg-fill-soft' : 'border-border-strong bg-surface'
                 }`}
               >
-                <div className="mb-1.5 text-xl">{meta.icon}</div>
+                <div className="mb-1.5 text-primary">{meta.icon}</div>
                 <div className="text-sm font-extrabold text-ink">{c.name}</div>
               </button>
             );
           })}
         </div>
-        <button
-          type="button"
-          onClick={() => navigate('/support')}
-          className="rounded-md border-[1.5px] border-dashed border-border p-3 text-[13px] font-bold text-ink-soft"
-        >
+        <Button fullWidth variant="secondary" onClick={() => navigate('/support')}>
           {t('newOrder.step1Unknown')}
-        </button>
+        </Button>
         <div className="mt-auto" />
-        <button
-          type="button"
-          onClick={() => setStep(2)}
-          disabled={!categoryId}
-          className="rounded-pill bg-primary p-4 text-[15px] font-extrabold text-white disabled:opacity-40"
-        >
+        <Button fullWidth size="lg" disabled={!categoryId} onClick={() => setStep(2)}>
           {t('common.next')}
-        </button>
+        </Button>
       </div>
     );
   }
@@ -193,11 +194,12 @@ export default function NewOrderPage() {
       <div className="flex flex-col gap-3 px-5 pb-3.5 pt-1.5">
         {header(t('newOrder.step2Title'), () => setStep(1))}
         {progress}
-        <textarea
+        <Textarea
+          label={t('newOrder.step2Title')}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           placeholder={t('newOrder.step2Placeholder')}
-          className="min-h-28 rounded-md border-[1.5px] border-border bg-surface p-3.5 text-sm text-ink outline-none placeholder:text-muted"
+          className="min-h-28"
         />
         <div className="text-sm font-extrabold text-ink">
           {t('newOrder.step2PhotosLabel')} <span className="text-xs font-semibold text-ink-soft">{t('newOrder.step2PhotosHint')}</span>
@@ -207,27 +209,24 @@ export default function NewOrderPage() {
             <div key={p} className="h-18 w-18 rounded-md bg-fill" />
           ))}
           {photoPaths.length < 5 && (
-            <label className="flex h-18 w-18 cursor-pointer items-center justify-center rounded-md border-[1.5px] border-dashed border-primary text-2xl text-primary">
-              ＋
+            <label className="flex h-18 w-18 cursor-pointer items-center justify-center rounded-md border border-dashed border-primary text-primary">
+              <PlusIcon size={24} />
+              <span className="sr-only">{t('common.addPhoto')}</span>
               <input
                 type="file"
                 accept="image/jpeg,image/png"
-                className="hidden"
+                className="sr-only"
                 disabled={uploading}
                 onChange={(e) => e.target.files?.[0] && addPhoto(e.target.files[0])}
               />
             </label>
           )}
         </div>
-        {error && <p className="text-sm font-semibold text-danger">{error}</p>}
+        {error && <Alert tone="danger">{error}</Alert>}
         <div className="mt-auto" />
-        <button
-          type="button"
-          onClick={() => setStep(3)}
-          className="rounded-pill bg-primary p-4 text-[15px] font-extrabold text-white"
-        >
+        <Button fullWidth size="lg" onClick={() => setStep(3)}>
           {t('newOrder.step2Next')}
-        </button>
+        </Button>
       </div>
     );
   }
@@ -237,89 +236,80 @@ export default function NewOrderPage() {
       <div className="flex flex-col gap-3 pb-3.5">
         <div className="relative">
           <MapView mode="pin" center={geo} onCenterChange={setGeo} height={190} />
-          <button
-            type="button"
+          <Button
+            variant="secondary"
+            size="sm"
+            icon={<MapPinIcon size={16} />}
+            className="absolute bottom-3 right-3 shadow-card"
             onClick={() =>
               navigator.geolocation?.getCurrentPosition((pos) =>
                 setGeo({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
               )
             }
-            className="absolute bottom-3 right-3 rounded-pill bg-white px-3 py-2 text-xs font-extrabold text-ink shadow-card"
           >
-            ◎ {t('newOrder.step3MyLocation')}
-          </button>
+            {t('newOrder.step3MyLocation')}
+          </Button>
         </div>
         <div className="flex flex-col gap-2.5 px-5">
           <div className="flex items-center justify-between">
-            <span className="text-lg font-extrabold text-ink">{t('newOrder.step3Title')}</span>
+            <h1 className="text-lg font-extrabold text-ink">{t('newOrder.step3Title')}</h1>
             <span className="text-xs font-bold text-ink-soft">{t('common.stepOf', { n: 3, total: 4 })}</span>
           </div>
-          <input
+          <Input
+            label={t('newOrder.step3Title')}
+            required
+            autoComplete="street-address"
             value={addressText}
             onChange={(e) => setAddressText(e.target.value)}
-            placeholder={t('newOrder.step3Title')}
-            className="rounded-md border-[1.5px] border-primary bg-surface p-3 text-sm font-bold text-ink outline-none"
           />
           {savedAddresses.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
               {savedAddresses.map((a) => (
-                <button
-                  key={a.id}
-                  type="button"
-                  onClick={() => selectAddress(a)}
-                  className="rounded-pill border-[1.5px] border-border px-3 py-1.5 text-xs font-bold text-ink-soft"
-                >
+                <Button key={a.id} variant="secondary" size="sm" onClick={() => selectAddress(a)}>
                   {a.label}
-                </button>
+                </Button>
               ))}
             </div>
           )}
           <div className="grid grid-cols-3 gap-2">
-            <div className="rounded-md border-[1.5px] border-border bg-surface p-2.5">
-              <div className="text-[10px] font-bold text-ink-soft">{t('newOrder.step3Entrance')}</div>
-              <input
-                value={entrance}
-                onChange={(e) => setEntrance(e.target.value)}
-                className="w-full bg-transparent text-sm font-extrabold text-ink outline-none"
-              />
-            </div>
-            <div className="rounded-md border-[1.5px] border-border bg-surface p-2.5">
-              <div className="text-[10px] font-bold text-ink-soft">{t('newOrder.step3Floor')}</div>
-              <input
-                value={floor}
-                onChange={(e) => setFloor(e.target.value)}
-                className="w-full bg-transparent text-sm font-extrabold text-ink outline-none"
-              />
-            </div>
-            <div className="rounded-md border-[1.5px] border-border bg-surface p-2.5">
-              <div className="text-[10px] font-bold text-ink-soft">{t('newOrder.step3Apartment')}</div>
-              <input
-                value={apartment}
-                onChange={(e) => setApartment(e.target.value)}
-                className="w-full bg-transparent text-sm font-extrabold text-ink outline-none"
-              />
-            </div>
+            <Input
+              label={t('newOrder.step3Entrance')}
+              inputMode="numeric"
+              value={entrance}
+              onChange={(e) => setEntrance(e.target.value)}
+            />
+            <Input
+              label={t('newOrder.step3Floor')}
+              inputMode="numeric"
+              value={floor}
+              onChange={(e) => setFloor(e.target.value)}
+            />
+            <Input
+              label={t('newOrder.step3Apartment')}
+              inputMode="numeric"
+              value={apartment}
+              onChange={(e) => setApartment(e.target.value)}
+            />
           </div>
-          <input
+          <Input
+            label={t('newOrder.step3District')}
+            required
             value={district}
             onChange={(e) => setDistrict(e.target.value)}
-            placeholder={t('newOrder.step3District')}
-            className="rounded-md border-[1.5px] border-border bg-surface p-3 text-sm text-ink outline-none placeholder:text-muted"
           />
-          <input
+          <Input
+            label={t('newOrder.step3Comment')}
             value={addressComment}
             onChange={(e) => setAddressComment(e.target.value)}
-            placeholder={t('newOrder.step3Comment')}
-            className="rounded-md border-[1.5px] border-border bg-surface p-3 text-sm text-ink outline-none placeholder:text-muted"
           />
-          <button
-            type="button"
-            onClick={() => setStep(4)}
+          <Button
+            fullWidth
+            size="lg"
             disabled={!addressText || !district}
-            className="rounded-pill bg-primary p-4 text-[15px] font-extrabold text-white disabled:opacity-40"
+            onClick={() => setStep(4)}
           >
             {t('newOrder.step3Next')}
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -330,18 +320,22 @@ export default function NewOrderPage() {
       {header(t('newOrder.step4Title'), () => setStep(3))}
       {progress}
       <div className="rounded-md bg-fill p-3.5">
-        <div className="text-sm font-extrabold text-ink">
-          {categoryMeta(categories.find((c) => c.id === categoryId)?.slug ?? '').icon}{' '}
-          {categories.find((c) => c.id === categoryId)?.name} · «{description.slice(0, 40)}» ·{' '}
-          {t('common.photosCount', { n: photoPaths.length })}
+        <div className="flex items-center gap-1.5 text-sm font-extrabold text-ink">
+          <span className="shrink-0 text-primary">
+            {categoryMeta(categories.find((c) => c.id === categoryId)?.slug ?? '').icon}
+          </span>
+          <span>
+            {categories.find((c) => c.id === categoryId)?.name} · «{description.slice(0, 40)}» ·{' '}
+            {t('common.photosCount', { n: photoPaths.length })}
+          </span>
         </div>
         <div className="mt-1 text-xs font-semibold text-on-fill">
           {addressText} · {t('newOrder.step3Entrance')} {entrance} · {t('newOrder.step3Floor')} {floor} · {t('newOrder.step3Apartment')} {apartment}
         </div>
       </div>
-      {preview?.available === false && <p className="text-sm font-semibold text-danger">{t('newOrder.unavailable')}</p>}
+      {preview?.available === false && <Alert tone="danger">{t('newOrder.unavailable')}</Alert>}
       {preview?.available && (
-        <div className="rounded-lg border border-border bg-surface p-3.5">
+        <Card as="section" padding="sm">
           <div className="flex justify-between text-sm font-bold text-ink">
             <span>{t('newOrder.step4CalloutLabel')}</span>
             <span className="font-extrabold">{preview.calloutPrice} ₸</span>
@@ -358,28 +352,31 @@ export default function NewOrderPage() {
               ? t('newOrder.step4Note')
               : 'Выезд в бесплатном пилоте не оплачивается. Стоимость работ мастер назовёт после осмотра; вы подтвердите её и рассчитаетесь с мастером напрямую.'}
           </div>
-        </div>
+        </Card>
       )}
-      <div className="flex items-center justify-between rounded-md border border-border bg-surface p-3">
+      <Card padding="sm" className="flex items-center justify-between">
         <span className="text-sm font-extrabold text-ink">
           {paymentsEnabled ? t('newOrder.step4PaymentMethod') : 'Бесплатный пилот · без привязки карты'}
         </span>
-      </div>
+      </Card>
       <p className="text-xs leading-relaxed text-ink-soft">
         {paymentsEnabled
           ? t('newOrder.step4CancelNote')
           : 'Отмена до начала работ не вызывает списаний со стороны платформы. Договорённости по фактическим расходам обсуждаются напрямую с мастером.'}
       </p>
-      {error && <p className="text-sm font-semibold text-danger">{error}</p>}
+      {error && <Alert tone="danger">{error}</Alert>}
       <div className="mt-auto" />
-      <button
-        type="button"
+      {/* variant="urgent": это срочный вызов «Сейчас» — единственное место, где уместен оранжевый. */}
+      <Button
+        fullWidth
+        size="lg"
+        variant="urgent"
+        loading={submitting}
+        disabled={!preview?.available}
         onClick={submit}
-        disabled={submitting || !preview?.available}
-        className="rounded-pill bg-primary p-4 text-[15.5px] font-extrabold text-white disabled:opacity-40"
       >
         {paymentsEnabled ? t('newOrder.step4Submit', { price: preview?.calloutPrice ?? '' }) : 'Найти мастера бесплатно'}
-      </button>
+      </Button>
     </div>
   );
 }

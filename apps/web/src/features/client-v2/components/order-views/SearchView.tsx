@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Alert, Button } from '@masterqala/ui';
 import { api } from '../../../../api';
 import { WAVE_TEXTS } from '../../../../orderStatus';
 import MapView from '../MapView';
@@ -42,14 +43,14 @@ export default function SearchView({ order, onChanged }: { order: OrderDetail; o
             {mm}:{String(ss).padStart(2, '0')}
           </div>
         </div>
-        {error && <p className="mt-2 text-sm font-semibold text-danger">{error}</p>}
-        <button
-          type="button"
-          onClick={cancel}
-          className="mt-3 w-full rounded-pill border-[1.5px] border-danger p-3.5 text-sm font-extrabold text-danger"
-        >
+        {error && (
+          <Alert tone="danger" className="mt-2">
+            {error}
+          </Alert>
+        )}
+        <Button variant="danger" fullWidth onClick={cancel} className="mt-3">
           {t('orderDetail.cancelFree')}
-        </button>
+        </Button>
       </div>
     </div>
   );

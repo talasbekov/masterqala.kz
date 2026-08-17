@@ -12,7 +12,10 @@ export default defineConfig({
       manifest: {
         name: 'MasterQala',
         short_name: 'MasterQala',
-        theme_color: '#0f766e',
+        // Раньше здесь стоял бирюзовый, которого не было ни в старой палитре,
+        // ни в новой. Теперь — --color-primary.
+        theme_color: '#1E40AF',
+        background_color: '#F8FAFC',
         display: 'standalone',
         start_url: '/',
         icons: [],

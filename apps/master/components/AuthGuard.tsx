@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
+import { SkeletonList } from '@masterqala/ui';
 import { useAuth } from '@/lib/auth';
 
 export function AuthGuard({ children }: { children: ReactNode }) {
@@ -16,6 +17,12 @@ export function AuthGuard({ children }: { children: ReactNode }) {
     }
   }, [user, router]);
 
-  if (!checked) return <div className="p-6 text-ink-soft">Загрузка…</div>;
+  if (!checked) {
+    return (
+      <div className="mx-auto w-full max-w-lg p-4 sm:p-6 md:p-8">
+        <SkeletonList rows={3} label="Проверяем доступ" />
+      </div>
+    );
+  }
   return <>{children}</>;
 }

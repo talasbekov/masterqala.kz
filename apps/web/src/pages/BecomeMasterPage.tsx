@@ -1,5 +1,16 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import {
+  Alert,
+  ArrowLeftIcon,
+  Badge,
+  Button,
+  Card,
+  CheckIcon,
+  Input,
+  SkeletonList,
+} from '@masterqala/ui';
+import type { BadgeTone } from '@masterqala/ui';
 import { api, apiUpload } from '../api';
 
 interface Category { id: string; slug: string; name: string }
@@ -24,6 +35,13 @@ const STATUS_RU: Record<Application['status'], string> = {
   REJECTED: 'Отклонена',
 };
 
+const STATUS_TONES: Record<Application['status'], BadgeTone> = {
+  PENDING_REVIEW: 'warning',
+  NEEDS_INFO: 'warning',
+  ACTIVE: 'success',
+  REJECTED: 'danger',
+};
+
 const DOC_TYPES = [
   { value: 'ID_CARD', label: 'Удостоверение личности' },
   { value: 'QUALIFICATION', label: 'Подтверждение квалификации' },
@@ -37,6 +55,7 @@ export default function BecomeMasterPage() {
   const [form, setForm] = useState({ fullName: '', iin: '', district: '', experienceYears: 0 });
   const [selectedCats, setSelectedCats] = useState<string[]>([]);
   const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   async function load() {
     const cats = await api('/categories');
@@ -56,6 +75,7 @@ export default function BecomeMasterPage() {
 
   async function submit() {
     setError('');
+    setSubmitting(true);
     try {
       await api('/masters/application', {
         method: 'POST',
@@ -65,6 +85,8 @@ export default function BecomeMasterPage() {
       await load();
     } catch (e) {
       setError((e as Error).message);
+    } finally {
+      setSubmitting(false);
     }
   }
 
@@ -81,50 +103,80 @@ export default function BecomeMasterPage() {
     }
   }
 
-  if (!loaded) return <p className="p-6">Загрузка…</p>;
+  if (!loaded) {
+    return (
+      <div className="mx-auto max-w-sm p-6">
+        <SkeletonList rows={3} label="Загрузка заявки" />
+      </div>
+    );
+  }
 
   const showForm = editing || !app;
   const canUpload = app && (app.status === 'PENDING_REVIEW' || app.status === 'NEEDS_INFO');
   const canResubmit = app && (app.status === 'NEEDS_INFO' || app.status === 'REJECTED');
 
   return (
-    <div className="mx-auto max-w-sm p-6 space-y-4">
-      <Link to="/" className="text-sm text-gray-500">← Назад</Link>
-      <h1 className="text-2xl font-bold">Стать мастером</h1>
+    <div className="mx-auto max-w-sm space-y-4 p-6">
+      <Link to="/" className="inline-flex items-center gap-1.5 text-sm text-ink-soft">
+        <ArrowLeftIcon size={16} />Назад
+      </Link>
+      <h1 className="text-2xl font-bold text-ink">Стать мастером</h1>
 
       {app && !editing && (
-        <div className="rounded border p-4 space-y-2">
-          <p className="font-semibold">Статус: {STATUS_RU[app.status]}</p>
+        <Card className="space-y-3">
+          <p className="flex items-center gap-2 font-bold text-ink">
+            Статус: <Badge tone={STATUS_TONES[app.status]}>{STATUS_RU[app.status]}</Badge>
+          </p>
           {app.status === 'REJECTED' && app.rejectionReason && (
-            <p className="text-red-600">Причина: {app.rejectionReason}</p>
+            <Alert tone="danger" title="Причина отказа">
+              {app.rejectionReason}
+            </Alert>
           )}
           {app.status === 'NEEDS_INFO' && app.latestDecisionComment && (
-            <p className="text-yellow-700">Что нужно дополнить: {app.latestDecisionComment}</p>
+            <Alert tone="warning" title="Что нужно дополнить">
+              {app.latestDecisionComment}
+            </Alert>
           )}
-          {canResubmit && (
-            <button className="rounded bg-teal-700 px-4 py-2 text-white" onClick={() => setEditing(true)}>
-              Подать заново
-            </button>
-          )}
-        </div>
+          {canResubmit && <Button onClick={() => setEditing(true)}>Подать заново</Button>}
+        </Card>
       )}
 
       {showForm && (
         <div className="space-y-3">
-          <input className="w-full rounded border p-3" placeholder="ФИО полностью" value={form.fullName}
-            onChange={(e) => setForm({ ...form, fullName: e.target.value })} />
-          <input className="w-full rounded border p-3" placeholder="ИИН (12 цифр)" value={form.iin}
-            onChange={(e) => setForm({ ...form, iin: e.target.value })} />
-          <input className="w-full rounded border p-3" placeholder="Район" value={form.district}
-            onChange={(e) => setForm({ ...form, district: e.target.value })} />
-          <input className="w-full rounded border p-3" type="number" placeholder="Опыт, лет" value={form.experienceYears}
-            onChange={(e) => setForm({ ...form, experienceYears: Number(e.target.value) })} />
+          <Input
+            label="ФИО полностью"
+            required
+            value={form.fullName}
+            onChange={(e) => setForm({ ...form, fullName: e.target.value })}
+          />
+          <Input
+            label="ИИН"
+            hint="12 цифр"
+            required
+            inputMode="numeric"
+            value={form.iin}
+            onChange={(e) => setForm({ ...form, iin: e.target.value })}
+          />
+          <Input
+            label="Район"
+            required
+            value={form.district}
+            onChange={(e) => setForm({ ...form, district: e.target.value })}
+          />
+          <Input
+            label="Опыт, лет"
+            type="number"
+            min={0}
+            value={form.experienceYears}
+            onChange={(e) => setForm({ ...form, experienceYears: Number(e.target.value) })}
+          />
           <fieldset className="space-y-1">
-            <legend className="font-semibold">Категории</legend>
+            <legend className="text-sm font-bold text-ink">Категории</legend>
             {categories.map((c) => (
-              <label key={c.id} className="flex items-center gap-2">
+              <label key={c.id} className="flex min-h-11 items-center gap-2 text-base text-ink">
                 <input
                   type="checkbox"
+                  className="size-5 accent-primary"
                   checked={selectedCats.includes(c.id)}
                   onChange={(e) =>
                     setSelectedCats(e.target.checked
@@ -136,38 +188,44 @@ export default function BecomeMasterPage() {
               </label>
             ))}
           </fieldset>
-          <button className="w-full rounded bg-teal-700 p-3 text-white" onClick={submit}>
+          <Button fullWidth loading={submitting} loadingLabel="Отправляем…" onClick={submit}>
             Отправить на проверку
-          </button>
+          </Button>
         </div>
       )}
 
       {canUpload && (
-        <div className="space-y-3 rounded border p-4">
-          <h2 className="font-semibold">Документы</h2>
+        <Card className="space-y-3">
+          <h2 className="font-bold text-ink">Документы</h2>
           {DOC_TYPES.map((dt) => (
-            <div key={dt.value}>
-              <label className="block text-sm">{dt.label}</label>
-              <input
-                type="file"
-                accept="image/jpeg,image/png,application/pdf"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  e.target.value = '';
-                  if (file) upload(dt.value, file);
-                }}
-              />
-              <ul className="text-sm text-gray-600">
+            <div key={dt.value} className="space-y-1">
+              <label className="block text-sm font-bold text-ink">
+                {dt.label}
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,application/pdf"
+                  className="mt-1 block w-full text-sm text-ink-soft file:mr-3 file:min-h-11 file:rounded-pill file:border-0 file:bg-primary file:px-4 file:font-bold file:text-on-primary"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    e.target.value = '';
+                    if (file) upload(dt.value, file);
+                  }}
+                />
+              </label>
+              <ul className="space-y-1 text-sm text-ink-soft">
                 {app!.documents.filter((d) => d.type === dt.value).map((d) => (
-                  <li key={d.id}>✓ {d.originalName}</li>
+                  <li key={d.id} className="flex items-center gap-1.5">
+                    <CheckIcon size={16} className="shrink-0 text-success" />
+                    {d.originalName}
+                  </li>
                 ))}
               </ul>
             </div>
           ))}
-        </div>
+        </Card>
       )}
 
-      {error && <p className="text-red-600">{error}</p>}
+      {error && <Alert tone="danger">{error}</Alert>}
     </div>
   );
 }

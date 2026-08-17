@@ -57,8 +57,20 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build shared packages
-        run: pnpm --filter @masterqala/ui build
+      # @masterqala/ui отдаётся исходниками, отдельная сборка пакета больше не
+      # нужна — приложения транспилируют его сами (transpilePackages / Vite).
+      - name: Typecheck design system
+        run: pnpm --filter @masterqala/ui typecheck
+
+      # Контраст токенов проверяется счётом, а не на глаз: предыдущая палитра
+      # проваливала WCAG AA в четырёх местах, и это прошло ревью.
+      - name: Check design token contrast
+        run: pnpm --filter @masterqala/ui check:contrast
+
+      # Ловит возврат дефектов, ради которых делался редизайн: эмодзи вместо
+      # иконок, outline-none, произвольный кегль, старые токены и цвета.
+      - name: Check design system usage
+        run: pnpm --filter @masterqala/ui check:ui
 
       - name: Apply database migrations
         run: pnpm --filter api exec prisma migrate deploy

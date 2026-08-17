@@ -3,23 +3,21 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "main": "./dist/index.js",
-  "module": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
   "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
-    },
+    ".": "./src/index.ts",
     "./tokens.css": "./src/tokens.css",
-    "./styles.css": "./dist/styles.css"
+    "./base.css": "./src/base.css",
+    "./fonts/manrope.css": "./fonts/manrope.css"
   },
   "files": [
-    "dist",
-    "src/tokens.css"
+    "src",
+    "fonts"
   ],
   "scripts": {
-    "build": "tsup src/index.ts --format esm --dts --external react --external react-dom && tailwindcss -i ./src/styles.css -o ./dist/styles.css --minify",
+    "check:contrast": "python3 scripts/check-contrast.py",
+    "check:ui": "python3 scripts/check-ui-consistency.py",
     "typecheck": "tsc --noEmit"
   },
   "peerDependencies": {
@@ -27,13 +25,11 @@
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
-    "@tailwindcss/cli": "^4.3.3",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "tailwindcss": "^4.3.2",
-    "tsup": "^8.5.1",
     "typescript": "^6.0.3"
   }
 }

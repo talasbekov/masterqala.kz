@@ -1,5 +1,18 @@
 'use client';
 import { useEffect, useState } from 'react';
+import {
+  Alert,
+  Badge,
+  Button,
+  Card,
+  EmptyState,
+  Input,
+  SkeletonList,
+  Table,
+  SearchIcon,
+  type TableColumn,
+} from '@masterqala/ui';
+import { BlockUserDialog } from '@/components/BlockUserDialog';
 import { fetchUsers, blockUser, unblockUser, type OperatorUserRow } from '@/lib/users';
 
 export default function UsersPage() {
@@ -10,6 +23,7 @@ export default function UsersPage() {
   const [blockTarget, setBlockTarget] = useState<OperatorUserRow | null>(null);
   const [reason, setReason] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [unblockingId, setUnblockingId] = useState<string | null>(null);
 
   async function load(currentSearch: string) {
     try {
@@ -45,112 +59,109 @@ export default function UsersPage() {
   }
 
   async function handleUnblock(id: string) {
+    setUnblockingId(id);
     try {
       await unblockUser(id);
       await load(search);
     } catch (e) {
       setError((e as Error).message);
+    } finally {
+      setUnblockingId(null);
     }
   }
 
+  const columns: TableColumn<OperatorUserRow>[] = [
+    {
+      key: 'name',
+      header: 'Пользователь',
+      cell: (row) => (
+        <span className="flex flex-wrap items-center gap-2 font-bold">
+          {row.name ?? '—'}
+          {row.isBlocked && <Badge tone="danger">заблокирован</Badge>}
+        </span>
+      ),
+    },
+    { key: 'phone', header: 'Телефон', cell: (row) => row.phone, width: '170px' },
+    { key: 'role', header: 'Роль', cell: (row) => row.role, width: '140px', hideBelow: 'md' },
+    {
+      key: 'orders',
+      header: 'Заказов',
+      cell: (row) => row.orders,
+      width: '100px',
+      align: 'right',
+      hideBelow: 'lg',
+    },
+    {
+      key: 'actions',
+      header: 'Действия',
+      width: '170px',
+      align: 'right',
+      cell: (row) =>
+        row.isBlocked ? (
+          <Button
+            variant="secondary"
+            size="sm"
+            loading={unblockingId === row.id}
+            onClick={() => handleUnblock(row.id)}
+          >
+            Разблокировать
+          </Button>
+        ) : (
+          <Button
+            variant="danger"
+            size="sm"
+            onClick={() => {
+              setBlockTarget(row);
+              setReason('');
+            }}
+          >
+            Заблокировать
+          </Button>
+        ),
+    },
+  ];
+
   return (
-    <div className="flex flex-col gap-4 p-8">
-      <div className="flex items-center gap-3">
-        <div className="text-2xl font-extrabold text-ink">Пользователи</div>
-        <input
+    <div className="flex flex-col gap-4 p-4 lg:p-8">
+      <div className="flex flex-wrap items-end gap-3">
+        <h1 className="text-2xl font-extrabold text-ink">Пользователи</h1>
+        <Input
+          label="Поиск по телефону или имени"
+          labelHidden
+          type="search"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Поиск по телефону/имени"
-          className="rounded-md border-[1.5px] border-border bg-surface px-3 py-1.5 text-sm"
+          prefix={<SearchIcon size={18} />}
+          fieldClassName="w-full sm:w-80"
         />
       </div>
-      {error && <div className="text-sm text-danger">{error}</div>}
-      <div className="rounded-lg border border-border bg-surface">
-        <div className="grid grid-cols-[1fr_170px_140px_100px_140px] gap-3 border-b border-fill-soft px-4 py-2 text-[11px] font-extrabold uppercase text-ink-soft">
-          <span>Пользователь</span>
-          <span>Телефон</span>
-          <span>Роль</span>
-          <span>Заказов</span>
-          <span></span>
-        </div>
-        {loading && <div className="p-4 text-sm text-ink-soft">Загрузка…</div>}
-        {!loading && rows.length === 0 && <div className="p-4 text-sm text-ink-soft">Ничего не найдено</div>}
-        {rows.map((row) => (
-          <div
-            key={row.id}
-            className="grid grid-cols-[1fr_170px_140px_100px_140px] items-center gap-3 border-b border-fill-soft px-4 py-2.5 text-sm font-bold"
-          >
-            <span>
-              {row.name ?? '—'}
-              {row.isBlocked && (
-                <span className="ml-2 rounded-pill bg-danger-bg px-2 py-0.5 text-[10px] font-extrabold text-danger">
-                  заблокирован
-                </span>
-              )}
-            </span>
-            <span className="text-ink-soft">{row.phone}</span>
-            <span>{row.role}</span>
-            <span>{row.orders}</span>
-            <span>
-              {row.isBlocked ? (
-                <button
-                  type="button"
-                  onClick={() => handleUnblock(row.id)}
-                  className="rounded-pill border-[1.5px] border-success px-3 py-1 text-xs font-extrabold text-success"
-                >
-                  Разблокировать
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setBlockTarget(row);
-                    setReason('');
-                  }}
-                  className="rounded-pill border-[1.5px] border-danger px-3 py-1 text-xs font-extrabold text-danger"
-                >
-                  Заблокировать
-                </button>
-              )}
-            </span>
-          </div>
-        ))}
-      </div>
+      {error && <Alert tone="danger">{error}</Alert>}
+
+      {loading ? (
+        <SkeletonList rows={5} label="Загрузка списка пользователей" />
+      ) : rows.length === 0 ? (
+        <EmptyState title="Ничего не найдено" subtitle="Попробуйте изменить поисковый запрос." />
+      ) : (
+        <Card padding="none">
+          <Table
+            caption="Пользователи платформы: имя, телефон, роль, число заказов и блокировка"
+            columns={columns}
+            rows={rows}
+            rowKey={(row) => row.id}
+          />
+        </Card>
+      )}
 
       {blockTarget && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-8"
-          onClick={() => setBlockTarget(null)}
-        >
-          <div className="w-full max-w-md rounded-lg bg-surface p-5" onClick={(e) => e.stopPropagation()}>
-            <div className="mb-3 text-base font-extrabold text-ink">
-              Заблокировать {blockTarget.name ?? blockTarget.phone}
-            </div>
-            <textarea
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              placeholder="Причина блокировки — обязательна"
-              className="mb-3 min-h-20 w-full rounded-md border-[1.5px] border-border bg-fill-faint p-3 text-sm"
-            />
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={confirmBlock}
-                disabled={!reason.trim() || submitting}
-                className="rounded-pill bg-danger px-4 py-2 text-sm font-extrabold text-white disabled:opacity-40"
-              >
-                Подтвердить
-              </button>
-              <button
-                type="button"
-                onClick={() => setBlockTarget(null)}
-                className="rounded-pill border-[1.5px] border-border px-4 py-2 text-sm font-extrabold text-ink-soft"
-              >
-                Отмена
-              </button>
-            </div>
-          </div>
-        </div>
+        <BlockUserDialog
+          target={blockTarget}
+          reason={reason}
+          onReasonChange={setReason}
+          submitting={submitting}
+          onConfirm={confirmBlock}
+          onCancel={() => setBlockTarget(null)}
+        />
       )}
     </div>
   );

@@ -1,6 +1,19 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import {
+  Alert,
+  ArrowLeftIcon,
+  Badge,
+  Button,
+  CalendarIcon,
+  Card,
+  IconButton,
+  Input,
+  MapPinIcon,
+  PlusIcon,
+  Textarea,
+} from '@masterqala/ui';
 import { api, apiUpload } from '../../../api';
 import { categoryMeta } from '../categoryMeta';
 
@@ -104,10 +117,8 @@ export default function PlannedNewOrderPage() {
 
   const header = (title: string, back: () => void, n: number) => (
     <div className="flex items-center gap-2.5">
-      <button type="button" onClick={back} className="text-xl text-primary">
-        ←
-      </button>
-      <span className="flex-1 text-lg font-extrabold text-ink">{title}</span>
+      <IconButton label={t('common.back')} icon={<ArrowLeftIcon />} onClick={back} />
+      <h1 className="flex-1 text-lg font-extrabold text-ink">{title}</h1>
       <span className="text-xs font-bold text-ink-soft">{t('common.stepOf', { n, total: 3 })}</span>
     </div>
   );
@@ -133,8 +144,11 @@ export default function PlannedNewOrderPage() {
                 key={c.id}
                 type="button"
                 onClick={() => setCategoryId(c.id)}
-                className={`rounded-pill border-2 px-3.5 py-2 text-sm font-bold ${
-                  active ? 'border-primary bg-primary text-white' : 'border-border bg-surface text-ink'
+                aria-pressed={active}
+                className={`inline-flex min-h-11 items-center gap-1.5 rounded-pill border-2 px-3.5 py-2 text-sm font-bold ${
+                  active
+                    ? 'border-primary bg-primary text-on-primary'
+                    : 'border-border-strong bg-surface text-ink'
                 }`}
               >
                 {meta.icon} {c.name}
@@ -142,51 +156,54 @@ export default function PlannedNewOrderPage() {
             );
           })}
         </div>
-        <textarea
+        <Textarea
+          label={t('newOrder.step2Title')}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           placeholder={t('newOrder.step2Placeholder')}
-          className="min-h-24 rounded-md border-[1.5px] border-border bg-surface p-3.5 text-sm text-ink outline-none placeholder:text-muted"
+          className="min-h-24"
         />
         <div className="flex flex-wrap gap-2.5">
           {photoPaths.map((p) => (
             <div key={p} className="h-16 w-16 rounded-md bg-fill" />
           ))}
           {photoPaths.length < 5 && (
-            <label className="flex h-16 w-16 cursor-pointer items-center justify-center rounded-md border-[1.5px] border-dashed border-primary text-xl text-primary">
-              ＋
+            <label className="flex h-16 w-16 cursor-pointer items-center justify-center rounded-md border border-dashed border-primary text-primary">
+              <PlusIcon size={22} />
+              <span className="sr-only">{t('common.addPhoto')}</span>
               <input
                 type="file"
                 accept="image/jpeg,image/png"
-                className="hidden"
+                className="sr-only"
                 disabled={uploading}
                 onChange={(e) => e.target.files?.[0] && addPhoto(e.target.files[0])}
               />
             </label>
           )}
         </div>
-        <input
+        <Input
+          label={t('plannedNew.addressLabel')}
+          required
+          autoComplete="street-address"
           value={address}
           onChange={(e) => setAddress(e.target.value)}
-          placeholder={t('plannedNew.addressLabel')}
-          className="rounded-md border-[1.5px] border-border bg-surface p-3 text-sm text-ink outline-none placeholder:text-muted"
         />
-        <input
+        <Input
+          label={t('plannedNew.districtLabel')}
+          required
           value={district}
           onChange={(e) => setDistrict(e.target.value)}
-          placeholder={t('plannedNew.districtLabel')}
-          className="rounded-md border-[1.5px] border-border bg-surface p-3 text-sm text-ink outline-none placeholder:text-muted"
         />
-        {error && <p className="text-sm font-semibold text-danger">{error}</p>}
+        {error && <Alert tone="danger">{error}</Alert>}
         <div className="mt-auto" />
-        <button
-          type="button"
-          onClick={() => setStep(2)}
+        <Button
+          fullWidth
+          size="lg"
           disabled={!categoryId || !description || !address || !district}
-          className="rounded-pill bg-primary p-4 text-[15px] font-extrabold text-white disabled:opacity-40"
+          onClick={() => setStep(2)}
         >
           {t('common.next')}
-        </button>
+        </Button>
       </div>
     );
   }
@@ -202,12 +219,13 @@ export default function PlannedNewOrderPage() {
               key={i}
               type="button"
               onClick={() => setDateIdx(i)}
-              className={`flex-none rounded-md border-2 px-0 py-2.5 text-center ${
-                i === dateIdx ? 'border-primary bg-fill-soft' : 'border-border bg-surface'
+              aria-pressed={i === dateIdx}
+              className={`min-h-11 flex-none rounded-md border-2 px-0 py-2.5 text-center ${
+                i === dateIdx ? 'border-primary bg-fill-soft' : 'border-border-strong bg-surface'
               }`}
               style={{ width: 64 }}
             >
-              <div className="text-[10.5px] font-bold text-ink-soft">{DOW[d.getDay()]}</div>
+              <div className="text-2xs font-bold text-ink-soft">{DOW[d.getDay()]}</div>
               <div className="text-base font-extrabold text-ink">{d.getDate()}</div>
             </button>
           ))}
@@ -219,32 +237,27 @@ export default function PlannedNewOrderPage() {
               key={i}
               type="button"
               onClick={() => setSlotIdx(i)}
-              className={`rounded-md border-2 p-2.5 text-center text-[13px] font-bold ${
-                i === slotIdx ? 'border-primary bg-fill-soft text-primary' : 'border-border text-ink-soft'
+              aria-pressed={i === slotIdx}
+              className={`min-h-11 rounded-md border-2 p-2.5 text-center text-xs font-bold ${
+                i === slotIdx ? 'border-primary bg-fill-soft text-primary' : 'border-border-strong text-ink-soft'
               }`}
             >
               {s.label}
             </button>
           ))}
         </div>
-        <div className="text-sm font-extrabold text-ink">
-          {t('plannedNew.step2Budget')} <span className="text-xs font-semibold text-ink-soft">{t('plannedNew.step2BudgetHint')}</span>
-        </div>
-        <input
+        <Input
+          label={t('plannedNew.step2Budget')}
+          hint={t('plannedNew.step2BudgetHint')}
           value={budget}
           onChange={(e) => setBudget(e.target.value.replace(/\D/g, ''))}
           inputMode="numeric"
           placeholder={t('plannedNew.step2BudgetPlaceholder')}
-          className="rounded-md border-[1.5px] border-border bg-surface p-3 text-sm font-extrabold text-ink outline-none placeholder:text-muted placeholder:font-normal"
         />
         <div className="mt-auto" />
-        <button
-          type="button"
-          onClick={() => setStep(3)}
-          className="rounded-pill bg-primary p-4 text-[15px] font-extrabold text-white"
-        >
+        <Button fullWidth size="lg" onClick={() => setStep(3)}>
           {t('plannedNew.step2Next')}
-        </button>
+        </Button>
       </div>
     );
   }
@@ -258,34 +271,31 @@ export default function PlannedNewOrderPage() {
       {header(t('plannedNew.step3Title'), () => setStep(2), 3)}
       {progress(3)}
       <p className="text-xs leading-relaxed text-ink-soft">{t('plannedNew.step3Note')}</p>
-      <div className="rounded-lg border border-border bg-surface p-3.5 shadow-card">
-        <div className="flex items-center justify-between">
-          <span className="text-sm font-extrabold text-ink">
-            {meta.icon} {categories.find((c) => c.id === categoryId)?.name}
+      <Card padding="sm" raised>
+        <div className="flex items-center justify-between gap-2">
+          <span className="inline-flex items-center gap-1.5 text-sm font-extrabold text-ink">
+            <span className="shrink-0 text-primary">{meta.icon}</span>
+            {categories.find((c) => c.id === categoryId)?.name}
           </span>
-          <span className="rounded-pill bg-fill-soft px-2.5 py-1 text-[11px] font-extrabold text-primary">
-            {t('plannedNew.step3Offers', { n: 0 })}
-          </span>
+          <Badge tone="primary">{t('plannedNew.step3Offers', { n: 0 })}</Badge>
         </div>
-        <div className="mt-1.5 text-[12.5px] leading-relaxed text-on-fill">
+        <div className="mt-1.5 text-xs leading-relaxed text-on-fill">
           «{description}» {photoPaths.length > 0 && `· ${t('common.photosCount', { n: photoPaths.length })}`}
         </div>
-        <div className="mt-1.5 text-xs text-ink-soft">
-          📍 {district} · 🗓 {DOW[day.getDay()]}, {day.getDate()} · {slot.label}
+        <div className="mt-1.5 flex flex-wrap items-center gap-x-1.5 text-xs text-ink-soft">
+          <MapPinIcon size={14} />
+          {district} ·
+          <CalendarIcon size={14} />
+          {DOW[day.getDay()]}, {day.getDate()} · {slot.label}
           {budget && ` · бюджет ~${budget} ₸`}
         </div>
-      </div>
+      </Card>
       <div className="rounded-md bg-fill p-3 text-xs font-semibold leading-relaxed text-ink">{t('plannedNew.step3Footer')}</div>
-      {error && <p className="text-sm font-semibold text-danger">{error}</p>}
+      {error && <Alert tone="danger">{error}</Alert>}
       <div className="mt-auto" />
-      <button
-        type="button"
-        onClick={submit}
-        disabled={submitting}
-        className="rounded-pill bg-primary p-4 text-[15.5px] font-extrabold text-white disabled:opacity-40"
-      >
+      <Button fullWidth size="lg" loading={submitting} onClick={submit}>
         {t('plannedNew.publish')}
-      </button>
+      </Button>
     </div>
   );
 }

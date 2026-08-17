@@ -2,6 +2,17 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
+import {
+  Alert,
+  ArrowLeftIcon,
+  Badge,
+  Button,
+  Card,
+  CheckIcon,
+  IconButton,
+  Spinner,
+  StarIcon,
+} from '@masterqala/ui';
 import { api } from '@/lib/api';
 import { categoryMeta } from '@/lib/categoryMeta';
 import SelectBidConfirm from './SelectBidConfirm';
@@ -38,92 +49,80 @@ export default function PwaitView({
   const cheapestId = order.bids.length ? order.bids.reduce((a, b) => (b.price < a.price ? b : a)).id : null;
   const slotDate = new Date(order.slotStart);
   const when = `${slotDate.toLocaleDateString('ru-RU', { day: '2-digit', month: 'long' })}`;
+  const { Icon } = categoryMeta(order.category?.slug ?? '');
 
   return (
-    <div className="mx-auto flex w-full max-w-[560px] flex-col gap-3 px-5 pb-3.5 pt-1.5">
+    <div className="mx-auto flex w-full max-w-xl flex-col gap-3 px-5 pt-1.5 pb-3.5 sm:px-8 sm:py-6">
       <div className="flex items-center gap-2.5">
-        <button type="button" onClick={() => router.push('/')} className="text-xl text-primary">
-          ←
-        </button>
-        <span className="flex-1 truncate text-[17px] font-extrabold text-ink">{order.category?.name}</span>
-        <span className="rounded-pill bg-fill-soft px-2.5 py-1 text-[11px] font-extrabold text-primary">
-          {t('plannedDetail.publishedBadge')}
+        <IconButton label={t('common.back')} icon={<ArrowLeftIcon size={20} />} onClick={() => router.push('/')} />
+        <h1 className="flex-1 truncate text-base font-extrabold text-ink">{order.category?.name}</h1>
+        <Badge tone="primary">{t('plannedDetail.publishedBadge')}</Badge>
+      </div>
+      <p className="flex items-center gap-2 rounded-md bg-surface-sunken px-3.5 py-2.5 text-xs font-semibold text-on-fill">
+        <Icon size={18} className="shrink-0 text-primary" />
+        <span>
+          {order.category?.name} · {when} · {order.district}
+          {order.budget && ` · ~${order.budget} ₸`}
         </span>
-      </div>
-      <div className="rounded-md bg-fill px-3.5 py-2.5 text-[12.5px] font-semibold text-ink">
-        {categoryMeta(order.category?.slug ?? '').icon} {order.category?.name} · {when} · {order.district}
-        {order.budget && ` · ~${order.budget} ₸`}
-      </div>
-      <div className="flex items-baseline justify-between">
-        <span className="text-[15px] font-extrabold text-ink">
-          {t('plannedDetail.offersCount', { n: order.bids.length })}
-        </span>
-      </div>
+      </p>
+      <h2 className="text-sm font-extrabold text-ink">{t('plannedDetail.offersCount', { n: order.bids.length })}</h2>
       {order.bids.length === 0 && (
-        <div className="rounded-lg border-[1.5px] border-dashed border-border bg-surface p-5.5 text-center">
-          <div className="mx-auto mb-2.5 h-6 w-6 animate-spin rounded-full border-[3px] border-border border-t-primary" />
-          <div className="whitespace-pre-line text-[13px] font-bold leading-relaxed text-ink-soft">
+        <div className="rounded-lg border border-dashed border-border bg-surface p-6 text-center">
+          <Spinner size={24} className="mx-auto mb-2.5 text-primary" label={t('common.loading')} />
+          <p className="text-xs leading-relaxed font-bold whitespace-pre-line text-ink-soft">
             {t('plannedDetail.noBidsYet')}
-          </div>
+          </p>
         </div>
       )}
       {order.bids.map((b) => (
-        <div key={b.id} className="rounded-lg border border-border bg-surface p-3.5">
-          <div className="flex items-start justify-between">
+        <Card key={b.id}>
+          <div className="flex items-start justify-between gap-2">
             <div className="flex items-center gap-2.5">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-fill text-[13px] font-extrabold text-ink">
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-fill text-xs font-extrabold text-ink">
                 {b.master.name?.slice(0, 2).toUpperCase() ?? '—'}
-              </div>
+              </span>
               <div>
-                <div className="text-sm font-extrabold text-ink">
-                  {b.master.name} <span className="text-xs text-success">✓</span>
-                </div>
-                <div className="text-[11.5px] font-semibold text-ink-soft">
-                  ★ {b.master.rating?.toFixed(1) ?? '—'} · {t('plannedDetail.ordersShort', { n: b.master.completedCount })} ·{' '}
-                  {b.master.experienceYears} лет
-                </div>
+                <p className="flex flex-wrap items-center gap-1.5 text-sm font-extrabold text-ink">
+                  {b.master.name}
+                  <Badge tone="success" icon={<CheckIcon size={14} />}>
+                    {t('orderDetail.verified')}
+                  </Badge>
+                </p>
+                <p className="flex items-center gap-1 text-2xs font-semibold text-ink-soft">
+                  <StarIcon size={13} filled className="text-warning" />
+                  {b.master.rating?.toFixed(1) ?? '—'} · {t('plannedDetail.ordersShort', { n: b.master.completedCount })}{' '}
+                  · {b.master.experienceYears} лет
+                </p>
               </div>
             </div>
             <div className="text-right">
-              <div className="text-base font-extrabold text-primary">{b.price} ₸</div>
-              <div className="text-[11px] font-semibold text-ink-soft">{t('plannedDetail.termLabel', { term: b.term })}</div>
+              <p className="text-base font-extrabold text-primary">{b.price} ₸</p>
+              <p className="text-2xs font-semibold text-ink-soft">{t('plannedDetail.termLabel', { term: b.term })}</p>
             </div>
           </div>
-          {b.comment && <div className="my-2 text-[12.5px] leading-snug text-on-fill">«{b.comment}»</div>}
+          {b.comment && <p className="my-2 text-xs leading-snug text-on-fill">«{b.comment}»</p>}
           <div className="flex items-center gap-1.5">
-            {b.id === cheapestId && (
-              <span className="rounded-pill bg-success-bg px-2.5 py-1 text-[10.5px] font-extrabold text-success-ink">
-                {t('plannedDetail.bestPrice')}
-              </span>
-            )}
-            <button
-              type="button"
-              onClick={() => setSelected(b)}
-              className="ml-auto rounded-pill bg-primary px-4.5 py-2 text-xs font-extrabold text-white"
-            >
+            {b.id === cheapestId && <Badge tone="success">{t('plannedDetail.bestPrice')}</Badge>}
+            <Button size="sm" className="ml-auto" onClick={() => setSelected(b)}>
               {t('plannedDetail.select')}
-            </button>
+            </Button>
           </div>
-        </div>
+        </Card>
       ))}
-      {error && <p className="text-sm font-semibold text-danger">{error}</p>}
+      {error && <Alert tone="danger">{error}</Alert>}
       <div className="mt-auto" />
-      <div className="flex gap-2">
-        <button
-          type="button"
-          onClick={() => router.push(`/planned/${orderId}/compare`)}
+      <div className="flex flex-col gap-2 sm:flex-row">
+        <Button
+          variant="secondary"
+          fullWidth
           disabled={order.bids.length === 0}
-          className="flex-1 rounded-pill border-[1.5px] border-primary p-3 text-[13.5px] font-extrabold text-primary disabled:opacity-40"
+          onClick={() => router.push(`/planned/${orderId}/compare`)}
         >
           {t('plannedDetail.compare', { n: order.bids.length })}
-        </button>
-        <button
-          type="button"
-          onClick={cancel}
-          className="flex-1 rounded-pill border-[1.5px] border-danger p-3 text-[13.5px] font-extrabold text-danger"
-        >
+        </Button>
+        <Button variant="secondary" fullWidth onClick={cancel}>
           {t('plannedDetail.cancel')}
-        </button>
+        </Button>
       </div>
     </div>
   );

@@ -1,3 +1,22 @@
+import type { Metadata } from 'next';
+import { ChevronDownIcon } from '@masterqala/ui';
+
+export const metadata: Metadata = {
+  title: 'Частые вопросы',
+  description:
+    'Как оплатить работу мастера, что делать, если мастер не приехал, в каких районах Астаны работает MasterQala и как открыть спор — ответы на частые вопросы.',
+  alternates: { canonical: '/faq' },
+  openGraph: {
+    url: '/faq',
+    title: 'Частые вопросы — MasterQala',
+    description: 'Оплата, проверка мастеров, география работы и споры — коротко и по делу.',
+  },
+  twitter: {
+    title: 'Частые вопросы — MasterQala',
+    description: 'Оплата, проверка мастеров, география работы и споры — коротко и по делу.',
+  },
+};
+
 const FAQ_ITEMS = [
   {
     question: 'Как оплатить работу мастера?',
@@ -35,17 +54,42 @@ const FAQ_ITEMS = [
 ];
 
 export default function FaqPage() {
+  /* FAQPage — тот же список, что видит человек. Расхождение разметки и
+     содержимого страницы Google считает нарушением. */
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: FAQ_ITEMS.map((item) => ({
+      '@type': 'Question',
+      name: item.question,
+      acceptedAnswer: { '@type': 'Answer', text: item.answer },
+    })),
+  };
+
   return (
-    <main className="mx-auto max-w-3xl px-6 py-16">
+    <div className="mx-auto max-w-3xl px-6 py-16">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }}
+      />
+
       <h1 className="text-3xl font-bold text-ink">Частые вопросы</h1>
       <div className="mt-8 flex flex-col divide-y divide-border">
         {FAQ_ITEMS.map((item) => (
-          <details key={item.question} className="group py-4">
-            <summary className="cursor-pointer list-none font-semibold text-ink">{item.question}</summary>
-            <p className="mt-2 text-ink-soft">{item.answer}</p>
+          <details key={item.question} className="group py-2">
+            {/* Нативный <details> уже доступен с клавиатуры; здесь ему добавлена
+                видимая цель нажатия в 44px и маркер состояния помимо цвета. */}
+            <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 rounded-md py-2 font-semibold text-ink hover:text-primary">
+              {item.question}
+              <ChevronDownIcon
+                size={20}
+                className="shrink-0 text-ink-soft transition-transform duration-(--duration-fast) group-open:rotate-180"
+              />
+            </summary>
+            <p className="pb-2 text-ink-soft">{item.answer}</p>
           </details>
         ))}
       </div>
-    </main>
+    </div>
   );
 }

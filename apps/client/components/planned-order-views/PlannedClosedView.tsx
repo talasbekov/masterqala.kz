@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
+import { Button, Card, CheckIcon, CloseIcon, IconButton, StarIcon } from '@masterqala/ui';
 import { api } from '@/lib/api';
 import type { PlannedOrderDetail } from '@/lib/plannedOrderTypes';
 
@@ -35,48 +36,54 @@ export default function PlannedClosedView({ order, onChanged }: { order: Planned
       : t('plannedDetail.closedCancelledTitle');
 
   return (
-    <div className="mx-auto flex min-h-[80vh] w-full max-w-[560px] flex-col items-center justify-center gap-3.5 px-6 text-center">
-      <div
-        className={`flex h-19 w-19 items-center justify-center rounded-full text-4xl text-white ${
-          isClosed ? 'bg-success' : 'bg-ink-soft'
+    <div className="mx-auto flex min-h-[80vh] w-full max-w-xl flex-col items-center justify-center gap-3.5 px-6 text-center">
+      <span
+        className={`flex size-19 items-center justify-center rounded-full ${
+          isClosed ? 'bg-success text-on-success' : 'bg-ink-soft text-surface'
         }`}
+        aria-hidden="true"
       >
-        {isClosed ? '✓' : '×'}
-      </div>
-      <div className="text-xl font-extrabold text-ink">{title}</div>
-      {!isClosed && order.cancelReason && <div className="text-sm text-ink-soft">{order.cancelReason}</div>}
+        {isClosed ? <CheckIcon size={36} /> : <CloseIcon size={36} />}
+      </span>
+      <h1 className="text-xl font-extrabold text-ink">{title}</h1>
+      {!isClosed && order.cancelReason && <p className="text-sm text-ink-soft">{order.cancelReason}</p>}
       {isClosed && (
-        <div className="w-full rounded-md border border-border bg-surface p-3.5">
+        <Card className="w-full">
           {order.review ? (
-            <div className="text-sm font-extrabold text-ink">{t('plannedDetail.rateThanks')}</div>
+            <p className="text-sm font-extrabold text-ink">{t('plannedDetail.rateThanks')}</p>
           ) : (
             <>
-              <div className="mb-2 text-[13px] font-extrabold text-ink">{t('plannedDetail.rateTitle')}</div>
-              <div className="flex justify-center gap-1 text-[28px]">
+              <p className="mb-2 text-xs font-extrabold text-ink">{t('plannedDetail.rateTitle')}</p>
+              <div className="flex justify-center gap-1" role="group" aria-label={t('plannedDetail.rateTitle')}>
                 {[1, 2, 3, 4, 5].map((s) => (
-                  <button
+                  <IconButton
                     key={s}
-                    type="button"
+                    label={t('orderDetail.rateStars', { n: s })}
                     disabled={submitting}
+                    aria-pressed={s <= rating}
                     onClick={() => submitRating(s)}
-                    className={s <= rating ? 'text-primary' : 'text-border'}
-                  >
-                    ★
-                  </button>
+                    icon={
+                      <StarIcon
+                        size={26}
+                        filled={s <= rating}
+                        className={s <= rating ? 'text-warning' : 'text-border-strong'}
+                      />
+                    }
+                  />
                 ))}
               </div>
-              {error && <div className="mt-2 text-xs font-semibold text-danger">{error}</div>}
+              {error && (
+                <p role="alert" className="mt-2 text-xs font-semibold text-danger">
+                  {error}
+                </p>
+              )}
             </>
           )}
-        </div>
+        </Card>
       )}
-      <button
-        type="button"
-        onClick={() => router.push('/')}
-        className="w-full rounded-pill bg-primary p-4 text-sm font-extrabold text-white"
-      >
+      <Button size="lg" fullWidth onClick={() => router.push('/')}>
         {t('plannedDetail.toHome')}
-      </button>
+      </Button>
     </div>
   );
 }

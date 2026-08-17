@@ -1,8 +1,25 @@
+import type { Metadata } from 'next';
 import { getContactEmail, getContactPhone } from '@/lib/env';
+
+export const metadata: Metadata = {
+  title: 'О сервисе',
+  description:
+    'MasterQala — сервис вызова проверенных мастеров бытовых услуг на дом в Астане. Ручная проверка мастеров, 100% стоимости работ остаётся мастеру.',
+  alternates: { canonical: '/about' },
+  openGraph: {
+    url: '/about',
+    title: 'О сервисе — MasterQala',
+    description: 'Кто мы, где работаем и как устроена проверка мастеров.',
+  },
+  twitter: {
+    title: 'О сервисе — MasterQala',
+    description: 'Кто мы, где работаем и как устроена проверка мастеров.',
+  },
+};
 
 export default function AboutPage() {
   return (
-    <main className="mx-auto max-w-3xl px-6 py-16">
+    <div className="mx-auto max-w-3xl px-6 py-16">
       <h1 className="text-3xl font-bold text-ink">О MasterQala</h1>
       <p className="mt-4 text-lg text-ink-soft">
         MasterQala — сервис вызова мастеров бытовых услуг на дом. Мы работаем в Астане (пилотный запуск — Есильский
@@ -17,6 +34,6 @@ export default function AboutPage() {
       <h2 className="mt-10 text-xl font-semibold text-ink">Контакты</h2>
       <p className="mt-2 text-ink-soft">{getContactPhone()}</p>
       <p className="text-ink-soft">{getContactEmail()}</p>
-    </main>
+    </div>
   );
 }

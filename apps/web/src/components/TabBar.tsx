@@ -13,13 +13,19 @@ export function useMasterActive(): boolean {
   return active;
 }
 
+// min-h-11 — минимальная цель нажатия 44×44: это мобильное PWA.
 const tabClass = ({ isActive }: { isActive: boolean }) =>
-  `flex flex-1 flex-col items-center gap-0.5 py-2.5 text-[10px] font-bold ${isActive ? 'text-primary' : 'text-muted'}`;
+  `flex min-h-11 flex-1 flex-col items-center justify-center gap-0.5 py-2.5 text-2xs font-bold ${
+    isActive ? 'text-primary' : 'text-ink-soft'
+  }`;
 
 export default function TabBar() {
   const isMaster = useMasterActive();
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-10 flex border-t border-border bg-surface">
+    <nav
+      aria-label="Основная навигация"
+      className="fixed inset-x-0 bottom-0 z-10 flex border-t border-border bg-surface"
+    >
       <NavLink to="/" end className={tabClass}>
         <HomeIcon className="h-5 w-5" />
         Главная

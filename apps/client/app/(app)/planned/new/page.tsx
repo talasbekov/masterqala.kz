@@ -2,6 +2,20 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
+import {
+  Alert,
+  ArrowLeftIcon,
+  Badge,
+  Button,
+  CalendarIcon,
+  Card,
+  IconButton,
+  Input,
+  MapPinIcon,
+  PhotoIcon,
+  PlusIcon,
+  Textarea,
+} from '@masterqala/ui';
 import { api, apiUpload } from '@/lib/api';
 import { categoryMeta } from '@/lib/categoryMeta';
 
@@ -42,6 +56,7 @@ export default function PlannedNewOrderPage() {
   const [uploading, setUploading] = useState(false);
   const [address, setAddress] = useState('');
   const [district, setDistrict] = useState('');
+  const [stepErrors, setStepErrors] = useState<{ description?: string; address?: string; district?: string }>({});
 
   const dates = nextDays(5);
   const [dateIdx, setDateIdx] = useState(0);
@@ -67,6 +82,15 @@ export default function PlannedNewOrderPage() {
     } finally {
       setUploading(false);
     }
+  }
+
+  function goToStep2() {
+    const next: { description?: string; address?: string; district?: string } = {};
+    if (!description.trim()) next.description = t('plannedNew.descriptionRequired');
+    if (!address.trim()) next.address = t('plannedNew.addressRequired');
+    if (!district.trim()) next.district = t('plannedNew.districtRequired');
+    setStepErrors(next);
+    if (Object.keys(next).length === 0 && categoryId) setStep(2);
   }
 
   function slotRange(): { slotStart: string; slotEnd: string } {
@@ -105,188 +129,192 @@ export default function PlannedNewOrderPage() {
 
   const header = (title: string, back: () => void, n: number) => (
     <div className="flex items-center gap-2.5">
-      <button type="button" onClick={back} className="text-xl text-primary">
-        ←
-      </button>
-      <span className="flex-1 text-lg font-extrabold text-ink">{title}</span>
+      <IconButton label={t('common.back')} icon={<ArrowLeftIcon size={20} />} onClick={back} />
+      <h1 className="flex-1 text-lg font-extrabold text-ink">{title}</h1>
       <span className="text-xs font-bold text-ink-soft">{t('common.stepOf', { n, total: 3 })}</span>
     </div>
   );
   const progress = (n: number) => (
-    <div className="flex gap-1.5">
+    <div
+      className="flex gap-1.5"
+      role="progressbar"
+      aria-valuemin={1}
+      aria-valuemax={3}
+      aria-valuenow={n}
+      aria-label={t('common.stepOf', { n, total: 3 })}
+    >
       {[1, 2, 3].map((s) => (
-        <div key={s} className={`h-1.5 flex-1 rounded-full ${s <= n ? 'bg-primary' : 'bg-border'}`} />
+        <span key={s} className={`h-1.5 flex-1 rounded-full ${s <= n ? 'bg-primary' : 'bg-border'}`} />
       ))}
     </div>
   );
 
   if (step === 1) {
     return (
-      <div className="mx-auto flex w-full max-w-[560px] flex-col gap-3 px-5 pb-3.5 pt-1.5">
+      <div className="mx-auto flex w-full max-w-xl flex-col gap-3 px-5 pt-1.5 pb-3.5 sm:px-8 sm:py-6">
         {header(t('plannedNew.step1Title'), () => router.push('/'), 1)}
         {progress(1)}
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2" role="group" aria-label={t('home.categoriesTitle')}>
           {categories.map((c) => {
-            const meta = categoryMeta(c.slug);
+            const { Icon } = categoryMeta(c.slug);
             const active = c.id === categoryId;
             return (
-              <button
+              <Button
                 key={c.id}
-                type="button"
+                size="sm"
+                variant={active ? 'primary' : 'secondary'}
+                aria-pressed={active}
+                icon={<Icon size={18} />}
                 onClick={() => setCategoryId(c.id)}
-                className={`rounded-pill border-2 px-3.5 py-2 text-sm font-bold ${
-                  active ? 'border-primary bg-primary text-white' : 'border-border bg-surface text-ink'
-                }`}
               >
-                {meta.icon} {c.name}
-              </button>
+                {c.name}
+              </Button>
             );
           })}
         </div>
-        <textarea
+        <Textarea
+          label={t('newOrder.step2Title')}
+          rows={4}
+          required
           value={description}
+          error={stepErrors.description}
           onChange={(e) => setDescription(e.target.value)}
           placeholder={t('newOrder.step2Placeholder')}
-          className="min-h-24 rounded-md border-[1.5px] border-border bg-surface p-3.5 text-sm text-ink outline-none placeholder:text-muted"
         />
         <div className="flex flex-wrap gap-2.5">
           {photoPaths.map((p) => (
-            <div key={p} className="h-16 w-16 rounded-md bg-fill" />
+            <span key={p} className="flex size-16 items-center justify-center rounded-md bg-fill text-ink-soft">
+              <PhotoIcon size={20} />
+            </span>
           ))}
           {photoPaths.length < 5 && (
-            <label className="flex h-16 w-16 cursor-pointer items-center justify-center rounded-md border-[1.5px] border-dashed border-primary text-xl text-primary">
-              ＋
+            <label className="flex size-16 cursor-pointer items-center justify-center rounded-md border border-dashed border-primary text-primary">
+              <PlusIcon size={22} />
+              <span className="sr-only">{t('newOrder.addPhoto')}</span>
               <input
                 type="file"
                 accept="image/jpeg,image/png"
-                className="hidden"
+                className="sr-only"
                 disabled={uploading}
                 onChange={(e) => e.target.files?.[0] && addPhoto(e.target.files[0])}
               />
             </label>
           )}
         </div>
-        <input
+        <Input
+          label={t('plannedNew.addressLabel')}
+          required
           value={address}
+          error={stepErrors.address}
           onChange={(e) => setAddress(e.target.value)}
-          placeholder={t('plannedNew.addressLabel')}
-          className="rounded-md border-[1.5px] border-border bg-surface p-3 text-sm text-ink outline-none placeholder:text-muted"
         />
-        <input
+        <Input
+          label={t('plannedNew.districtLabel')}
+          required
           value={district}
+          error={stepErrors.district}
           onChange={(e) => setDistrict(e.target.value)}
-          placeholder={t('plannedNew.districtLabel')}
-          className="rounded-md border-[1.5px] border-border bg-surface p-3 text-sm text-ink outline-none placeholder:text-muted"
         />
-        {error && <p className="text-sm font-semibold text-danger">{error}</p>}
+        {error && <Alert tone="danger">{error}</Alert>}
         <div className="mt-auto" />
-        <button
-          type="button"
-          onClick={() => setStep(2)}
-          disabled={!categoryId || !description || !address || !district}
-          className="rounded-pill bg-primary p-4 text-[15px] font-extrabold text-white disabled:opacity-40"
-        >
+        <Button size="lg" fullWidth disabled={!categoryId} onClick={goToStep2}>
           {t('common.next')}
-        </button>
+        </Button>
       </div>
     );
   }
 
   if (step === 2) {
     return (
-      <div className="mx-auto flex w-full max-w-[560px] flex-col gap-3 px-5 pb-3.5 pt-1.5">
+      <div className="mx-auto flex w-full max-w-xl flex-col gap-3 px-5 pt-1.5 pb-3.5 sm:px-8 sm:py-6">
         {header(t('plannedNew.step2Title'), () => setStep(1), 2)}
         {progress(2)}
-        <div className="flex gap-1.5 overflow-x-auto pb-1">
+        <div className="flex gap-1.5 overflow-x-auto pb-1" role="group" aria-label={t('plannedNew.step2Title')}>
           {dates.map((d, i) => (
-            <button
+            <Button
               key={i}
-              type="button"
+              variant={i === dateIdx ? 'primary' : 'secondary'}
+              aria-pressed={i === dateIdx}
+              className="w-16 flex-none"
               onClick={() => setDateIdx(i)}
-              className={`flex-none rounded-md border-2 px-0 py-2.5 text-center ${
-                i === dateIdx ? 'border-primary bg-fill-soft' : 'border-border bg-surface'
-              }`}
-              style={{ width: 64 }}
             >
-              <div className="text-[10.5px] font-bold text-ink-soft">{DOW[d.getDay()]}</div>
-              <div className="text-base font-extrabold text-ink">{d.getDate()}</div>
-            </button>
+              <span className="flex flex-col leading-tight">
+                <span className="text-2xs font-bold">{DOW[d.getDay()]}</span>
+                <span className="text-base font-extrabold">{d.getDate()}</span>
+              </span>
+            </Button>
           ))}
         </div>
-        <div className="text-sm font-extrabold text-ink">{t('plannedNew.step2Slot')}</div>
-        <div className="grid grid-cols-2 gap-2">
+        <p className="text-sm font-extrabold text-ink">{t('plannedNew.step2Slot')}</p>
+        <div className="grid grid-cols-2 gap-2" role="group" aria-label={t('plannedNew.step2Slot')}>
           {TIME_SLOTS.map((s, i) => (
-            <button
+            <Button
               key={i}
-              type="button"
+              variant={i === slotIdx ? 'primary' : 'secondary'}
+              fullWidth
+              aria-pressed={i === slotIdx}
               onClick={() => setSlotIdx(i)}
-              className={`rounded-md border-2 p-2.5 text-center text-[13px] font-bold ${
-                i === slotIdx ? 'border-primary bg-fill-soft text-primary' : 'border-border text-ink-soft'
-              }`}
             >
               {s.label}
-            </button>
+            </Button>
           ))}
         </div>
-        <div className="text-sm font-extrabold text-ink">
-          {t('plannedNew.step2Budget')} <span className="text-xs font-semibold text-ink-soft">{t('plannedNew.step2BudgetHint')}</span>
-        </div>
-        <input
+        <Input
+          label={t('plannedNew.step2Budget')}
+          hint={t('plannedNew.step2BudgetHint')}
           value={budget}
           onChange={(e) => setBudget(e.target.value.replace(/\D/g, ''))}
           inputMode="numeric"
           placeholder={t('plannedNew.step2BudgetPlaceholder')}
-          className="rounded-md border-[1.5px] border-border bg-surface p-3 text-sm font-extrabold text-ink outline-none placeholder:text-muted placeholder:font-normal"
         />
         <div className="mt-auto" />
-        <button
-          type="button"
-          onClick={() => setStep(3)}
-          className="rounded-pill bg-primary p-4 text-[15px] font-extrabold text-white"
-        >
+        <Button size="lg" fullWidth onClick={() => setStep(3)}>
           {t('plannedNew.step2Next')}
-        </button>
+        </Button>
       </div>
     );
   }
 
-  const meta = categoryMeta(categories.find((c) => c.id === categoryId)?.slug ?? '');
+  const { Icon } = categoryMeta(categories.find((c) => c.id === categoryId)?.slug ?? '');
   const slot = TIME_SLOTS[slotIdx];
   const day = dates[dateIdx];
 
   return (
-    <div className="mx-auto flex w-full max-w-[560px] flex-col gap-3 px-5 pb-3.5 pt-1.5">
+    <div className="mx-auto flex w-full max-w-xl flex-col gap-3 px-5 pt-1.5 pb-3.5 sm:px-8 sm:py-6">
       {header(t('plannedNew.step3Title'), () => setStep(2), 3)}
       {progress(3)}
       <p className="text-xs leading-relaxed text-ink-soft">{t('plannedNew.step3Note')}</p>
-      <div className="rounded-lg border border-border bg-surface p-3.5 shadow-card">
-        <div className="flex items-center justify-between">
-          <span className="text-sm font-extrabold text-ink">
-            {meta.icon} {categories.find((c) => c.id === categoryId)?.name}
+      <Card>
+        <div className="flex items-center justify-between gap-2">
+          <span className="flex items-center gap-2 text-sm font-extrabold text-ink">
+            <Icon size={20} className="text-primary" />
+            {categories.find((c) => c.id === categoryId)?.name}
           </span>
-          <span className="rounded-pill bg-fill-soft px-2.5 py-1 text-[11px] font-extrabold text-primary">
-            {t('plannedNew.step3Offers', { n: 0 })}
-          </span>
+          <Badge tone="primary">{t('plannedNew.step3Offers', { n: 0 })}</Badge>
         </div>
-        <div className="mt-1.5 text-[12.5px] leading-relaxed text-on-fill">
+        <p className="mt-1.5 text-xs leading-relaxed text-on-fill">
           «{description}» {photoPaths.length > 0 && `· ${t('common.photosCount', { n: photoPaths.length })}`}
-        </div>
-        <div className="mt-1.5 text-xs text-ink-soft">
-          📍 {district} · 🗓 {DOW[day.getDay()]}, {day.getDate()} · {slot.label}
-          {budget && ` · бюджет ~${budget} ₸`}
-        </div>
-      </div>
-      <div className="rounded-md bg-fill p-3 text-xs font-semibold leading-relaxed text-ink">{t('plannedNew.step3Footer')}</div>
-      {error && <p className="text-sm font-semibold text-danger">{error}</p>}
+        </p>
+        <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-ink-soft">
+          <span className="flex items-center gap-1">
+            <MapPinIcon size={14} />
+            {district}
+          </span>
+          <span className="flex items-center gap-1">
+            <CalendarIcon size={14} />
+            {DOW[day.getDay()]}, {day.getDate()} · {slot.label}
+          </span>
+          {budget && <span>· бюджет ~{budget} ₸</span>}
+        </p>
+      </Card>
+      <p className="rounded-md bg-surface-sunken p-3 text-xs leading-relaxed font-semibold text-on-fill">
+        {t('plannedNew.step3Footer')}
+      </p>
+      {error && <Alert tone="danger">{error}</Alert>}
       <div className="mt-auto" />
-      <button
-        type="button"
-        onClick={submit}
-        disabled={submitting}
-        className="rounded-pill bg-primary p-4 text-[15.5px] font-extrabold text-white disabled:opacity-40"
-      >
+      <Button size="lg" fullWidth loading={submitting} onClick={submit}>
         {t('plannedNew.publish')}
-      </button>
+      </Button>
     </div>
   );
 }

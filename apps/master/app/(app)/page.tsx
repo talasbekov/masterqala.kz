@@ -1,6 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
+import { Alert, Card, EmptyState, SkeletonList, WrenchIcon } from '@masterqala/ui';
 import { useAuth } from '@/lib/auth';
 import { useMasterPresence } from '@/lib/masterPresence';
 import { getSocket } from '@/lib/socket';
@@ -41,28 +42,38 @@ export default function WorkDashboardPage() {
     };
   }, [application, loadActive]);
 
-  if (!loaded) return <div className="p-8 text-ink-soft">Загрузка…</div>;
+  if (!loaded) {
+    return (
+      <div className="mx-auto w-full max-w-lg p-4 sm:p-6 md:p-8">
+        <SkeletonList rows={3} label="Загружаем статус анкеты" />
+      </div>
+    );
+  }
 
   if (!application || application.status !== 'ACTIVE') {
     return (
-      <div className="mx-auto max-w-[480px] p-8">
-        <div className="rounded-lg border border-border bg-surface p-6 text-center">
-          <div className="text-lg font-extrabold text-ink">
-            {application ? APPLICATION_STATUS_RU[application.status] : 'Вы ещё не подали анкету мастера'}
-          </div>
-          {application?.status === 'REJECTED' && application.rejectionReason && (
-            <p className="mt-2 text-sm text-danger">Причина: {application.rejectionReason}</p>
-          )}
-          {application?.status === 'NEEDS_INFO' && application.latestDecisionComment && (
-            <p className="mt-2 text-sm text-ink-soft">Что нужно дополнить: {application.latestDecisionComment}</p>
-          )}
-          <Link
-            href="/become-master"
-            className="mt-4 inline-block rounded-pill bg-primary px-5 py-3 text-sm font-extrabold text-white"
-          >
-            {application ? 'Открыть анкету' : 'Подать анкету'}
-          </Link>
-        </div>
+      <div className="mx-auto w-full max-w-lg p-4 sm:p-6 md:p-8">
+        <EmptyState
+          icon={<WrenchIcon size={32} />}
+          title={
+            application ? APPLICATION_STATUS_RU[application.status] : 'Вы ещё не подали анкету мастера'
+          }
+          subtitle={
+            application?.status === 'REJECTED' && application.rejectionReason
+              ? `Причина: ${application.rejectionReason}`
+              : application?.status === 'NEEDS_INFO' && application.latestDecisionComment
+                ? `Что нужно дополнить: ${application.latestDecisionComment}`
+                : 'Доступ к заявкам открывается после проверки анкеты оператором.'
+          }
+          action={
+            <Link
+              href="/become-master"
+              className="inline-flex min-h-11 items-center rounded-pill bg-primary px-5 text-base font-extrabold text-on-primary transition-colors duration-(--duration-fast) ease-(--ease-out) hover:bg-primary-hover"
+            >
+              {application ? 'Открыть анкету' : 'Подать анкету'}
+            </Link>
+          }
+        />
       </div>
     );
   }
@@ -77,15 +88,23 @@ export default function WorkDashboardPage() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="mx-auto mt-8 flex w-full max-w-[480px] rounded-pill border border-border p-1">
+      <div className="mx-auto mt-4 flex w-full max-w-lg rounded-pill border border-border p-1 md:mt-8">
         <button
-          className={`flex-1 rounded-pill py-2 text-sm font-extrabold ${tab === 'urgent' ? 'bg-primary text-white' : 'text-ink-soft'}`}
+          type="button"
+          aria-pressed={tab === 'urgent'}
+          className={`min-h-11 flex-1 rounded-pill text-sm font-extrabold transition-colors duration-(--duration-fast) ease-(--ease-out) ${
+            tab === 'urgent' ? 'bg-primary text-on-primary' : 'text-ink-soft'
+          }`}
           onClick={() => setTab('urgent')}
         >
           Срочные
         </button>
         <button
-          className={`flex-1 rounded-pill py-2 text-sm font-extrabold ${tab === 'planned' ? 'bg-primary text-white' : 'text-ink-soft'}`}
+          type="button"
+          aria-pressed={tab === 'planned'}
+          className={`min-h-11 flex-1 rounded-pill text-sm font-extrabold transition-colors duration-(--duration-fast) ease-(--ease-out) ${
+            tab === 'planned' ? 'bg-primary text-on-primary' : 'text-ink-soft'
+          }`}
           onClick={() => setTab('planned')}
         >
           Плановые
@@ -93,17 +112,20 @@ export default function WorkDashboardPage() {
       </div>
 
       {tab === 'urgent' && (
-        <div className="mx-auto max-w-[480px] p-8 text-center">
-          <div className="text-lg font-extrabold text-ink">Здравствуйте, {user?.name ?? user?.phone}</div>
-          <p className="mt-3 text-sm text-ink-soft">
-            {online
-              ? 'Ждём заявки рядом с вами…'
-              : 'Нажмите «Стать онлайн» в боковой панели, чтобы получать срочные заявки.'}
-          </p>
-          {geoDenied && (
-            <p className="mt-3 rounded-md bg-fill-soft p-3 text-sm text-ink-soft">
-              Без доступа к геолокации заявки приходить не будут. Разрешите доступ в настройках браузера и попробуйте снова.
+        <div className="mx-auto w-full max-w-lg space-y-3 p-4 sm:p-6 md:p-8">
+          <Card className="text-center">
+            <h1 className="text-lg font-extrabold text-ink">Здравствуйте, {user?.name ?? user?.phone}</h1>
+            <p className="mt-3 text-sm text-ink-soft">
+              {online
+                ? 'Ждём заявки рядом с вами…'
+                : 'Нажмите «Стать онлайн» в панели разделов, чтобы получать срочные заявки.'}
             </p>
+          </Card>
+          {geoDenied && (
+            <Alert tone="warning" title="Нет доступа к геолокации">
+              Без доступа к геолокации заявки приходить не будут. Разрешите доступ в настройках браузера
+              и попробуйте снова.
+            </Alert>
           )}
         </div>
       )}

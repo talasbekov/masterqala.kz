@@ -3,6 +3,18 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
+import {
+  BoltIcon,
+  Badge,
+  Button,
+  CalendarIcon,
+  Card,
+  ChevronRightIcon,
+  HelpIcon,
+  ShieldIcon,
+  Skeleton,
+  SkeletonList,
+} from '@masterqala/ui';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { useCommercialMode } from '@/lib/commercial-mode';
@@ -47,110 +59,126 @@ export default function HomePage() {
     };
   }, []);
 
-  if (loading) return <div className="p-6 text-ink-soft">{t('common.loading')}</div>;
+  if (loading) {
+    return (
+      <div className="flex flex-col gap-3.5 px-5 pt-1.5 pb-3.5 sm:px-8 sm:py-6">
+        <Skeleton shape="text" className="h-7 w-1/2" />
+        <SkeletonList rows={3} label={t('common.loading')} />
+      </div>
+    );
+  }
 
   return (
-    <div className="flex flex-col gap-3.5 px-5 pb-3.5 pt-1.5">
-      <div className="flex items-center justify-between">
-        <div className="text-[22px] font-extrabold text-ink">
+    <div className="mx-auto flex w-full max-w-3xl flex-col gap-3.5 px-5 pt-1.5 pb-3.5 sm:px-8 sm:py-6">
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="text-xl font-extrabold text-ink sm:text-2xl">
           {t('home.greeting', { name: user?.name ?? t('home.guestName') })}
-        </div>
+        </h1>
         <Link
           href="/support"
-          className="flex h-10 w-10 items-center justify-center rounded-full border border-border bg-surface text-base"
+          aria-label={t('orderDetail.support')}
+          title={t('orderDetail.support')}
+          className="flex size-11 shrink-0 items-center justify-center rounded-pill border border-border-strong bg-surface text-ink-soft"
         >
-          ?
+          <HelpIcon size={20} />
         </Link>
       </div>
 
       {order && (
-        <button
-          type="button"
-          onClick={() => router.push(`/order/${order.id}`)}
-          className="flex items-center gap-3 rounded-lg bg-primary p-4 text-left"
+        <Link
+          href={`/order/${order.id}`}
+          className="flex items-center gap-3 rounded-lg bg-primary p-4 text-left text-on-primary transition-colors duration-(--duration-fast) ease-(--ease-out) hover:bg-primary-hover"
         >
-          <div className="flex h-9.5 w-9.5 shrink-0 items-center justify-center rounded-full bg-fill text-[13px] font-extrabold text-ink">
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-surface text-xs font-extrabold text-ink">
             {order.category?.name?.slice(0, 2).toUpperCase() ?? '—'}
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="truncate text-sm font-extrabold text-white">{order.category?.name}</div>
-            <div className="truncate text-xs font-semibold text-fill">{STATUS_LABELS[order.status]}</div>
-          </div>
-          <span className="text-lg text-fill">›</span>
-        </button>
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-sm font-extrabold">{order.category?.name}</span>
+            <span className="block truncate text-xs font-semibold">{STATUS_LABELS[order.status]}</span>
+          </span>
+          <ChevronRightIcon size={20} />
+        </Link>
       )}
 
-      <button
-        type="button"
-        onClick={() => router.push('/order/new')}
-        className="rounded-lg border-2 border-primary bg-surface p-4 text-left shadow-card"
-      >
-        <div className="flex items-center justify-between">
-          <span className="text-[17px] font-extrabold text-ink">⚡ {t('home.urgentTitle')}</span>
-          <span className="rounded-pill bg-fill-soft px-2.5 py-1 text-[11.5px] font-extrabold text-primary">
-            {t('home.urgentEta')}
+      {/* Оранжевый в системе означает срочность — только режим «Сейчас». */}
+      <Card className="border-2 border-urgent">
+        <div className="flex items-center justify-between gap-2">
+          <span className="flex items-center gap-2 text-base font-extrabold text-ink">
+            <BoltIcon size={20} className="text-urgent" />
+            {t('home.urgentTitle')}
           </span>
+          <Badge tone="urgent">{t('home.urgentEta')}</Badge>
         </div>
-        <div className="mt-1.5 text-[12.5px] leading-snug text-ink-soft">
+        <p className="mt-1.5 text-xs leading-snug text-ink-soft">
           {paymentsEnabled
             ? t('home.urgentDescription')
             : 'Найдём ближайшего мастера. Выезд бесплатный, стоимость работ подтвердите после осмотра и оплатите мастеру напрямую.'}
-        </div>
-        <div className="mt-2.5 rounded-pill bg-primary p-2.5 text-center text-sm font-extrabold text-white">
+        </p>
+        <Button
+          variant="urgent"
+          fullWidth
+          className="mt-2.5"
+          icon={<BoltIcon size={18} />}
+          onClick={() => router.push('/order/new')}
+        >
           {t('home.urgentButton')}
-        </div>
-      </button>
+        </Button>
+      </Card>
 
-      <Link
-        href="/planned/new"
-        className="rounded-lg border-2 border-border bg-surface p-4 text-left shadow-card"
-      >
-        <div className="flex items-center justify-between">
-          <span className="text-[17px] font-extrabold text-ink">📅 {t('home.plannedTitle')}</span>
-          <span className="rounded-pill bg-fill-soft px-2.5 py-1 text-[11.5px] font-extrabold text-primary">
-            {t('home.plannedBadge')}
+      <Card>
+        <div className="flex items-center justify-between gap-2">
+          <span className="flex items-center gap-2 text-base font-extrabold text-ink">
+            <CalendarIcon size={20} className="text-primary" />
+            {t('home.plannedTitle')}
           </span>
+          <Badge tone="primary">{t('home.plannedBadge')}</Badge>
         </div>
-        <div className="mt-1.5 text-[12.5px] leading-snug text-ink-soft">{t('home.plannedDescription')}</div>
-        <div className="mt-2.5 rounded-pill border-[1.5px] border-primary p-2.5 text-center text-sm font-extrabold text-primary">
+        <p className="mt-1.5 text-xs leading-snug text-ink-soft">{t('home.plannedDescription')}</p>
+        <Button
+          variant="secondary"
+          fullWidth
+          className="mt-2.5"
+          icon={<CalendarIcon size={18} />}
+          onClick={() => router.push('/planned/new')}
+        >
           {t('home.plannedButton')}
-        </div>
-      </Link>
+        </Button>
+      </Card>
 
       {categories.length > 0 && (
-        <div>
+        <section>
           <div className="mb-2 flex items-baseline justify-between">
-            <span className="text-[15px] font-extrabold text-ink">{t('home.categoriesTitle')}</span>
-            <Link href="/catalog" className="text-[12.5px] font-extrabold text-primary">
+            <h2 className="text-sm font-extrabold text-ink">{t('home.categoriesTitle')}</h2>
+            <Link href="/catalog" className="text-xs font-extrabold text-primary">
               {t('home.categoriesAll')}
             </Link>
           </div>
-          <div className="grid grid-cols-3 gap-2">
+          <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3">
             {categories.map((c) => {
-              const meta = categoryMeta(c.slug);
+              const { Icon } = categoryMeta(c.slug);
               return (
-                <button
-                  key={c.id}
-                  type="button"
-                  onClick={() => router.push('/order/new')}
-                  className="rounded-md border border-border bg-surface px-1.5 py-3 text-center"
-                >
-                  <div className="mb-1 text-xl">{meta.icon}</div>
-                  <div className="text-[11.5px] font-bold text-ink">{c.name}</div>
-                </button>
+                <li key={c.id}>
+                  <Link
+                    href="/order/new"
+                    className="flex min-h-11 flex-col items-center justify-center gap-1 rounded-md border border-border bg-surface px-1.5 py-3 text-center transition-colors duration-(--duration-fast) ease-(--ease-out) hover:bg-surface-sunken"
+                  >
+                    <Icon size={22} className="text-primary" />
+                    <span className="text-2xs font-bold text-ink">{c.name}</span>
+                  </Link>
+                </li>
               );
             })}
-          </div>
-        </div>
+          </ul>
+        </section>
       )}
 
-      <div className="flex items-center gap-2.5 rounded-md bg-fill px-3.5 py-3">
-        <span className="text-lg">🛡️</span>
-        <div className="text-xs font-semibold leading-snug text-ink">
+      <div className="flex items-center gap-2.5 rounded-md bg-fill-soft px-3.5 py-3">
+        <ShieldIcon size={20} className="shrink-0 text-primary" />
+        <p className="text-xs leading-snug font-semibold text-on-fill">
           {paymentsEnabled
             ? t('home.trustBanner')
             : 'Все мастера проходят проверку документов. В пилоте расчёт происходит напрямую с мастером; при проблеме доступны спор и поддержка.'}
-        </div>
+        </p>
       </div>
     </div>
   );

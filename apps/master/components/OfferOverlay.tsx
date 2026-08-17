@@ -1,4 +1,5 @@
 'use client';
+import { Badge, BoltIcon, Button, Card, CloseIcon, IconButton } from '@masterqala/ui';
 import { useMasterPresence } from '@/lib/masterPresence';
 import { useCountdown } from '@/lib/useCountdown';
 
@@ -9,45 +10,61 @@ export function OfferOverlay() {
   if (!offer) {
     if (!offerNote) return null;
     return (
-      <div className="fixed bottom-6 right-6 z-50 flex w-full max-w-[360px] items-start gap-3 rounded-md border border-border bg-fill-soft p-3 text-sm text-ink-soft shadow-lg">
-        <p className="flex-1">{offerNote}</p>
-        <button
-          type="button"
-          onClick={dismissOfferNote}
-          aria-label="Скрыть уведомление"
-          className="text-ink-soft hover:text-ink"
-        >
-          ✕
-        </button>
+      <div
+        role="status"
+        className="fixed inset-x-4 bottom-4 z-50 sm:inset-x-auto sm:bottom-6 sm:right-6 sm:w-full sm:max-w-sm"
+      >
+        <Card raised padding="sm" className="flex items-start gap-2 bg-fill-soft text-sm text-ink-soft">
+          <p className="flex-1 pt-2.5">{offerNote}</p>
+          {/* Единственная кнопка-иконка в кабинете: доступное имя обязательно,
+              его требует тип IconButton. */}
+          <IconButton label="Скрыть уведомление" icon={<CloseIcon />} onClick={dismissOfferNote} />
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-6">
-      <div className="w-full max-w-[420px] space-y-3 rounded-lg bg-surface p-6 text-center shadow-xl">
-        <div className="text-xs font-extrabold uppercase text-ink-soft">
-          Новая заявка · {offer.distanceKm} км
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="offer-title"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-ink/40 p-4 sm:items-center sm:p-6"
+    >
+      {/* Срочная заявка — единственное место в кабинете, где уместен оранжевый:
+          в этой системе он означает срочность, а не «ещё один яркий цвет». */}
+      <Card raised padding="lg" className="w-full max-w-md space-y-3 text-center">
+        <div className="flex items-center justify-center gap-2">
+          <Badge tone="urgent" icon={<BoltIcon size={14} />}>
+            Срочная заявка
+          </Badge>
+          <span className="text-2xs font-extrabold uppercase text-ink-soft">{offer.distanceKm} км</span>
         </div>
-        <h2 className="text-xl font-extrabold text-ink">{offer.category}</h2>
+        <h2 id="offer-title" className="text-xl font-extrabold text-ink">
+          {offer.category}
+        </h2>
         <p className="text-sm text-ink-soft">{offer.description}</p>
         {offer.address && <p className="text-sm text-ink-soft">{offer.address}</p>}
         {offer.freePilot ? (
-          <div className="rounded-md bg-fill-soft p-3 text-sm font-semibold text-ink">
+          <p className="rounded-md bg-fill-soft p-3 text-sm font-semibold text-ink">
             Бесплатный пилот: стоимость работ согласовывается с клиентом напрямую.
-          </div>
+          </p>
         ) : (
-          <div className="text-lg font-extrabold text-primary">Компенсация выезда: {offer.compensation} ₸</div>
+          <p className="text-lg font-extrabold text-primary">
+            Компенсация выезда: {offer.compensation} ₸
+          </p>
         )}
-        <button
-          type="button"
-          disabled={acceptingOffer}
+        <Button
+          variant="urgent"
+          size="lg"
+          fullWidth
+          loading={acceptingOffer}
+          loadingLabel="Принимаем…"
           onClick={acceptOffer}
-          className="w-full rounded-pill bg-primary p-4 text-base font-extrabold text-white disabled:opacity-40"
         >
-          {acceptingOffer ? 'Принимаем…' : `Принять (${secondsLeft} с)`}
-        </button>
-      </div>
+          Принять ({secondsLeft} с)
+        </Button>
+      </Card>
     </div>
   );
 }

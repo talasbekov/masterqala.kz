@@ -1,6 +1,16 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import {
+  Alert,
+  ArrowLeftIcon,
+  Badge,
+  Button,
+  Card,
+  IconButton,
+  PlusIcon,
+  Textarea,
+} from '@masterqala/ui';
 import { api, apiUpload } from '../../../api';
 
 interface Dispute {
@@ -63,15 +73,9 @@ export default function DisputePage({ kind }: { kind: 'orders' | 'planned-orders
   return (
     <div className="flex flex-col gap-3 px-5 pb-3.5 pt-1.5">
       <div className="flex items-center gap-2.5">
-        <button type="button" onClick={() => navigate(-1)} className="text-xl text-primary">
-          ←
-        </button>
-        <span className="flex-1 text-[17px] font-extrabold text-ink">{t('dispute.title', { id: id?.slice(0, 8) })}</span>
-        {dispute && (
-          <span className="rounded-pill bg-warning-bg px-2.5 py-1 text-[11px] font-extrabold text-warning-ink">
-            {t('dispute.opened')}
-          </span>
-        )}
+        <IconButton label={t('common.back')} icon={<ArrowLeftIcon />} onClick={() => navigate(-1)} />
+        <h1 className="flex-1 text-base font-extrabold text-ink">{t('dispute.title', { id: id?.slice(0, 8) })}</h1>
+        {dispute && <Badge tone="warning">{t('dispute.opened')}</Badge>}
       </div>
 
       {!dispute && (
@@ -83,59 +87,60 @@ export default function DisputePage({ kind }: { kind: 'orders' | 'planned-orders
                 key={key}
                 type="button"
                 onClick={() => setCategory(key)}
-                className={`rounded-pill px-3.5 py-1.5 text-xs font-bold ${
-                  category === key ? 'bg-primary text-white' : 'border-[1.5px] border-border text-ink-soft'
+                aria-pressed={category === key}
+                className={`min-h-11 rounded-pill px-3.5 py-1.5 text-xs font-bold ${
+                  category === key
+                    ? 'bg-primary text-on-primary'
+                    : 'border border-border-strong text-ink-soft'
                 }`}
               >
                 {t(`dispute.${key}`)}
               </button>
             ))}
           </div>
-          <textarea
+          <Textarea
+            label={t('dispute.reasonLabel')}
+            required
             value={text}
             onChange={(e) => setText(e.target.value)}
             placeholder={t('dispute.placeholder')}
-            className="min-h-24 rounded-md border-[1.5px] border-border bg-surface p-3.5 text-sm text-ink outline-none placeholder:text-muted"
+            className="min-h-24"
           />
           <div className="rounded-md bg-fill p-3 text-xs font-semibold leading-relaxed text-ink">
             {freePilot
               ? 'Мастер сможет дать пояснение, после чего оператор рассмотрит спор. Платформа не может вернуть оплату, переданную мастеру напрямую, но может зафиксировать нарушение, ограничить мастера и помочь сторонам урегулировать ситуацию.'
               : t('dispute.note')}
           </div>
-          {error && <p className="text-sm font-semibold text-danger">{error}</p>}
+          {error && <Alert tone="danger">{error}</Alert>}
           <div className="mt-auto" />
-          <button
-            type="button"
-            onClick={send}
-            disabled={submitting || !text}
-            className="rounded-pill bg-primary p-4 text-[15px] font-extrabold text-white disabled:opacity-40"
-          >
+          <Button fullWidth size="lg" loading={submitting} disabled={!text} onClick={send}>
             {t('dispute.send')}
-          </button>
+          </Button>
         </>
       )}
 
       {dispute && (
         <>
-          <div className="rounded-md border border-border bg-surface p-3.5">
+          <Card padding="sm">
             <div className="text-sm font-extrabold text-ink">{dispute.reason}</div>
             {evidenceCount > 0 && (
               <div className="mt-1 text-xs text-ink-soft">{t('common.photosCount', { n: evidenceCount })}</div>
             )}
-          </div>
+          </Card>
           <div className="text-sm font-extrabold text-ink">
             {t('dispute.evidenceLabel')} <span className="text-xs font-semibold text-ink-soft">{t('dispute.evidenceHint')}</span>
           </div>
-          <label className="flex h-16 w-16 cursor-pointer items-center justify-center rounded-md border-[1.5px] border-dashed border-primary text-xl text-primary">
-            ＋
+          <label className="flex h-16 w-16 cursor-pointer items-center justify-center rounded-md border border-dashed border-primary text-primary">
+            <PlusIcon size={22} />
+            <span className="sr-only">{t('common.addPhoto')}</span>
             <input
               type="file"
               accept="image/jpeg,image/png"
-              className="hidden"
+              className="sr-only"
               onChange={(e) => e.target.files?.[0] && uploadEvidence(e.target.files[0])}
             />
           </label>
-          {error && <p className="text-sm font-semibold text-danger">{error}</p>}
+          {error && <Alert tone="danger">{error}</Alert>}
           <div className="flex flex-col gap-2 text-xs">
             <div className="flex items-center gap-2">
               <span className="h-2 w-2 rounded-full bg-success" />

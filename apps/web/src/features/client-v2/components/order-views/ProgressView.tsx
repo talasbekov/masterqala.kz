@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { CheckIcon } from '@masterqala/ui';
 import { STEPPER_STEPS } from '../../../../orderStatus';
 import type { OrderDetail } from '../../pages/OrderPage';
 
@@ -11,31 +12,31 @@ export default function ProgressView({ order }: { order: OrderDetail }) {
   return (
     <div className="flex flex-col gap-3.5 px-5 pb-3.5 pt-1.5">
       <div className="text-lg font-extrabold text-ink">{t('orderDetail.orderNumber', { id: order.id.slice(0, 8) })}</div>
-      <div className="flex flex-col">
+      <ol className="flex flex-col">
         {STEPPER_STEPS.map((s, i) => {
           const done = i < currentIdx || (i === currentIdx && order.status !== s.status);
           const active = s.status === order.status;
           return (
-            <div key={s.status} className="flex gap-3">
+            <li key={s.status} className="flex gap-3" aria-current={active ? 'step' : undefined}>
               <div className="flex flex-col items-center">
                 <div
-                  className={`flex h-5.5 w-5.5 items-center justify-center rounded-full border-2 text-[11px] text-white ${
+                  className={`flex h-5.5 w-5.5 items-center justify-center rounded-full border-2 text-on-primary ${
                     done || active ? 'border-primary bg-primary' : 'border-border bg-surface'
                   }`}
                 >
-                  {done ? '✓' : ''}
+                  {done ? <CheckIcon size={12} /> : null}
                 </div>
                 {i < STEPPER_STEPS.length - 1 && <div className="min-h-4.5 w-0.5 flex-1 bg-border" />}
               </div>
               <div className="pb-3.5">
-                <div className={`text-[13.5px] ${active ? 'font-extrabold text-ink' : 'font-semibold text-ink-soft'}`}>
+                <div className={`text-sm ${active ? 'font-extrabold text-ink' : 'font-semibold text-ink-soft'}`}>
                   {s.label}
                 </div>
               </div>
-            </div>
+            </li>
           );
         })}
-      </div>
+      </ol>
       <div className="rounded-md bg-fill p-3.5 text-xs font-semibold leading-relaxed text-ink">
         {paymentsEnabled
           ? t('orderDetail.progressNote', { price: order.calloutPrice + (order.workPrice ?? 0) })
@@ -44,7 +45,7 @@ export default function ProgressView({ order }: { order: OrderDetail }) {
       <div className="mt-auto" />
       <Link
         to="/support"
-        className="rounded-pill border-[1.5px] border-border p-3.5 text-center text-sm font-extrabold text-ink"
+        className="inline-flex min-h-11 items-center justify-center rounded-pill border border-border-strong bg-surface px-4 text-base font-bold text-ink"
       >
         {t('orderDetail.support')}
       </Link>
