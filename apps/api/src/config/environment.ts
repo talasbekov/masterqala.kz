@@ -17,6 +17,16 @@ const INSECURE_JWT_SECRETS = new Set([
   'secret',
   'replace-with-a-random-secret-of-at-least-32-characters',
 ]);
+/**
+ * Секреты, которыми мы намеренно пользуемся в тестах и CI. Вне production они
+ * обязаны проходить валидацию (на них завязаны package.json-скрипты, ci.yml и
+ * environment.spec.ts), но в production их появление — почти наверняка результат
+ * копирования тестового окружения, поэтому старт роняем.
+ */
+const NON_PRODUCTION_JWT_SECRETS = new Set([
+  'test-only-secret-with-at-least-32-characters',
+  'ci-only-secret-with-at-least-32-characters',
+]);
 const MIN_JWT_SECRET_LENGTH = 32;
 
 function requiredString(value: unknown): string {
@@ -182,6 +192,9 @@ export function validateEnvironment(raw: Record<string, unknown>): Record<string
   }
   if (INSECURE_JWT_SECRETS.has(jwtSecret)) {
     throw new Error('JWT_SECRET содержит небезопасное значение-заглушку');
+  }
+  if (nodeEnv === 'production' && NON_PRODUCTION_JWT_SECRETS.has(jwtSecret)) {
+    throw new Error('JWT_SECRET содержит тестовое значение, недопустимое в production');
   }
   if (jwtSecret.length < MIN_JWT_SECRET_LENGTH) {
     throw new Error(`JWT_SECRET должен содержать не менее ${MIN_JWT_SECRET_LENGTH} символов`);

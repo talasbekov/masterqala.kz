@@ -3,7 +3,8 @@ import { validateEnvironment } from './environment';
 describe('security alert webhook environment', () => {
   const base = {
     NODE_ENV: 'production',
-    JWT_SECRET: 'test-only-secret-with-at-least-32-characters',
+    // Не тестовое значение из package.json/ci.yml — они отвергаются в production.
+    JWT_SECRET: 'unit-spec-secret-with-at-least-32-characters',
     CORS_ORIGINS: 'https://masterqala.kz',
     FILE_SCAN_MODE: 'CLAMAV',
     PDF_CDR_MODE: 'REQUIRED',

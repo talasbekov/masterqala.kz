@@ -1,7 +1,9 @@
 import { corsOriginsFromValue, parseCorsOrigins, validateEnvironment } from './environment';
 
 describe('environment security validation', () => {
-  const secureSecret = 'test-only-secret-with-at-least-32-characters';
+  // Намеренно НЕ совпадает с JWT_SECRET из package.json/ci.yml: те значения
+  // допустимы вне production, но отвергаются в production — см. тест ниже.
+  const secureSecret = 'unit-spec-secret-with-at-least-32-characters';
 
   it('отклоняет отсутствующий JWT_SECRET', () => {
     expect(() => validateEnvironment({ NODE_ENV: 'test' })).toThrow('JWT_SECRET обязателен');
@@ -19,6 +21,33 @@ describe('environment security validation', () => {
     expect(() => validateEnvironment({ NODE_ENV: 'test', JWT_SECRET: 'too-short' })).toThrow(
       'не менее 32 символов',
     );
+  });
+
+  it('отвергает тестовые и CI-секреты только в production', () => {
+    const testSecrets = [
+      'test-only-secret-with-at-least-32-characters', // package.json, скрипты test*
+      'ci-only-secret-with-at-least-32-characters', // .github/workflows/ci.yml
+    ];
+
+    // Вне production они обязаны работать — на них завязаны прогоны тестов и CI.
+    for (const secret of testSecrets) {
+      expect(() => validateEnvironment({ NODE_ENV: 'test', JWT_SECRET: secret })).not.toThrow();
+    }
+
+    // В production появление такого значения — скопированное тестовое окружение.
+    for (const secret of testSecrets) {
+      expect(() =>
+        validateEnvironment({
+          NODE_ENV: 'production',
+          JWT_SECRET: secret,
+          CORS_ORIGINS: 'https://masterqala.kz',
+          FILE_SCAN_MODE: 'CLAMAV',
+          PDF_CDR_MODE: 'REQUIRED',
+          SMS_PROVIDER_MODE: 'HTTP',
+          SMS_HTTP_URL: 'https://sms.internal/send',
+        }),
+      ).toThrow('тестовое значение, недопустимое в production');
+    }
   });
 
   it('использует безопасные local defaults вне production', () => {
