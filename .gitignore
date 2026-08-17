@@ -4,6 +4,7 @@ dist/
 .env
 apps/api/uploads/
 *.log
+*.tsbuildinfo
 
 # Архивы дизайн-хендоффов и прочие выгрузки: содержимое коммитится распакованным
 # (см. apps/MasterQala/design_handoff_masterqala), сам архив в репозитории не нужен

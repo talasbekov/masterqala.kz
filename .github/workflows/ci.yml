@@ -57,6 +57,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Build shared packages
+        run: pnpm --filter @masterqala/ui build
+
       - name: Apply database migrations
         run: pnpm --filter api exec prisma migrate deploy
 
@@ -93,5 +96,100 @@ jobs:
         with:
           name: web-build-log
           path: web-build.log
+          if-no-files-found: ignore
+          retention-days: 3
+
+      - name: Build client application
+        shell: bash
+        run: |
+          set -o pipefail
+          pnpm --filter client build 2>&1 | tee client-build.log
+
+      - name: Upload client build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: client-build-log
+          path: client-build.log
+          if-no-files-found: ignore
+          retention-days: 3
+
+      - name: Build master application
+        shell: bash
+        run: |
+          set -o pipefail
+          pnpm --filter master build 2>&1 | tee master-build.log
+
+      - name: Upload master build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: master-build-log
+          path: master-build.log
+          if-no-files-found: ignore
+          retention-days: 3
+
+      - name: Build operator application
+        shell: bash
+        run: |
+          set -o pipefail
+          pnpm --filter operator build 2>&1 | tee operator-build.log
+
+      - name: Upload operator build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: operator-build-log
+          path: operator-build.log
+          if-no-files-found: ignore
+          retention-days: 3
+
+      - name: Start API server for site build
+        shell: bash
+        run: |
+          set -o pipefail
+          nohup pnpm --filter api start:prod > api-server.log 2>&1 &
+          echo $! > api-server.pid
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:3000/api/v1/health/ready > /dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "API server did not become ready in time" >&2
+          cat api-server.log >&2
+          exit 1
+
+      - name: Build site application
+        shell: bash
+        env:
+          API_URL: http://localhost:3000/api/v1
+        run: |
+          set -o pipefail
+          pnpm --filter site build 2>&1 | tee site-build.log
+
+      - name: Stop API server
+        if: always()
+        shell: bash
+        run: |
+          if [ -f api-server.pid ]; then
+            kill "$(cat api-server.pid)" 2>/dev/null || true
+          fi
+
+      - name: Upload site build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: site-build-log
+          path: site-build.log
+          if-no-files-found: ignore
+          retention-days: 3
+
+      - name: Upload API server log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-server-log
+          path: api-server.log
           if-no-files-found: ignore
           retention-days: 3

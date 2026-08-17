@@ -26,6 +26,7 @@
 - `apps/web` (Vite): `5173` по умолчанию (`5181` в текущем ворктри, см. `.claude/launch.json`);
 - `apps/client` (Next.js): `4200`;
 - `apps/master` (Next.js): `4300`;
+- `apps/operator` (Next.js): `4400`;
 - `apps/site` (Next.js): `4100`;
 - development PostgreSQL: `5432`;
 - test PostgreSQL: `5433`.

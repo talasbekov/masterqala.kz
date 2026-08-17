@@ -22,6 +22,7 @@ export class AuditLogService {
   }
 
   async list(page = 1, pageSize = 30) {
+    page = Math.max(1, page);
     const skip = (page - 1) * pageSize;
     const [rows, total] = await this.prisma.$transaction([
       this.prisma.auditLog.findMany({
