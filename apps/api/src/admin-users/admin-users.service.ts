@@ -1,12 +1,14 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditLogService } from '../audit-log/audit-log.service';
+import { RealtimeGateway } from '../realtime/realtime.gateway';
 
 @Injectable()
 export class AdminUsersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly auditLog: AuditLogService,
+    private readonly gateway: RealtimeGateway,
   ) {}
 
   async list(search?: string) {
@@ -38,6 +40,9 @@ export class AdminUsersService {
       where: { id: userId },
       data: { isBlocked: true, blockedAt: new Date(), blockedReason: reason },
     });
+    // Проверка в хендшейке закрывает только новые соединения — уже открытый
+    // сокет иначе переживёт блокировку и продолжит получать ленту заказов.
+    this.gateway.disconnectUser(userId);
     await this.auditLog.write({
       actorType: 'OPERATOR',
       actorId: operatorId,

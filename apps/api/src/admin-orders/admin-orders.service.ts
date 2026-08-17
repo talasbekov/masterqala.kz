@@ -106,6 +106,8 @@ export class AdminOrdersService {
       JOIN "MasterCategory" mc ON mc."masterProfileId" = pr.id AND mc."categoryId" = ${order.categoryId}
       JOIN "Order" o ON o.id = ${orderId}
       WHERE mp."isOnline" = true
+        -- см. matching.service.ts: блокировка оператором живёт в User.isBlocked
+        AND u."isBlocked" = false
         AND (pr."blockedUntil" IS NULL OR pr."blockedUntil" < now())
         AND mp.location IS NOT NULL AND o.location IS NOT NULL
         AND u.id <> ${order.clientId}

@@ -7,7 +7,8 @@ describe('AdminUsersService', () => {
       user: { findMany: jest.fn(), findUnique: jest.fn(), update: jest.fn(), findUniqueOrThrow: jest.fn() },
     } as any;
     const auditLog = { write: jest.fn() } as any;
-    return { service: new AdminUsersService(prisma, auditLog), prisma, auditLog };
+    const gateway = { disconnectUser: jest.fn() } as any;
+    return { service: new AdminUsersService(prisma, auditLog, gateway), prisma, auditLog, gateway };
   }
 
   it('labels an operator account as "оператор" regardless of masterProfile', async () => {

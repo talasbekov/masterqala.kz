@@ -82,10 +82,13 @@ export class PricingService {
     const rows = await this.prisma.$queryRaw<{ lat: number; lng: number }[]>`
       SELECT ST_Y(mp.location::geometry) AS lat, ST_X(mp.location::geometry) AS lng
       FROM "MasterPresence" mp
+      JOIN "User" u ON u.id = mp."masterUserId"
       JOIN "MasterProfile" pr ON pr."userId" = mp."masterUserId" AND pr.status = 'ACTIVE'
       JOIN "MasterCategory" mc ON mc."masterProfileId" = pr.id AND mc."categoryId" = ${categoryId}
       WHERE mp."isOnline" = true AND mp.location IS NOT NULL
         AND mp."masterUserId" <> ${clientId}
+        -- см. matching.service.ts: блокировка оператором живёт в User.isBlocked
+        AND u."isBlocked" = false
         AND (pr."blockedUntil" IS NULL OR pr."blockedUntil" < now())
         AND ST_DWithin(mp.location, ST_SetSRID(ST_MakePoint(${to.lng}, ${to.lat}), 4326)::geography, ${MAX_SEARCH_RADIUS_M})
         AND NOT EXISTS (

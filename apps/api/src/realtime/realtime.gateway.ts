@@ -47,6 +47,18 @@ export class RealtimeGateway implements OnGatewayInit {
     server.use(async (socket, next) => {
       try {
         const payload = await this.jwt.verifyAsync<{ sub: string }>(socket.handshake.auth?.token ?? '');
+        // Одной подписи мало: токен живёт 30 дней и не отзывается, поэтому
+        // сверяем состояние пользователя в БД — так же, как JwtAuthGuard на HTTP.
+        // Иначе заблокированный оператором мастер сохранял бы ленту заказов
+        // до конца жизни уже выданного токена.
+        const user = await this.prisma.user.findUnique({
+          where: { id: payload.sub },
+          select: { isBlocked: true },
+        });
+        if (!user || user.isBlocked) {
+          next(new Error('Доступ заблокирован'));
+          return;
+        }
         socket.data.userId = payload.sub;
         await socket.join(`user:${payload.sub}`);
         next();
@@ -59,6 +71,15 @@ export class RealtimeGateway implements OnGatewayInit {
         if (socket.data.userId) void this.presence.setOffline(socket.data.userId);
       });
     });
+  }
+
+  /**
+   * Разрыв всех живых сессий пользователя. Нужен при блокировке: проверка в
+   * хендшейке закрывает только НОВЫЕ соединения, а уже открытый сокет иначе
+   * переживёт блокировку. Обработчик disconnect попутно гасит presence.
+   */
+  disconnectUser(userId: string): void {
+    this.server?.in(`user:${userId}`).disconnectSockets(true);
   }
 
   @SubscribeMessage('presence:online')
