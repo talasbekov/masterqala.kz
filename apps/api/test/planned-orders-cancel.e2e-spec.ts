@@ -62,10 +62,14 @@ describe('Отмена плановой заявки (e2e)', () => {
     const order = await createPlannedOrderViaApi(app, client.token, plumbingId);
     await bidAndSelect(order.id);
 
-    await request(app.getHttpServer())
+    const res = await request(app.getHttpServer())
       .post(`/api/v1/planned-orders/${order.id}/cancel`)
       .set('Authorization', `Bearer ${client.token}`)
       .expect(201);
+
+    // Отмена из MASTER_SELECTED: телефон мастера клиенту ещё не положен (§3.4 шаг 7),
+    // и ответ отмены — не исключение из правила.
+    expect(res.body.master?.phone ?? '').toBe('');
 
     const fresh = await prisma.plannedOrder.findUniqueOrThrow({ where: { id: order.id } });
     expect(fresh.status).toBe('CANCELLED_BY_CLIENT');

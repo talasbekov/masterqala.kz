@@ -20,6 +20,7 @@ function setup(orderMode: 'FREE_PILOT' | 'PAID_MOCK') {
     placeBid: jest.fn(),
     cancel: jest.fn(),
     findOrThrow: jest.fn(),
+    findOrThrowForClient: jest.fn(),
     gate: jest.fn(),
     emitPlannedStatus: jest.fn(),
   } as unknown as PlannedOrdersService;
@@ -36,6 +37,7 @@ function setup(orderMode: 'FREE_PILOT' | 'PAID_MOCK') {
       placeBid: jest.Mock;
       cancel: jest.Mock;
       findOrThrow: jest.Mock;
+      findOrThrowForClient: jest.Mock;
       gate: jest.Mock;
       emitPlannedStatus: jest.Mock;
     },
@@ -95,7 +97,9 @@ describe('PlannedOrdersCommercialService', () => {
       commercialMode: 'FREE_PILOT',
     };
     const cancelled = { ...selected, status: 'CANCELLED_BY_CLIENT' };
-    plannedOrders.findOrThrow.mockResolvedValueOnce(selected).mockResolvedValueOnce(cancelled);
+    plannedOrders.findOrThrow.mockResolvedValueOnce(selected);
+    // Ответ клиенту идёт через редактирующий аксессор, а не через сырой findOrThrow.
+    plannedOrders.findOrThrowForClient.mockResolvedValueOnce(cancelled);
 
     await expect(service.cancel(user, selected.id)).resolves.toEqual(cancelled);
 

@@ -126,6 +126,19 @@ export class PlannedOrdersService implements OnModuleInit {
     return this.reviews.attachRating(this.withDeadline(withBids));
   }
 
+  /**
+   * Заявка для ответа КЛИЕНТУ: телефон мастера скрыт, пока статус вне
+   * MASTER_CONTACT_REVEALED_STATUSES (§3.4 шаг 7).
+   *
+   * Мутации, отдающие заявку клиенту, обязаны возвращать этот метод, а не сырой
+   * findOrThrow: телефон уже трижды утекал через забытый call-site — getByIdForUser,
+   * listMine и путь отмены. Для мастера метод безопасен: cancelByMaster обнуляет
+   * masterId, поэтому редакция становится no-op.
+   */
+  async findOrThrowForClient(id: string) {
+    return this.redactMasterContact(await this.findOrThrow(id));
+  }
+
   private async enrichBids<
     T extends { masterUserId: string; master: { id: string; name: string | null; masterProfile: { experienceYears: number; status: string } | null } },
   >(bids: T[]) {
@@ -372,7 +385,7 @@ export class PlannedOrdersService implements OnModuleInit {
     } else {
       throw new ForbiddenException('Нет доступа к заявке');
     }
-    return this.findOrThrow(plannedOrderId);
+    return this.findOrThrowForClient(plannedOrderId);
   }
 
   private async cancelByClient(order: PlannedOrder): Promise<void> {
