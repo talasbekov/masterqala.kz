@@ -298,6 +298,16 @@ export class OrdersService implements OnModuleInit {
       if (profile.status !== 'ACTIVE' || (profile.blockedUntil && profile.blockedUntil > new Date())) {
         throw new ConflictException('Мастер недоступен для назначения');
       }
+      // Блокировка оператором живёт в User.isBlocked и в MasterProfile никак не
+      // отражается, поэтому проверяется отдельно — иначе оператор мог бы вручную
+      // назначить заявку на пользователя, которого сам же заблокировал.
+      const account = await tx.user.findUnique({
+        where: { id: masterUserId },
+        select: { isBlocked: true },
+      });
+      if (account?.isBlocked) {
+        throw new ConflictException('Мастер недоступен для назначения: аккаунт заблокирован');
+      }
       const busy = await tx.order.count({
         where: { masterId: masterUserId, status: { in: ACTIVE_MASTER_STATUSES } },
       });

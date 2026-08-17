@@ -129,6 +129,10 @@ export class MatchingService implements OnModuleInit {
       JOIN "MasterCategory" mc ON mc."masterProfileId" = pr.id AND mc."categoryId" = ${categoryId}
       JOIN "Order" o ON o.id = ${orderId}
       WHERE mp."isOnline" = true
+        -- Блокировка оператором живёт в User.isBlocked и НЕ трогает
+        -- MasterProfile.status/blockedUntil, поэтому без этого предиката
+        -- заблокированный мастер остаётся в диспетчеризации.
+        AND u."isBlocked" = false
         AND (pr."blockedUntil" IS NULL OR pr."blockedUntil" < now())
         AND mp.location IS NOT NULL
         AND o.location IS NOT NULL
