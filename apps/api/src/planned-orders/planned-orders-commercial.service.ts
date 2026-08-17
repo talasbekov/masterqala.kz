@@ -85,7 +85,7 @@ export class PlannedOrdersCommercialService {
         cancelReason: 'Отменена клиентом',
       });
       await this.plannedOrders.emitPlannedStatus(plannedOrderId);
-      return this.plannedOrders.findOrThrow(plannedOrderId);
+      return this.plannedOrders.findOrThrowForClient(plannedOrderId);
     }
 
     if ((after as readonly string[]).includes(order.status)) {
@@ -94,7 +94,7 @@ export class PlannedOrdersCommercialService {
         cancelReason: 'Отменена клиентом после выбора мастера',
       });
       await this.plannedOrders.emitPlannedStatus(plannedOrderId);
-      return this.plannedOrders.findOrThrow(plannedOrderId);
+      return this.plannedOrders.findOrThrowForClient(plannedOrderId);
     }
 
     throw new ConflictException('На этом этапе отмена недоступна');
