@@ -360,6 +360,47 @@ export const CarIcon = (p: IconProps) => (
   </Icon>
 );
 
+/* ── Категории услуг ─────────────────────────────────────────────────────────
+ * Отдельные иконки, а не переиспользование общих. Причина: BoltIcon в этой
+ * системе означает срочный режим, и ставить его же на категорию «Электрика»
+ * значит размыть единственный смысл, который несёт молния. Гаечный ключ до
+ * этого стоял сразу на двух категориях. */
+
+/** Сантехника. */
+export const DropletIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M12 3.5s6 6.2 6 10.1a6 6 0 0 1-12 0C6 9.7 12 3.5 12 3.5Z" />
+  </Icon>
+);
+
+/** Электрика. */
+export const PlugIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M9 3v5M15 3v5" />
+    <path d="M6.5 8h11v2.5a5.5 5.5 0 0 1-11 0V8Z" />
+    <path d="M12 16v5" />
+  </Icon>
+);
+
+/** Замки и двери. */
+export const LockIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <rect x="4.5" y="10.5" width="15" height="10" rx="2.5" />
+    <path d="M8 10.5V7.5a4 4 0 0 1 8 0v3" />
+    <circle cx="12" cy="15.5" r="1.2" fill="currentColor" stroke="none" />
+  </Icon>
+);
+
+/** Бытовая техника. */
+export const ApplianceIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <rect x="4" y="3" width="16" height="18" rx="2.5" />
+    <path d="M4 8h16" />
+    <circle cx="12" cy="14.5" r="3.5" />
+    <path d="M7 5.5h.01M10 5.5h.01" />
+  </Icon>
+);
+
 export const PlusIcon = (p: IconProps) => (
   <Icon {...p}>
     <path d="M12 5v14M5 12h14" />

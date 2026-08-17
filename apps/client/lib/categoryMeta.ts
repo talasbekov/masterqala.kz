@@ -1,10 +1,11 @@
 import type { ComponentType } from 'react';
 import {
-  BoltIcon,
+  ApplianceIcon,
   CatalogIcon,
-  HomeIcon,
+  DropletIcon,
+  LockIcon,
   MoreIcon,
-  ShieldIcon,
+  PlugIcon,
   WrenchIcon,
   type IconProps,
 } from '@masterqala/ui';
@@ -18,10 +19,11 @@ interface CategoryMeta {
 }
 
 const CATEGORY_META: Record<string, CategoryMeta> = {
-  plumbing: { Icon: WrenchIcon, subtitle: 'течи, засоры, смесители' },
-  electrics: { Icon: BoltIcon, subtitle: 'розетки, проводка, свет' },
-  appliances: { Icon: HomeIcon, subtitle: 'стиральные, холодильники' },
-  locksmith: { Icon: ShieldIcon, subtitle: 'вскрытие, замена, установка' },
+  plumbing: { Icon: DropletIcon, subtitle: 'течи, засоры, смесители' },
+  // Не BoltIcon: молния в этой системе занята срочным режимом.
+  electrics: { Icon: PlugIcon, subtitle: 'розетки, проводка, свет' },
+  appliances: { Icon: ApplianceIcon, subtitle: 'стиральные, холодильники' },
+  locksmith: { Icon: LockIcon, subtitle: 'вскрытие, замена, установка' },
   handyman: { Icon: WrenchIcon, subtitle: 'полки, карнизы, мебель' },
   other: { Icon: MoreIcon, subtitle: 'уборка, сборка, прочее' },
 };

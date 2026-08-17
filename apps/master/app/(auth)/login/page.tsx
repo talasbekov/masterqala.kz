@@ -94,7 +94,7 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-md flex-col gap-3.5 bg-background px-4 py-6 sm:px-6">
+    <main className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-start gap-3.5 sm:justify-center bg-background px-4 py-6 sm:px-6">
       {step === 'sms' && (
         <Button
           variant="ghost"
@@ -126,7 +126,7 @@ export default function LoginPage() {
             Продолжая, вы соглашаетесь с <span className="font-bold text-primary">условиями сервиса</span>
           </p>
           {error && <Alert tone="danger">{error}</Alert>}
-          <div className="mt-auto" />
+          <div className="mt-auto sm:hidden" />
           <Button
             fullWidth
             size="lg"
@@ -186,7 +186,7 @@ export default function LoginPage() {
             )}
           </div>
           {error && <Alert tone="danger">{error}</Alert>}
-          <div className="mt-auto" />
+          <div className="mt-auto sm:hidden" />
           <Button
             fullWidth
             size="lg"

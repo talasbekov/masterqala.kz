@@ -99,7 +99,7 @@ export default function LoginPage() {
   }
 
   return (
-    <main id="main" className="mx-auto flex min-h-screen w-full max-w-xl flex-col gap-3.5 bg-background px-6 py-6">
+    <main id="main" className="mx-auto flex min-h-screen w-full max-w-xl flex-col justify-start gap-3.5 sm:justify-center bg-background px-6 py-6">
       {step === 'sms' && (
         <Button
           variant="ghost"
@@ -134,7 +134,7 @@ export default function LoginPage() {
             {t('auth.termsPrefix')} <span className="font-bold text-primary">{t('auth.termsLink')}</span>
           </p>
           {error && <Alert tone="danger">{error}</Alert>}
-          <div className="mt-auto" />
+          <div className="mt-auto sm:hidden" />
           <Button fullWidth size="lg" loading={submitting} onClick={requestCode}>
             {t('auth.getCodeButton')}
           </Button>
@@ -170,7 +170,7 @@ export default function LoginPage() {
             )}
           </div>
           {error && <Alert tone="danger">{error}</Alert>}
-          <div className="mt-auto" />
+          <div className="mt-auto sm:hidden" />
           <Button fullWidth size="lg" loading={submitting} onClick={verify}>
             {t('auth.loginButton')}
           </Button>

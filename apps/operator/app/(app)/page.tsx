@@ -29,17 +29,30 @@ function AttentionCard({
   label: string;
   danger?: boolean;
 }) {
+  // Тревожный цвет — только когда есть чему тревожиться. При нуле карточка
+  // нейтральная: иначе оператор постоянно видит четыре красно-оранжевых блока
+  // и перестаёт их замечать ровно тогда, когда счётчик наконец вырастет.
+  const active = count > 0;
+  const tone = !active
+    ? 'border-border'
+    : danger
+      ? 'border-danger'
+      : 'border-warning';
+  const valueTone = !active
+    ? 'text-ink-muted'
+    : danger
+      ? 'text-danger'
+      : 'text-warning-ink';
+
   return (
     <Link
       href={href}
-      className={`rounded-lg border-2 bg-surface p-4 text-left transition-colors duration-(--duration-fast) ease-(--ease-out) hover:bg-surface-sunken ${
-        danger ? 'border-danger' : 'border-warning-ink'
-      }`}
+      className={`rounded-lg border-2 bg-surface p-4 text-left transition-colors duration-(--duration-fast) ease-(--ease-out) hover:bg-surface-sunken ${tone}`}
     >
-      <span className={`block text-2xl font-extrabold ${danger ? 'text-danger' : 'text-warning-ink'}`}>
-        {count}
-      </span>
+      <span className={`block text-2xl font-extrabold ${valueTone}`}>{count}</span>
       <span className="block text-xs font-bold text-ink-soft">{label}</span>
+      {/* Цвет — не единственный носитель смысла: состояние названо словом. */}
+      <span className="sr-only">{active ? '— требует внимания' : '— в норме'}</span>
     </Link>
   );
 }

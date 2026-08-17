@@ -78,9 +78,36 @@
       "runtimeExecutable": "bash",
       "runtimeArgs": [
         "-c",
-        "cd '/home/erda/Музыка/MasterQala.kz/.claude/worktrees/sleepy-nightingale-ee25b5/apps/site' && npx next dev -p 4110"
+        "cd '/home/erda/Музыка/MasterQala.kz/.claude/worktrees/sleepy-nightingale-ee25b5/apps/site' && API_URL=http://localhost:3000/api/v1 npx next dev -p 4110"
       ],
       "port": 4110
+    },
+    {
+      "name": "sleepy-api",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": [
+        "-c",
+        "cd '/home/erda/Музыка/MasterQala.kz/.claude/worktrees/sleepy-nightingale-ee25b5' && pnpm --filter api start:dev"
+      ],
+      "port": 3000
+    },
+    {
+      "name": "sleepy-master",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": [
+        "-c",
+        "cd '/home/erda/Музыка/MasterQala.kz/.claude/worktrees/sleepy-nightingale-ee25b5/apps/master' && NEXT_PUBLIC_API_URL=http://localhost:3000/api/v1 npx next dev -p 4310"
+      ],
+      "port": 4310
+    },
+    {
+      "name": "sleepy-web",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": [
+        "-c",
+        "cd '/home/erda/Музыка/MasterQala.kz/.claude/worktrees/sleepy-nightingale-ee25b5/apps/web' && VITE_API_URL=http://localhost:3000/api/v1 npx vite --port 5180 --strictPort"
+      ],
+      "port": 5180
     }
   ]
 }
