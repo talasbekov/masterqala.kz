@@ -181,6 +181,28 @@ SERVICE_FEE_MIN=...
 - пустой `UPLOAD_DIR`;
 - недоступная директория uploads.
 
+### 6.2 `apps/site` — production-переменные
+
+Публичный лендинг читает контакты поддержки через `process.env` на сервере
+Next.js (`apps/site/lib/env.ts`), без `NEXT_PUBLIC_`-префикса — значения
+подставляются на SSR, не в браузере. Формат и назначение — в
+`apps/site/.env.example`:
+
+```env
+API_URL=https://api.masterqala.kz/api/v1
+APP_URL=https://client.masterqala.kz
+SITE_URL=https://masterqala.kz
+CONTACT_PHONE=<реальный номер поддержки>
+CONTACT_EMAIL=<реальный email поддержки>
+```
+
+`CONTACT_PHONE`/`CONTACT_EMAIL` не валидируются централизованной схемой (в
+отличие от переменных `apps/api` из 6.1) — при их отсутствии код тихо
+подставляет плейсхолдер вида `"... (заменить на реальный номер оператора
+перед запуском)"`, который попадёт прямо в футер сайта и будет виден
+посетителям. Проверять руками перед каждым деплоем `apps/site`, пока это не
+покрыто автоматической проверкой.
+
 ## 7. CI
 
 PR #4 добавляет `.github/workflows/ci.yml`.
