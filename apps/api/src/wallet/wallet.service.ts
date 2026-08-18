@@ -5,6 +5,7 @@ import {
   Inject,
   Injectable,
   Logger,
+  NotFoundException,
   ServiceUnavailableException,
   UnprocessableEntityException,
 } from '@nestjs/common';
@@ -12,6 +13,13 @@ import { CommercialModeService } from '../commercial-mode/commercial-mode.servic
 import { PrismaService } from '../prisma/prisma.service';
 import { PAYMENT_PROVIDER, PaymentProvider } from '../payments/payment.interface';
 import { normalizePhone } from '../common/phone';
+import { AuditLogService } from '../audit-log/audit-log.service';
+
+export interface ResolveWithdrawalErrorInput {
+  outcome: 'PAID' | 'FAILED';
+  reference?: string;
+  note: string;
+}
 
 @Injectable()
 export class WalletService {
@@ -21,6 +29,7 @@ export class WalletService {
     private readonly prisma: PrismaService,
     @Inject(PAYMENT_PROVIDER) private readonly payments: PaymentProvider,
     private readonly commercialMode: CommercialModeService,
+    private readonly auditLog: AuditLogService,
   ) {}
 
   async getBalance(masterUserId: string): Promise<number> {
@@ -86,16 +95,22 @@ export class WalletService {
     });
 
     // Исход неизвестен при исключении провайдера (таймаут/недоступность) — деньги могли
-    // реально уйти. Баланс/статус здесь намеренно НЕ трогаем (остаются как после TX1:
-    // списан/PENDING), чтобы не рисковать двойной выплатой при повторном запросе —
-    // только громкий лог для ручной сверки оператором по выписке Kaspi.
+    // реально уйти. Баланс намеренно НЕ трогаем (остаётся списанным, как после TX1),
+    // чтобы не рисковать двойной выплатой при повторном запросе. Статус переводим
+    // в ERROR — это и есть отложенный ранее пункт бэклога: заявка не должна тихо
+    // висеть в PENDING, оператор должен увидеть её как требующую ручной сверки.
     let result: Awaited<ReturnType<PaymentProvider['payout']>>;
     try {
       result = await this.payments.payout(withdrawal.id, amount);
     } catch (e) {
+      const message = (e as Error).message;
       this.logger.error(
-        `payout() упал для withdrawalId=${withdrawal.id} masterUserId=${masterUserId} amount=${amount}: ${(e as Error).message}`,
+        `payout() упал для withdrawalId=${withdrawal.id} masterUserId=${masterUserId} amount=${amount}: ${message}`,
       );
+      await this.prisma.withdrawalRequest.update({
+        where: { id: withdrawal.id },
+        data: { status: 'ERROR', errorMessage: message },
+      });
       throw new ServiceUnavailableException('Не удалось обработать выплату, обратитесь в поддержку');
     }
 
@@ -116,5 +131,48 @@ export class WalletService {
       }
       return tx.withdrawalRequest.findUniqueOrThrow({ where: { id: withdrawal.id } });
     });
+  }
+
+  /**
+   * Ручная сверка заявки в ERROR по выписке Kaspi. Оператор либо подтверждает,
+   * что деньги реально ушли (PAID — баланс не трогаем, он уже списан), либо что
+   * не ушли (FAILED — возвращаем баланс мастеру, как и при автоматическом FAILED
+   * в request()). Переход разрешён только из ERROR — защищает от повторного
+   * возврата баланса, если два оператора одновременно откроют одну заявку.
+   */
+  async resolveError(operatorId: string, withdrawalId: string, input: ResolveWithdrawalErrorInput) {
+    const withdrawal = await this.prisma.withdrawalRequest.findUnique({ where: { id: withdrawalId } });
+    if (!withdrawal) throw new NotFoundException('Заявка на вывод не найдена');
+    if (withdrawal.status !== 'ERROR') {
+      throw new ConflictException('Заявка не в статусе ошибки — сверка не требуется');
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      if (input.outcome === 'PAID') {
+        await tx.withdrawalRequest.update({
+          where: { id: withdrawalId },
+          data: { status: 'PAID', paidAt: new Date(), providerRef: input.reference ?? withdrawal.providerRef },
+        });
+      } else {
+        await tx.withdrawalRequest.update({ where: { id: withdrawalId }, data: { status: 'FAILED' } });
+        await tx.masterWalletAccount.update({
+          where: { masterUserId: withdrawal.masterUserId },
+          data: { balance: { increment: withdrawal.amount } },
+        });
+      }
+      await this.auditLog.write(
+        {
+          actorType: 'OPERATOR',
+          actorId: operatorId,
+          action: input.outcome === 'PAID' ? 'WITHDRAWAL_RESOLVED_PAID' : 'WITHDRAWAL_RESOLVED_FAILED',
+          targetType: 'WITHDRAWAL',
+          targetId: withdrawalId,
+          comment: input.note,
+        },
+        tx,
+      );
+    });
+
+    return this.prisma.withdrawalRequest.findUniqueOrThrow({ where: { id: withdrawalId } });
   }
 }

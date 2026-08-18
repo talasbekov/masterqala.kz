@@ -1,8 +1,16 @@
 import { Test } from '@nestjs/testing';
-import { BadRequestException, ConflictException, ForbiddenException, Logger, ServiceUnavailableException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  Logger,
+  NotFoundException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { CommercialModeService } from '../commercial-mode/commercial-mode.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { PAYMENT_PROVIDER, PaymentProvider } from '../payments/payment.interface';
+import { AuditLogService } from '../audit-log/audit-log.service';
 import { WalletService } from './wallet.service';
 
 describe('WalletService — ветка FAILED', () => {
@@ -14,6 +22,7 @@ describe('WalletService — ветка FAILED', () => {
     $transaction: jest.Mock;
   };
   let payments: jest.Mocked<Pick<PaymentProvider, 'payout'>>;
+  let auditLog: { write: jest.Mock };
 
   beforeEach(async () => {
     prisma = {
@@ -23,6 +32,7 @@ describe('WalletService — ветка FAILED', () => {
       $transaction: jest.fn((cb: (tx: unknown) => unknown) => cb(prisma)),
     };
     payments = { payout: jest.fn() };
+    auditLog = { write: jest.fn() };
 
     const moduleRef = await Test.createTestingModule({
       providers: [
@@ -30,6 +40,7 @@ describe('WalletService — ветка FAILED', () => {
         { provide: PrismaService, useValue: prisma },
         { provide: PAYMENT_PROVIDER, useValue: payments },
         { provide: CommercialModeService, useValue: { payoutsEnabled: () => true } },
+        { provide: AuditLogService, useValue: auditLog },
       ],
     }).compile();
     service = moduleRef.get(WalletService);
@@ -57,7 +68,7 @@ describe('WalletService — ветка FAILED', () => {
     });
   });
 
-  it('при исключении провайдера — баланс и статус не трогает, пробрасывает безопасную ошибку', async () => {
+  it('при исключении провайдера — переводит в ERROR с текстом ошибки, баланс не трогает', async () => {
     prisma.masterProfile.findUnique.mockResolvedValue({ payoutPhone: '+77011112233' });
     prisma.masterWalletAccount.updateMany.mockResolvedValue({ count: 1 });
     prisma.withdrawalRequest.create.mockResolvedValue({ id: 'w1', masterUserId: 'm1', amount: 7000, status: 'PENDING' });
@@ -66,7 +77,12 @@ describe('WalletService — ветка FAILED', () => {
 
     await expect(service.request('m1', 7000)).rejects.toThrow(ServiceUnavailableException);
 
-    expect(prisma.withdrawalRequest.update).not.toHaveBeenCalled();
+    // ERROR — намеренно не PENDING: заявка не должна тихо висеть без следа,
+    // оператор обязан увидеть её как требующую ручной сверки.
+    expect(prisma.withdrawalRequest.update).toHaveBeenCalledWith({
+      where: { id: 'w1' },
+      data: { status: 'ERROR', errorMessage: 'ECONNRESET: провайдер недоступен' },
+    });
     expect(prisma.masterWalletAccount.update).not.toHaveBeenCalled();
     expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('w1'));
     errorSpy.mockRestore();
@@ -99,6 +115,7 @@ describe('WalletService — реквизиты вывода', () => {
         { provide: PrismaService, useValue: prisma },
         { provide: PAYMENT_PROVIDER, useValue: { payout: jest.fn() } },
         { provide: CommercialModeService, useValue: { payoutsEnabled: () => true } },
+        { provide: AuditLogService, useValue: { write: jest.fn() } },
       ],
     }).compile();
     service = moduleRef.get(WalletService);
@@ -132,5 +149,103 @@ describe('WalletService — реквизиты вывода', () => {
     prisma.masterProfile.findUnique.mockResolvedValue({ payoutPhone: null });
 
     await expect(service.getPayoutAccount('m1')).resolves.toEqual({ payoutPhone: null });
+  });
+});
+
+describe('WalletService — ручная сверка ERROR', () => {
+  let service: WalletService;
+  let prisma: {
+    withdrawalRequest: { findUnique: jest.Mock; update: jest.Mock; findUniqueOrThrow: jest.Mock };
+    masterWalletAccount: { update: jest.Mock };
+    $transaction: jest.Mock;
+  };
+  let auditLog: { write: jest.Mock };
+
+  beforeEach(async () => {
+    prisma = {
+      withdrawalRequest: { findUnique: jest.fn(), update: jest.fn(), findUniqueOrThrow: jest.fn() },
+      masterWalletAccount: { update: jest.fn() },
+      $transaction: jest.fn((cb: (tx: unknown) => unknown) => cb(prisma)),
+    };
+    auditLog = { write: jest.fn() };
+
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        WalletService,
+        { provide: PrismaService, useValue: prisma },
+        { provide: PAYMENT_PROVIDER, useValue: { payout: jest.fn() } },
+        { provide: CommercialModeService, useValue: { payoutsEnabled: () => true } },
+        { provide: AuditLogService, useValue: auditLog },
+      ],
+    }).compile();
+    service = moduleRef.get(WalletService);
+  });
+
+  it('outcome=PAID: помечает PAID, баланс не трогает (уже списан), пишет аудит', async () => {
+    prisma.withdrawalRequest.findUnique.mockResolvedValue({
+      id: 'w1',
+      masterUserId: 'm1',
+      amount: 7000,
+      status: 'ERROR',
+      providerRef: null,
+    });
+    prisma.withdrawalRequest.findUniqueOrThrow.mockResolvedValue({ id: 'w1', status: 'PAID' });
+
+    await service.resolveError('op1', 'w1', { outcome: 'PAID', reference: 'kaspi-stmt-42', note: 'сверено по выписке' });
+
+    expect(prisma.withdrawalRequest.update).toHaveBeenCalledWith({
+      where: { id: 'w1' },
+      data: { status: 'PAID', paidAt: expect.any(Date), providerRef: 'kaspi-stmt-42' },
+    });
+    expect(prisma.masterWalletAccount.update).not.toHaveBeenCalled();
+    expect(auditLog.write).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actorType: 'OPERATOR',
+        actorId: 'op1',
+        action: 'WITHDRAWAL_RESOLVED_PAID',
+        targetType: 'WITHDRAWAL',
+        targetId: 'w1',
+        comment: 'сверено по выписке',
+      }),
+      prisma,
+    );
+  });
+
+  it('outcome=FAILED: помечает FAILED и возвращает сумму на баланс', async () => {
+    prisma.withdrawalRequest.findUnique.mockResolvedValue({
+      id: 'w1',
+      masterUserId: 'm1',
+      amount: 7000,
+      status: 'ERROR',
+      providerRef: null,
+    });
+    prisma.withdrawalRequest.findUniqueOrThrow.mockResolvedValue({ id: 'w1', status: 'FAILED' });
+
+    await service.resolveError('op1', 'w1', { outcome: 'FAILED', note: 'платёж не найден в выписке' });
+
+    expect(prisma.withdrawalRequest.update).toHaveBeenCalledWith({ where: { id: 'w1' }, data: { status: 'FAILED' } });
+    expect(prisma.masterWalletAccount.update).toHaveBeenCalledWith({
+      where: { masterUserId: 'm1' },
+      data: { balance: { increment: 7000 } },
+    });
+  });
+
+  it('заявка не в ERROR — 409, ничего не меняет', async () => {
+    prisma.withdrawalRequest.findUnique.mockResolvedValue({ id: 'w1', status: 'PAID' });
+
+    await expect(
+      service.resolveError('op1', 'w1', { outcome: 'PAID', note: 'x' }),
+    ).rejects.toThrow(ConflictException);
+
+    expect(prisma.withdrawalRequest.update).not.toHaveBeenCalled();
+    expect(prisma.masterWalletAccount.update).not.toHaveBeenCalled();
+  });
+
+  it('заявка не найдена — 404', async () => {
+    prisma.withdrawalRequest.findUnique.mockResolvedValue(null);
+
+    await expect(
+      service.resolveError('op1', 'missing', { outcome: 'PAID', note: 'x' }),
+    ).rejects.toThrow(NotFoundException);
   });
 });
