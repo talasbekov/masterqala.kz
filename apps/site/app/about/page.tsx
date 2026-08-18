@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { getContactEmail, getContactPhone } from '@/lib/env';
+import { getContactEmail, getContactPhone, OG_IMAGE } from '@/lib/env';
 
 export const metadata: Metadata = {
   title: 'О сервисе',
@@ -10,10 +10,13 @@ export const metadata: Metadata = {
     url: '/about',
     title: 'О сервисе — MasterQala',
     description: 'Кто мы, где работаем и как устроена проверка мастеров.',
+    images: [OG_IMAGE],
   },
   twitter: {
+    card: 'summary_large_image',
     title: 'О сервисе — MasterQala',
     description: 'Кто мы, где работаем и как устроена проверка мастеров.',
+    images: [OG_IMAGE],
   },
 };
 

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { ChevronDownIcon } from '@masterqala/ui';
+import { OG_IMAGE } from '@/lib/env';
 
 export const metadata: Metadata = {
   title: 'Частые вопросы',
@@ -10,10 +11,13 @@ export const metadata: Metadata = {
     url: '/faq',
     title: 'Частые вопросы — MasterQala',
     description: 'Оплата, проверка мастеров, география работы и споры — коротко и по делу.',
+    images: [OG_IMAGE],
   },
   twitter: {
+    card: 'summary_large_image',
     title: 'Частые вопросы — MasterQala',
     description: 'Оплата, проверка мастеров, география работы и споры — коротко и по делу.',
+    images: [OG_IMAGE],
   },
 };
 

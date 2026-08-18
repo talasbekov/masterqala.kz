@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getCategories } from '@/lib/categories';
 import { getCategoryContent } from '@/lib/category-content';
-import { getAppUrl, getSiteUrl } from '@/lib/env';
+import { getAppUrl, getSiteUrl, OG_IMAGE } from '@/lib/env';
 
 export async function generateStaticParams() {
   const categories = await getCategories();
@@ -33,10 +33,13 @@ export async function generateMetadata({
       url: `/categories/${category.slug}`,
       title: `${title} — MasterQala`,
       description: content.description,
+      images: [OG_IMAGE],
     },
     twitter: {
+      card: 'summary_large_image',
       title: `${title} — MasterQala`,
       description: content.description,
+      images: [OG_IMAGE],
     },
   };
 }

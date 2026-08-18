@@ -86,7 +86,7 @@
 | CI | ✅ | `.github/workflows/ci.yml` — unit, e2e и сборка **всех пяти** фронтендов (`web`, `client`, `master`, `operator`, `site`) на каждый push. Сборка `site` поднимает реальный API: категории тянутся на этапе билда |
 | Dockerfile приложений | 🟡 | `apps/api/Dockerfile` (multi-stage, полный `node_modules` — `pnpm deploy --prod` ломает генерацию Prisma Client, см. комментарий в файле) и `apps/web/Dockerfile` (nginx + SPA fallback). Оба собраны и проверены живым контейнером. **У четырёх новых Next.js-приложений Dockerfile нет** — задеплоить нечем. `docker-compose.yml` по-прежнему поднимает только БД |
 | Деплой, мониторинг, бэкапы | 🟡 | Процедуры описаны в [technical/DEPLOYMENT_RUNBOOK.md](technical/DEPLOYMENT_RUNBOOK.md), но сам деплой не настроен: ни Sentry, ни метрик, ни алертов на застрявшие джобы |
-| Иконки PWA | ❌ | `icons: []` в `apps/web/vite.config.ts` — установка на домашний экран неполноценна. Касается только `apps/web`: новые приложения не PWA |
+| Иконки PWA | ✅ | 192/512/512-maskable в манифесте `apps/web`, `apple-touch-icon.png`. Марка — гаечный ключ на плашке `--color-primary`, нарисована 18.08.2026: до этого `favicon.svg` был вне палитры продукта (фиолетовый шаблонный блоб), а `icons.svg` — неиспользуемый спрайт соцсетей, оба удалены/заменены |
 
 ---
 

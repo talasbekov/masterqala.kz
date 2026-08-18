@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
-import { getSiteUrl } from '@/lib/env';
+import { getSiteUrl, OG_IMAGE } from '@/lib/env';
 import './globals.css';
 
 const TITLE = 'MasterQala — мастер на дом в Астане';
@@ -28,11 +28,13 @@ export const metadata: Metadata = {
     url: '/',
     title: TITLE,
     description: DESCRIPTION,
+    images: [OG_IMAGE],
   },
   twitter: {
     card: 'summary_large_image',
     title: TITLE,
     description: DESCRIPTION,
+    images: [OG_IMAGE],
   },
   robots: {
     index: true,

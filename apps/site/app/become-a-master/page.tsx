@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { Card } from '@masterqala/ui';
-import { getAppUrl } from '@/lib/env';
+import { getAppUrl, OG_IMAGE } from '@/lib/env';
 
 export const metadata: Metadata = {
   title: 'Стать мастером',
@@ -11,10 +11,13 @@ export const metadata: Metadata = {
     url: '/become-a-master',
     title: 'Стать мастером — MasterQala',
     description: 'Заявки от клиентов рядом, без ежемесячной платы за рекламу.',
+    images: [OG_IMAGE],
   },
   twitter: {
+    card: 'summary_large_image',
     title: 'Стать мастером — MasterQala',
     description: 'Заявки от клиентов рядом, без ежемесячной платы за рекламу.',
+    images: [OG_IMAGE],
   },
 };
 

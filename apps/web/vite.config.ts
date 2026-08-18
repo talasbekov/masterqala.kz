@@ -18,7 +18,14 @@ export default defineConfig({
         background_color: '#F8FAFC',
         display: 'standalone',
         start_url: '/',
-        icons: [],
+        icons: [
+          { src: '/pwa-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: '/pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+          // maskable отдельным элементом: тот же ключ на заливке без
+          // скругления — форму вырезает ОС, и purpose:any не годится для неё
+          // (проверено кругом safe zone 80% при рендере, см. scripts/generate-brand-assets).
+          { src: '/pwa-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+        ],
       },
     }),
   ],

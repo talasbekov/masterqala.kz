@@ -4,7 +4,7 @@ import { HowItWorks } from '@/components/HowItWorks';
 import { Trust } from '@/components/Trust';
 import { CategoryTile } from '@/components/CategoryTile';
 import { getCategories } from '@/lib/categories';
-import { getAppUrl, getSiteUrl, getVerifiedContactEmail, getVerifiedContactPhone } from '@/lib/env';
+import { getAppUrl, getSiteUrl, getVerifiedContactEmail, getVerifiedContactPhone, OG_IMAGE } from '@/lib/env';
 
 export const metadata: Metadata = {
   title: 'Мастер на дом в Астане — сантехник, электрик, ремонт техники',
@@ -16,11 +16,14 @@ export const metadata: Metadata = {
     title: 'Мастер на дом в Астане — MasterQala',
     description:
       'Проверенные мастера бытовых услуг в Астане. Стоимость выезда видна заранее, цену работ вы подтверждаете до начала.',
+    images: [OG_IMAGE],
   },
   twitter: {
+    card: 'summary_large_image',
     title: 'Мастер на дом в Астане — MasterQala',
     description:
       'Проверенные мастера бытовых услуг в Астане. Стоимость выезда видна заранее, цену работ вы подтверждаете до начала.',
+    images: [OG_IMAGE],
   },
 };
 
