@@ -166,7 +166,6 @@ whole-branch review, а поверх #21 прогонялся ultrareview с в�
 | §3.6 Коэф. спроса (surge) 1.0–2.0, «включение — фаза 2» | Поля и логики нет; включение потребует изменения формулы, а не конфига | [`pricing.service.ts`](../apps/api/src/pricing/pricing.service.ts) |
 | §3.6 Расстояние **по дорогам** через routing API | Прямая × 1.3. Клиенту показывается цена, посчитанная по приближению | [`postgis-routing.service.ts`](../apps/api/src/routing/postgis-routing.service.ts) |
 | §3.9 Понижение приоритета мастера на 24 ч | **Не действует, и не может** — см. «Приоритет внутри волны» ниже. `priorityPenaltyUntil` пишется, но не читается никем | [`master-penalty.service.ts:40`](../apps/api/src/common/master-penalty.service.ts:40) |
-| §3.12 Вывод на Kaspi мастера | У мастера негде указать реквизиты: в `WithdrawalRequest` есть сумма и статус, поля «куда» нет | схема `WithdrawalRequest` |
 | §6 Окно на отзыв — 7 дней | Не проверяется: отзыв принимается в любой момент после `CLOSED` | [`reviews.service.ts:19`](../apps/api/src/reviews/reviews.service.ts:19) |
 
 ### Код ушёл вперёд спеки
@@ -228,6 +227,9 @@ enum (`SEARCHING`). Таблица соответствия —
 2. **Эквайринг и выплаты.** Интерфейс `PaymentProvider` готов, реализация — мок.
    Договор с провайдером — самый долгий внешний срок, начинать раньше кода.
    Пока не подключён, `COMMERCIAL_MODE=PAID_LIVE` намеренно роняет старт.
+   Реквизиты мастера для выплат (Kaspi-номер, `MasterProfile.payoutPhone`) закрыты
+   18.08.2026 — не блокирует. Осталось: сам `KaspiPaymentProvider` (ждёт договора)
+   и `WithdrawalStatus.ERROR`/экран ручной сверки зависших выплат.
 3. **SMS-шлюз.** Интерфейс `SmsSender` готов. Появился универсальный `HttpSmsSender`
    (`SMS_PROVIDER_MODE=HTTP`, конфигурация шлюза целиком через env — URL/метод/тело
    запроса с плейсхолдерами `{{phone}}`/`{{text}}`/`{{secret}}`, без правки кода) —
