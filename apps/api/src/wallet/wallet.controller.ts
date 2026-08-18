@@ -1,9 +1,9 @@
-import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Patch, Post, UseGuards } from '@nestjs/common';
 import { User } from '@prisma/client';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { WalletService } from './wallet.service';
-import { CreateWithdrawalDto } from './dto';
+import { CreateWithdrawalDto, SetPayoutAccountDto } from './dto';
 
 @Controller('wallet')
 @UseGuards(JwtAuthGuard)
@@ -23,5 +23,15 @@ export class WalletController {
   @Post('withdrawals')
   request(@CurrentUser() user: User, @Body() dto: CreateWithdrawalDto) {
     return this.wallet.request(user.id, dto.amount);
+  }
+
+  @Get('payout-account')
+  getPayoutAccount(@CurrentUser() user: User) {
+    return this.wallet.getPayoutAccount(user.id);
+  }
+
+  @Patch('payout-account')
+  setPayoutAccount(@CurrentUser() user: User, @Body() dto: SetPayoutAccountDto) {
+    return this.wallet.setPayoutAccount(user.id, dto.phone);
   }
 }

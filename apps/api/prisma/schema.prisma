@@ -91,6 +91,9 @@ model MasterProfile {
   updatedAt            DateTime               @updatedAt
   priorityPenaltyUntil DateTime?
   blockedUntil         DateTime?
+  /// Kaspi-номер для выплат (§3.12) — отдельно от User.phone: мастер может
+  /// выводить не на тот номер, которым логинится.
+  payoutPhone          String?
   categories           MasterCategory[]
   documents            MasterDocument[]
   user                 User                   @relation(fields: [userId], references: [id])
@@ -361,6 +364,10 @@ model WithdrawalRequest {
   amount       Int
   status       WithdrawalStatus @default(PENDING)
   providerRef  String?
+  /// Снимок MasterProfile.payoutPhone на момент заявки — не ссылка на текущее
+  /// значение, чтобы история выплат не переписывалась задним числом, если
+  /// мастер сменит реквизиты после отправки заявки.
+  payoutPhone  String?
   requestedAt  DateTime         @default(now())
   paidAt       DateTime?
   master       User             @relation(fields: [masterUserId], references: [id])

@@ -1,4 +1,6 @@
 import {
+  BadRequestException,
+  ConflictException,
   ForbiddenException,
   Inject,
   Injectable,
@@ -9,6 +11,7 @@ import {
 import { CommercialModeService } from '../commercial-mode/commercial-mode.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { PAYMENT_PROVIDER, PaymentProvider } from '../payments/payment.interface';
+import { normalizePhone } from '../common/phone';
 
 @Injectable()
 export class WalletService {
@@ -34,10 +37,42 @@ export class WalletService {
     });
   }
 
+  async getPayoutAccount(masterUserId: string): Promise<{ payoutPhone: string | null }> {
+    const profile = await this.prisma.masterProfile.findUnique({
+      where: { userId: masterUserId },
+      select: { payoutPhone: true },
+    });
+    return { payoutPhone: profile?.payoutPhone ?? null };
+  }
+
+  async setPayoutAccount(masterUserId: string, rawPhone: string): Promise<{ payoutPhone: string }> {
+    const payoutPhone = normalizePhone(rawPhone);
+    if (!payoutPhone) throw new BadRequestException('Некорректный номер телефона');
+
+    const profile = await this.prisma.masterProfile.findUnique({ where: { userId: masterUserId } });
+    if (!profile) throw new ForbiddenException('Реквизиты вывода доступны только мастерам');
+
+    await this.prisma.masterProfile.update({ where: { userId: masterUserId }, data: { payoutPhone } });
+    return { payoutPhone };
+  }
+
   async request(masterUserId: string, amount: number) {
     if (!this.commercialMode.payoutsEnabled()) {
       throw new ForbiddenException('Вывод средств недоступен в бесплатном пилоте');
     }
+
+    // §3.12 шаг 2: заявка на вывод требует подтверждённых реквизитов —
+    // без них payout() провайдеру физически некуда платить.
+    const profile = await this.prisma.masterProfile.findUnique({
+      where: { userId: masterUserId },
+      select: { payoutPhone: true },
+    });
+    if (!profile?.payoutPhone) {
+      throw new ConflictException(
+        'Не указаны реквизиты вывода — укажите Kaspi-номер в настройках кошелька',
+      );
+    }
+    const payoutPhone = profile.payoutPhone;
 
     const withdrawal = await this.prisma.$transaction(async (tx) => {
       const spent = await tx.masterWalletAccount.updateMany({
@@ -45,7 +80,9 @@ export class WalletService {
         data: { balance: { decrement: amount } },
       });
       if (spent.count === 0) throw new UnprocessableEntityException('Недостаточно средств на балансе');
-      return tx.withdrawalRequest.create({ data: { masterUserId, amount, status: 'PENDING' } });
+      // Снимок текущего payoutPhone — история выплат не должна переписываться
+      // задним числом, если мастер сменит реквизиты после отправки заявки.
+      return tx.withdrawalRequest.create({ data: { masterUserId, amount, status: 'PENDING', payoutPhone } });
     });
 
     // Исход неизвестен при исключении провайдера (таймаут/недоступность) — деньги могли
