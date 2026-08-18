@@ -1,7 +1,7 @@
 import { api } from './api';
 
 export type AuditActorType = 'OPERATOR' | 'SYSTEM';
-export type AuditTargetType = 'MASTER_PROFILE' | 'USER' | 'ORDER' | 'PLANNED_ORDER' | 'DISPUTE';
+export type AuditTargetType = 'MASTER_PROFILE' | 'USER' | 'ORDER' | 'PLANNED_ORDER' | 'DISPUTE' | 'WITHDRAWAL';
 
 export interface AuditLogRow {
   id: string;
@@ -32,6 +32,8 @@ export const ACTION_LABELS: Record<string, string> = {
   ORDER_MANUALLY_ASSIGNED: 'Заказ: ручное назначение мастера',
   AUTO_CLOSED: 'Заказ закрыт автоматически',
   DISPUTE_RESOLVED: 'Спор разрешён',
+  WITHDRAWAL_RESOLVED_PAID: 'Вывод: сверка подтвердила выплату',
+  WITHDRAWAL_RESOLVED_FAILED: 'Вывод: сверка не подтвердила выплату, возврат на баланс',
 };
 
 export function fetchJournal(page: number): Promise<JournalPage> {

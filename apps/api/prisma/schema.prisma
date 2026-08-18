@@ -368,6 +368,9 @@ model WithdrawalRequest {
   /// значение, чтобы история выплат не переписывалась задним числом, если
   /// мастер сменит реквизиты после отправки заявки.
   payoutPhone  String?
+  /// Заполняется, только если payout() бросил исключение (ERROR): текст ошибки
+  /// для ручной сверки оператором. Видно только оператору (admin/withdrawals).
+  errorMessage String?
   requestedAt  DateTime         @default(now())
   paidAt       DateTime?
   master       User             @relation(fields: [masterUserId], references: [id])
@@ -481,6 +484,7 @@ enum AuditTargetType {
   ORDER
   PLANNED_ORDER
   DISPUTE
+  WITHDRAWAL
 }
 
 enum OrderStatus {
@@ -547,6 +551,11 @@ enum WithdrawalStatus {
   PENDING
   PAID
   FAILED
+  /// Исход неизвестен: payout() бросил исключение (таймаут/недоступность
+  /// провайдера), деньги могли реально уйти. Баланс намеренно не тронут.
+  /// Требует ручной сверки оператором по выписке Kaspi — POST
+  /// /admin/withdrawals/:id/resolve.
+  ERROR
 }
 
 enum DisputeStatus {
