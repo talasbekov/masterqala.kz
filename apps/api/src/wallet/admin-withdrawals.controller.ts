@@ -17,6 +17,10 @@ export class AdminWithdrawalsController {
     });
     return rows.map((r) => ({
       ...r,
+      // Реквизиты выплаты (Kaspi-номер) — снимок на момент заявки, отдельно
+      // от логин-телефона мастера. У заявок до этой фичи payoutPhone нет —
+      // показываем как есть, не выдумываем задним числом.
+      payoutPhone: r.payoutPhone ? r.payoutPhone.slice(-4) : null,
       master: { phone: r.master.phone.slice(-4) },
     }));
   }

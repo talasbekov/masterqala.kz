@@ -15,6 +15,12 @@ interface Withdrawal {
   status: string;
 }
 
+function maskPhone(phone: string): string {
+  // +77011112233 → +7 701 ··· 22 33
+  const digits = phone.replace('+7', '');
+  return `+7 ${digits.slice(0, 3)} ··· ${digits.slice(-4, -2)} ${digits.slice(-2)}`;
+}
+
 export default function WalletPage() {
   const { payoutsEnabled } = useCommercialMode();
   const [balance, setBalance] = useState(0);
@@ -23,12 +29,21 @@ export default function WalletPage() {
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
+  const [payoutPhone, setPayoutPhone] = useState<string | null>(null);
+  const [editingPayout, setEditingPayout] = useState(false);
+  const [payoutInput, setPayoutInput] = useState('');
+  const [payoutError, setPayoutError] = useState('');
+  const [savingPayout, setSavingPayout] = useState(false);
+
   function load() {
     api('/wallet/balance')
       .then((r) => setBalance(r.balance))
       .catch((e) => setError((e as Error).message));
     api('/wallet/withdrawals')
       .then(setHistory)
+      .catch((e) => setError((e as Error).message));
+    api('/wallet/payout-account')
+      .then((r) => setPayoutPhone(r.payoutPhone))
       .catch((e) => setError((e as Error).message));
   }
 
@@ -47,6 +62,24 @@ export default function WalletPage() {
       setError((e as Error).message);
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function savePayoutAccount() {
+    setSavingPayout(true);
+    setPayoutError('');
+    try {
+      const res = await api('/wallet/payout-account', {
+        method: 'PATCH',
+        body: JSON.stringify({ phone: payoutInput }),
+      });
+      setPayoutPhone(res.payoutPhone);
+      setEditingPayout(false);
+      setPayoutInput('');
+    } catch (e) {
+      setPayoutError((e as Error).message);
+    } finally {
+      setSavingPayout(false);
     }
   }
 
@@ -71,6 +104,51 @@ export default function WalletPage() {
         <div className="text-3xl font-extrabold text-primary">{balance} ₸</div>
         <div className="text-sm text-ink-soft">доступно к выводу</div>
       </div>
+
+      <div className="rounded-lg border border-border p-3">
+        <div className="text-xs font-bold uppercase tracking-wide text-ink-soft">Куда выводим</div>
+        {editingPayout ? (
+          <div className="mt-2 space-y-2">
+            <input
+              type="tel"
+              placeholder="+7 701 234 56 78"
+              className="w-full rounded-md border-[1.5px] border-border bg-surface p-3 text-sm text-ink outline-none placeholder:text-muted"
+              value={payoutInput}
+              onChange={(e) => setPayoutInput(e.target.value)}
+              autoFocus
+            />
+            {payoutError && <p className="text-sm text-danger">{payoutError}</p>}
+            <div className="flex gap-2">
+              <button
+                className="flex-1 rounded-pill bg-primary p-2.5 text-sm font-extrabold text-white disabled:opacity-40"
+                disabled={!payoutInput || savingPayout}
+                onClick={savePayoutAccount}
+              >
+                {savingPayout ? 'Сохраняем…' : 'Сохранить'}
+              </button>
+              <button
+                className="rounded-pill border border-border px-4 text-sm font-bold text-ink-soft"
+                onClick={() => {
+                  setEditingPayout(false);
+                  setPayoutError('');
+                }}
+              >
+                Отмена
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="mt-1 flex items-center justify-between">
+            <span className="text-sm font-extrabold text-ink">
+              {payoutPhone ? `Kaspi · ${maskPhone(payoutPhone)}` : 'Не указано'}
+            </span>
+            <button className="text-sm font-bold text-primary" onClick={() => setEditingPayout(true)}>
+              {payoutPhone ? 'изменить' : 'указать'}
+            </button>
+          </div>
+        )}
+      </div>
+
       <div className="space-y-2">
         <input
           type="number"
@@ -83,10 +161,10 @@ export default function WalletPage() {
         {error && <p className="text-sm text-danger">{error}</p>}
         <button
           className="w-full rounded-pill bg-primary p-3.5 text-sm font-extrabold text-white disabled:opacity-40"
-          disabled={!Number(amount) || Number(amount) < 5000 || submitting}
+          disabled={!Number(amount) || Number(amount) < 5000 || !payoutPhone || submitting}
           onClick={submit}
         >
-          {submitting ? 'Отправляем…' : 'Вывести'}
+          {submitting ? 'Отправляем…' : payoutPhone ? 'Вывести' : 'Сначала укажите реквизиты'}
         </button>
       </div>
       <div className="space-y-2">
