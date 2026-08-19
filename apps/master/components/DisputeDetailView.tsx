@@ -31,6 +31,10 @@ export function DisputeDetailView({ disputeId }: { disputeId: string }) {
       fetchDisputeContext(kind, targetId),
       fetchDisputeEvidence(disputeId),
     ]);
+    if (!context.dispute) {
+      setError('Спор не найден');
+      return;
+    }
     setDispute(context.dispute);
     setEvidence(evidenceList);
   }
