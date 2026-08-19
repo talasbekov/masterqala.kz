@@ -48,4 +48,10 @@ export class MastersController {
   documentStatus(@CurrentUser() user: User, @Param('id') id: string) {
     return this.masters.getDocumentStatus(user.id, id);
   }
+
+  @Get('masters/me/stats')
+  @UseGuards(JwtAuthGuard)
+  getMyStats(@CurrentUser() user: User) {
+    return this.masters.getMyStats(user.id);
+  }
 }

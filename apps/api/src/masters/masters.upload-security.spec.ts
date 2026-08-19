@@ -60,16 +60,18 @@ describe('MastersService upload security', () => {
     };
     const config = { get: jest.fn().mockReturnValue(options.cdrMode ?? 'BYPASS') };
     const fileScans = { enqueueMasterDocument: jest.fn().mockResolvedValue(undefined) };
+    const reviews = {};
     const storage = {
       save: jest.fn().mockResolvedValue('uuid.jpg'),
       remove: jest.fn().mockResolvedValue(undefined),
       absolutePath: jest.fn(),
     };
     return {
-      service: new MastersService(prisma as never, config as never, fileScans as never, storage as never),
+      service: new MastersService(prisma as never, config as never, fileScans as never, reviews as never, storage as never),
       prisma,
       config,
       fileScans,
+      reviews,
       storage,
     };
   }

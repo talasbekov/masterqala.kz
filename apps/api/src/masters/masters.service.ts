@@ -14,11 +14,19 @@ import { SubmitApplicationDto } from './dto';
 import { FileStorage, FILE_STORAGE } from '../storage/storage.interface';
 import { PersistentFileScansService, PersistentScanStatus } from '../storage/persistent-file-scans.service';
 import { validateUploadedFile } from '../storage/upload-security';
+import { ReviewsService } from '../reviews/reviews.service';
 
 const PROFILE_INCLUDE = {
   categories: { include: { category: true } },
   documents: true,
 } as const;
+
+export interface MasterStats {
+  completedCount: number;
+  earnings: number;
+  rating: number | null;
+  reviewCount: number;
+}
 
 type MasterDocumentSecurityRow = {
   id: string;
@@ -42,6 +50,7 @@ export class MastersService {
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
     private readonly fileScans: PersistentFileScansService,
+    private readonly reviews: ReviewsService,
     @Inject(FILE_STORAGE) private readonly storage: FileStorage,
   ) {
     this.pdfCdrMode = this.config.get<'BYPASS' | 'REQUIRED'>('PDF_CDR_MODE') ?? 'BYPASS';
@@ -192,5 +201,20 @@ export class MastersService {
     } catch (error) {
       this.logger.error(`Не удалось удалить orphan master document ${relPath}: ${(error as Error).message}`);
     }
+  }
+
+  async getMyStats(userId: string): Promise<MasterStats> {
+    const [orderCount, plannedCount, accrualAgg, ratingSummary] = await Promise.all([
+      this.prisma.order.count({ where: { masterId: userId, status: 'CLOSED' } }),
+      this.prisma.plannedOrder.count({ where: { masterId: userId, status: 'CLOSED' } }),
+      this.prisma.accrual.aggregate({ where: { masterUserId: userId }, _sum: { amount: true } }),
+      this.reviews.getMasterRatingSummary(userId),
+    ]);
+    return {
+      completedCount: orderCount + plannedCount,
+      earnings: accrualAgg._sum.amount ?? 0,
+      rating: ratingSummary.rating,
+      reviewCount: ratingSummary.reviewCount,
+    };
   }
 }

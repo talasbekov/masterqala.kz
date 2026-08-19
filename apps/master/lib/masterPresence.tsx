@@ -8,7 +8,7 @@ export interface UrgentOffer {
   orderId: string;
   category: string;
   description: string;
-  address?: string;
+  district?: string;
   distanceKm: number;
   compensation: number;
   freePilot: boolean;
