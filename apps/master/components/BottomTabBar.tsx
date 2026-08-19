@@ -17,7 +17,7 @@ export function BottomTabBar() {
         <WrenchIcon className="h-5 w-5" />
         Работа
       </Link>
-      <Link href="/" className={tabClass(pathname === '/')}>
+      <Link href="/" className={tabClass(pathname === '/planned')}>
         <span className="text-lg leading-5">📅</span>
         Плановые
       </Link>
