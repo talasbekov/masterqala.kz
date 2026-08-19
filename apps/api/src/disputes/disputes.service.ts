@@ -183,12 +183,54 @@ export class DisputesService {
     };
   }
 
+  async listEvidence(userId: string, disputeId: string) {
+    const dispute = await this.findOrThrow(disputeId);
+    await this.guardParticipant(userId, dispute);
+    const rows = await this.prisma.$queryRaw<
+      { id: string; uploadedByUserId: string; mimeType: string; scanStatus: PersistentScanStatus; createdAt: Date }[]
+    >`
+      SELECT "id", "uploadedByUserId", "mimeType", "scanStatus", "createdAt"
+      FROM "DisputeEvidence"
+      WHERE "disputeId" = ${disputeId}
+      ORDER BY "createdAt" ASC
+    `;
+    return rows.map((row) => ({
+      id: row.id,
+      uploadedByUserId: row.uploadedByUserId,
+      isMine: row.uploadedByUserId === userId,
+      mimeType: row.mimeType,
+      scanStatus: row.scanStatus,
+      createdAt: row.createdAt,
+    }));
+  }
+
   async addCounterStatement(userId: string, disputeId: string, counterStatement: string) {
     const dispute = await this.findOrThrow(disputeId);
     await this.guardParticipant(userId, dispute);
     if (dispute.status !== 'OPEN') throw new ConflictException('Спор уже закрыт');
     if (userId === dispute.openedByUserId) throw new ForbiddenException('Пояснение добавляет только вторая сторона');
     return this.prisma.dispute.update({ where: { id: disputeId }, data: { counterStatement } });
+  }
+
+  async listMine(userId: string) {
+    return this.prisma.dispute.findMany({
+      where: {
+        OR: [
+          { order: { OR: [{ clientId: userId }, { masterId: userId }] } },
+          { plannedOrder: { OR: [{ clientId: userId }, { masterId: userId }] } },
+        ],
+      },
+      select: {
+        id: true,
+        orderId: true,
+        plannedOrderId: true,
+        status: true,
+        reason: true,
+        createdAt: true,
+        resolvedAt: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
   }
 
   async listAll(status?: 'OPEN' | 'RESOLVED') {

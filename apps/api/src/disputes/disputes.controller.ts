@@ -27,6 +27,11 @@ const MAX_FILE_BYTES = 10 * 1024 * 1024;
 export class DisputesController {
   constructor(private readonly disputes: DisputesService) {}
 
+  @Get('disputes/mine')
+  listMine(@CurrentUser() user: User) {
+    return this.disputes.listMine(user.id);
+  }
+
   @Post('orders/:id/disputes')
   openForOrder(@CurrentUser() user: User, @Param('id') id: string, @Body() dto: OpenDisputeDto) {
     return this.disputes.openForOrder(user, id, dto);
@@ -51,6 +56,11 @@ export class DisputesController {
     @Param('evidenceId') evidenceId: string,
   ) {
     return this.disputes.getEvidenceStatus(user.id, id, evidenceId);
+  }
+
+  @Get('disputes/:id/evidence')
+  listEvidence(@CurrentUser() user: User, @Param('id') id: string) {
+    return this.disputes.listEvidence(user.id, id);
   }
 
   @Patch('disputes/:id')

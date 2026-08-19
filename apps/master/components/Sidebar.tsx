@@ -1,9 +1,18 @@
 'use client';
+import { useEffect, useState } from 'react';
 import { NavLink } from './NavLink';
 import { useMasterPresence } from '@/lib/masterPresence';
+import { fetchMyDisputes } from '@/lib/disputes';
 
 export function Sidebar() {
   const { online, connected, geoDenied, goOnline, goOffline } = useMasterPresence();
+  const [openDisputes, setOpenDisputes] = useState(0);
+
+  useEffect(() => {
+    fetchMyDisputes()
+      .then((disputes) => setOpenDisputes(disputes.filter((d) => d.status === 'OPEN').length))
+      .catch(() => setOpenDisputes(0));
+  }, []);
 
   return (
     <aside className="hidden w-60 shrink-0 flex-col gap-1 border-r border-border bg-surface p-4 md:flex">
@@ -19,6 +28,9 @@ export function Sidebar() {
       </NavLink>
       <NavLink href="/wallet" icon="💳">
         Кошелёк
+      </NavLink>
+      <NavLink href="/disputes" icon="⚖️" badge={openDisputes}>
+        Мои споры
       </NavLink>
       <div className="mt-auto space-y-2 border-t border-border pt-3">
         <div className="rounded-md bg-fill-soft px-3 py-2 text-xs">
