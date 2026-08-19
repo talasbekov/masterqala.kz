@@ -58,6 +58,11 @@ export class DisputesController {
     return this.disputes.getEvidenceStatus(user.id, id, evidenceId);
   }
 
+  @Get('disputes/:id/evidence')
+  listEvidence(@CurrentUser() user: User, @Param('id') id: string) {
+    return this.disputes.listEvidence(user.id, id);
+  }
+
   @Patch('disputes/:id')
   addCounterStatement(@CurrentUser() user: User, @Param('id') id: string, @Body() dto: CounterStatementDto) {
     return this.disputes.addCounterStatement(user.id, id, dto.counterStatement);

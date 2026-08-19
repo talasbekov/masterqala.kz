@@ -183,6 +183,27 @@ export class DisputesService {
     };
   }
 
+  async listEvidence(userId: string, disputeId: string) {
+    const dispute = await this.findOrThrow(disputeId);
+    await this.guardParticipant(userId, dispute);
+    const rows = await this.prisma.$queryRaw<
+      { id: string; uploadedByUserId: string; mimeType: string; scanStatus: PersistentScanStatus; createdAt: Date }[]
+    >`
+      SELECT "id", "uploadedByUserId", "mimeType", "scanStatus", "createdAt"
+      FROM "DisputeEvidence"
+      WHERE "disputeId" = ${disputeId}
+      ORDER BY "createdAt" ASC
+    `;
+    return rows.map((row) => ({
+      id: row.id,
+      uploadedByUserId: row.uploadedByUserId,
+      isMine: row.uploadedByUserId === userId,
+      mimeType: row.mimeType,
+      scanStatus: row.scanStatus,
+      createdAt: row.createdAt,
+    }));
+  }
+
   async addCounterStatement(userId: string, disputeId: string, counterStatement: string) {
     const dispute = await this.findOrThrow(disputeId);
     await this.guardParticipant(userId, dispute);

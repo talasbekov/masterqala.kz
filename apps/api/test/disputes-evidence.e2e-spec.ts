@@ -131,4 +131,39 @@ describe('Доказательства и пояснение по спору (e2
         .expect(200);
     });
   });
+
+  describe('список доказательств с авторством', () => {
+    it('участник видит фото с флагом isMine', async () => {
+      await request(app.getHttpServer())
+        .post(`/api/v1/disputes/${disputeId}/evidence`)
+        .set('Authorization', `Bearer ${client.token}`)
+        .attach('file', Buffer.from([0xff, 0xd8, 0xff]), { filename: 'client.jpg', contentType: 'image/jpeg' })
+        .expect(201);
+      await request(app.getHttpServer())
+        .post(`/api/v1/disputes/${disputeId}/evidence`)
+        .set('Authorization', `Bearer ${master.token}`)
+        .attach('file', Buffer.from([0xff, 0xd8, 0xff]), { filename: 'master.jpg', contentType: 'image/jpeg' })
+        .expect(201);
+
+      const res = await request(app.getHttpServer())
+        .get(`/api/v1/disputes/${disputeId}/evidence`)
+        .set('Authorization', `Bearer ${master.token}`)
+        .expect(200);
+
+      expect(res.body).toHaveLength(2);
+      const mine = res.body.filter((e: { isMine: boolean }) => e.isMine);
+      const theirs = res.body.filter((e: { isMine: boolean }) => !e.isMine);
+      expect(mine).toHaveLength(1);
+      expect(theirs).toHaveLength(1);
+      expect(mine[0].uploadedByUserId).toBe(master.userId);
+    });
+
+    it('посторонний не может получить список доказательств (403)', async () => {
+      const stranger = await loginAs(app, '+77130000096');
+      await request(app.getHttpServer())
+        .get(`/api/v1/disputes/${disputeId}/evidence`)
+        .set('Authorization', `Bearer ${stranger.token}`)
+        .expect(403);
+    });
+  });
 });
