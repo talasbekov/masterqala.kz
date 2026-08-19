@@ -208,13 +208,7 @@
       "notifications": "Уведомления",
       "support": "Поддержка"
     },
-    "becomeMasterTitle": "Стать мастером",
-    "becomeMasterSubtitle": "Зарабатывайте на своих навыках — верификация за 1–2 дня.",
-    "becomeMasterLink": "Подробнее",
-    "wallet": "Кошелёк",
-    "adminPanel": "Панель оператора",
-    "logout": "Выйти из аккаунта",
-    "blockedUntil": "Доступ к новым заявкам временно ограничен до {{date}}"
+    "logout": "Выйти из аккаунта"
   },
   "addresses": {
     "title": "Адреса",

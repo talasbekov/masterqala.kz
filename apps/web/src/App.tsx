@@ -7,23 +7,13 @@ import HomePage from './features/client-v2/pages/HomePage';
 import NotificationsPage from './features/client-v2/pages/NotificationsPage';
 import CatalogPage from './features/client-v2/pages/CatalogPage';
 import ProfilePage from './features/client-v2/pages/ProfilePage';
-import BecomeMasterPage from './pages/BecomeMasterPage';
-import AdminListPage from './pages/AdminListPage';
-import AdminDetailPage from './pages/AdminDetailPage';
-import AdminWithdrawalsPage from './pages/AdminWithdrawalsPage';
-import AdminDisputesPage from './pages/AdminDisputesPage';
-import AdminDisputeDetailPage from './pages/AdminDisputeDetailPage';
-import AdminSecurityPage from './pages/AdminSecurityPage';
 import NewOrderPage from './features/client-v2/pages/NewOrderPage';
 import OrderPage from './features/client-v2/pages/OrderPage';
 import DisputePage from './features/client-v2/pages/DisputePage';
 import MyOrdersPage from './features/client-v2/pages/MyOrdersPage';
-import WorkPage from './pages/WorkPage';
 import PlannedNewOrderPage from './features/client-v2/pages/PlannedNewOrderPage';
 import PlannedOrderPage from './features/client-v2/pages/PlannedOrderPage';
 import PlannedComparePage from './features/client-v2/pages/PlannedComparePage';
-import LeadCreditsPage from './pages/LeadCreditsPage';
-import WalletPage from './pages/WalletPage';
 import AddressesPage from './features/client-v2/pages/AddressesPage';
 import SupportPage from './features/client-v2/pages/SupportPage';
 import PaymentsPage from './features/client-v2/pages/PaymentsPage';
@@ -33,11 +23,10 @@ function RequireAuth() {
   return user ? <Outlet /> : <Navigate to="/login" replace />;
 }
 
-function RequireOperator() {
-  const { user } = useAuth();
-  return user?.role === 'OPERATOR' ? <Outlet /> : <Navigate to="/" replace />;
-}
-
+// apps/web — мобильный клиент (решение 2026-08-18, docs/STATUS.md). Экраны
+// мастера и админки задублированы для десктопа в apps/master/apps/operator
+// и здесь сознательно выпилены — держать три копии одной бизнес-логики
+// дороже, чем починить одну.
 export default function App() {
   return (
     <AuthProvider>
@@ -60,21 +49,9 @@ export default function App() {
               <Route path="/planned/:id" element={<PlannedOrderPage />} />
               <Route path="/planned/:id/compare" element={<PlannedComparePage />} />
               <Route path="/planned/:id/dispute" element={<DisputePage kind="planned-orders" />} />
-              <Route path="/work" element={<WorkPage />} />
-              <Route path="/lead-credits" element={<LeadCreditsPage />} />
-              <Route path="/wallet" element={<WalletPage />} />
               <Route path="/profile/addresses" element={<AddressesPage />} />
               <Route path="/profile/payments" element={<PaymentsPage />} />
               <Route path="/support" element={<SupportPage />} />
-            </Route>
-            <Route path="/become-master" element={<BecomeMasterPage />} />
-            <Route element={<RequireOperator />}>
-              <Route path="/admin" element={<AdminListPage />} />
-              <Route path="/admin/security" element={<AdminSecurityPage />} />
-              <Route path="/admin/withdrawals" element={<AdminWithdrawalsPage />} />
-              <Route path="/admin/disputes" element={<AdminDisputesPage />} />
-              <Route path="/admin/disputes/:id" element={<AdminDisputeDetailPage />} />
-              <Route path="/admin/:id" element={<AdminDetailPage />} />
             </Route>
           </Route>
         </Routes>
