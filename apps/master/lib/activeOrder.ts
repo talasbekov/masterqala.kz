@@ -1,6 +1,7 @@
 import { api } from './api';
 
 export interface ActiveOrderClient {
+  name: string;
   phone: string;
 }
 
@@ -12,9 +13,18 @@ export interface ActiveOrder {
   id: string;
   status: string;
   address: string;
+  district: string;
+  entrance: string | null;
+  floor: string | null;
+  apartment: string | null;
+  addressComment: string | null;
   description: string;
   lat: number | null;
   lng: number | null;
+  calloutPrice: number;
+  serviceFee: number;
+  freePilot?: boolean;
+  photos: { id: string }[];
   category: ActiveOrderCategory | null;
   client: ActiveOrderClient | null;
 }
