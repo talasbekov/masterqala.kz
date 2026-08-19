@@ -191,6 +191,27 @@ export class DisputesService {
     return this.prisma.dispute.update({ where: { id: disputeId }, data: { counterStatement } });
   }
 
+  async listMine(userId: string) {
+    return this.prisma.dispute.findMany({
+      where: {
+        OR: [
+          { order: { OR: [{ clientId: userId }, { masterId: userId }] } },
+          { plannedOrder: { OR: [{ clientId: userId }, { masterId: userId }] } },
+        ],
+      },
+      select: {
+        id: true,
+        orderId: true,
+        plannedOrderId: true,
+        status: true,
+        reason: true,
+        createdAt: true,
+        resolvedAt: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
   async listAll(status?: 'OPEN' | 'RESOLVED') {
     return this.prisma.dispute.findMany({
       where: status ? { status } : undefined,
