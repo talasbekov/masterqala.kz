@@ -17,17 +17,18 @@ export function BottomTabBar() {
         <WrenchIcon className="h-5 w-5" />
         Работа
       </Link>
-      <Link href="/" className={tabClass(pathname === '/planned')}>
+      {/* Роут /planned появится в Фазе C — пока некликабельная заглушка, не мёртвая ссылка */}
+      <button type="button" disabled className={`${tabClass(false)} opacity-40 cursor-default`} aria-label="Плановые — скоро">
         <span className="text-lg leading-5">📅</span>
         Плановые
-      </Link>
+      </button>
       <div className="flex flex-1 justify-center">
         <Link
           href="/"
           className={`-mt-5 flex h-12 w-12 items-center justify-center rounded-full text-xl text-white shadow-card ${
             offer ? 'bg-danger' : 'bg-primary'
           }`}
-          aria-label="Работа"
+          aria-label={offer ? 'Открытый оффер' : 'Экран работы'}
         >
           {offer ? '⚡' : '🛠'}
         </Link>
