@@ -14,10 +14,15 @@ function formatDate(iso: string): string {
 
 export default function DisputesListPage() {
   const [disputes, setDisputes] = useState<DisputeSummary[] | null>(null);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    fetchMyDisputes().then(setDisputes);
+    fetchMyDisputes()
+      .then(setDisputes)
+      .catch((e) => setError((e as Error).message));
   }, []);
+
+  if (error) return <p className="p-8 text-sm text-danger">{error}</p>;
 
   if (disputes === null) return <div className="p-8 text-ink-soft">Загрузка…</div>;
 
