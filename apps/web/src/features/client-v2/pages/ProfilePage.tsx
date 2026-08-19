@@ -7,7 +7,6 @@ import { useAuth } from '../../../auth';
 interface Me {
   name: string | null;
   phone: string;
-  masterProfile: { blockedUntil: string | null } | null;
 }
 
 const PROFILE_ITEMS = [
@@ -61,8 +60,6 @@ export default function ProfilePage() {
     navigate('/login');
   }
 
-  const blocked = me?.masterProfile?.blockedUntil && new Date(me.masterProfile.blockedUntil) > new Date();
-
   return (
     <div className="flex flex-col gap-3 px-5 pb-3.5 pt-1.5">
       <div className="flex items-center gap-3">
@@ -106,11 +103,6 @@ export default function ProfilePage() {
         ))}
       </div>
       {error && <p className="text-sm font-semibold text-danger">{error}</p>}
-      {blocked && me?.masterProfile?.blockedUntil && (
-        <div className="rounded-md bg-danger-bg p-3 text-xs font-semibold text-danger-ink">
-          {t('profile.blockedUntil', { date: new Date(me.masterProfile.blockedUntil).toLocaleDateString('ru-RU') })}
-        </div>
-      )}
       {PROFILE_ITEMS.map((item) => (
         <Link
           key={item.key}
@@ -123,21 +115,6 @@ export default function ProfilePage() {
           <span className="text-ink-soft">›</span>
         </Link>
       ))}
-      <div className="rounded-lg bg-fill p-3.5">
-        <div className="text-sm font-extrabold text-ink">🔧 {t('profile.becomeMasterTitle')}</div>
-        <div className="mt-1 text-xs font-semibold leading-relaxed text-on-fill">{t('profile.becomeMasterSubtitle')}</div>
-        <Link to="/become-master" className="mt-2 inline-block text-xs font-extrabold text-primary">
-          {t('profile.becomeMasterLink')} →
-        </Link>
-      </div>
-      <Link to="/wallet" className="text-center text-sm font-bold text-primary underline">
-        {t('profile.wallet')}
-      </Link>
-      {user?.role === 'OPERATOR' && (
-        <Link to="/admin" className="text-center text-sm font-bold text-primary underline">
-          {t('profile.adminPanel')}
-        </Link>
-      )}
       <button type="button" onClick={doLogout} className="p-2 text-center text-[13.5px] font-extrabold text-danger">
         {t('profile.logout')}
       </button>
