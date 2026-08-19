@@ -31,7 +31,7 @@ export function OfferOverlay() {
         </div>
         <h2 className="text-xl font-extrabold text-ink">{offer.category}</h2>
         <p className="text-sm text-ink-soft">{offer.description}</p>
-        {offer.address && <p className="text-sm text-ink-soft">{offer.address}</p>}
+        {offer.district && <p className="text-sm text-ink-soft">{offer.district}</p>}
         {offer.freePilot ? (
           <div className="rounded-md bg-fill-soft p-3 text-sm font-semibold text-ink">
             Бесплатный пилот: стоимость работ согласовывается с клиентом напрямую.

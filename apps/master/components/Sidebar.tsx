@@ -6,7 +6,7 @@ export function Sidebar() {
   const { online, connected, geoDenied, goOnline, goOffline } = useMasterPresence();
 
   return (
-    <aside className="flex w-60 shrink-0 flex-col gap-1 border-r border-border bg-surface p-4">
+    <aside className="hidden w-60 shrink-0 flex-col gap-1 border-r border-border bg-surface p-4 md:flex">
       <div className="mb-4 px-3 text-lg font-extrabold text-primary">MasterQala</div>
       <NavLink href="/" icon="🛠">
         Работа
