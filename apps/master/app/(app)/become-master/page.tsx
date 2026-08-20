@@ -69,11 +69,11 @@ export default function BecomeMasterPage() {
 
       {app?.blockedUntil && new Date(app.blockedUntil) > new Date() && (
         <div className="rounded-lg bg-danger-bg p-4">
-          <div className="text-sm font-extrabold text-danger">
+          <div className="text-sm font-extrabold text-danger-ink">
             ⛔ Доступ к новым заявкам ограничен до{' '}
             {new Date(app.blockedUntil).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}
           </div>
-          <p className="mt-1 text-xs leading-relaxed text-danger">
+          <p className="mt-1 text-xs leading-relaxed text-danger-ink">
             Причина: 3 отмены заказов за 30 дней. Текущий активный заказ можно завершить. Вопросы — в поддержку.
           </p>
         </div>
