@@ -23,6 +23,7 @@ export interface Application {
   status: ApplicationStatus;
   rejectionReason: string | null;
   latestDecisionComment: string | null;
+  blockedUntil: string | null;
   categories: { category: Category }[];
   documents: ApplicationDocument[];
 }
