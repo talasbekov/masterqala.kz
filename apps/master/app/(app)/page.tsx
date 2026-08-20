@@ -22,6 +22,12 @@ export default function WorkDashboardPage() {
   const [stats, setStats] = useState<MasterStats | null>(null);
 
   useEffect(() => {
+    if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('tab') === 'planned') {
+      setTab('planned');
+    }
+  }, []);
+
+  useEffect(() => {
     fetchApplication().then((app) => {
       setApplication(app);
       setLoaded(true);
