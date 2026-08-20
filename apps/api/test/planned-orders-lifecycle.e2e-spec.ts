@@ -159,4 +159,50 @@ describe('Плановая заявка: полный жизненный цик�
       .expect(200);
     expect(detail.body.bids[0].master).toMatchObject({ rating: 4, reviewCount: 1 });
   });
+
+  it('окно на отзыв истекло (>7 дней после закрытия) — 409', async () => {
+    await request(app.getHttpServer())
+      .post('/api/v1/lead-credits/purchase')
+      .set('Authorization', `Bearer ${master.token}`)
+      .send({ package: 'single' })
+      .expect(201);
+    const order = await createPlannedOrderViaApi(app, client.token, plumbingId);
+    const bidRes = await request(app.getHttpServer())
+      .post(`/api/v1/planned-orders/${order.id}/bids`)
+      .set('Authorization', `Bearer ${master.token}`)
+      .send({ price: 9000, term: 'завтра утром' })
+      .expect(201);
+    await request(app.getHttpServer())
+      .post(`/api/v1/planned-orders/${order.id}/select`)
+      .set('Authorization', `Bearer ${client.token}`)
+      .send({ bidId: bidRes.body.id })
+      .expect(201);
+    await request(app.getHttpServer())
+      .post(`/api/v1/planned-orders/${order.id}/confirm`)
+      .set('Authorization', `Bearer ${master.token}`)
+      .expect(201);
+    await request(app.getHttpServer())
+      .post(`/api/v1/planned-orders/${order.id}/on-site`)
+      .set('Authorization', `Bearer ${master.token}`)
+      .expect(201);
+    await request(app.getHttpServer())
+      .post(`/api/v1/planned-orders/${order.id}/complete`)
+      .set('Authorization', `Bearer ${master.token}`)
+      .expect(201);
+    await request(app.getHttpServer())
+      .post(`/api/v1/planned-orders/${order.id}/confirm-completion`)
+      .set('Authorization', `Bearer ${client.token}`)
+      .expect(201);
+
+    await prisma.plannedOrder.update({
+      where: { id: order.id },
+      data: { closedAt: new Date(Date.now() - 8 * 24 * 3600 * 1000) },
+    });
+
+    await request(app.getHttpServer())
+      .post(`/api/v1/planned-orders/${order.id}/review`)
+      .set('Authorization', `Bearer ${client.token}`)
+      .send({ rating: 5 })
+      .expect(409);
+  });
 });

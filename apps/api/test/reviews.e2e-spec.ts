@@ -52,6 +52,22 @@ describe('Отзывы о мастере (e2e)', () => {
     await post(client.token, 'review', { rating: 2 }).expect(409);
   });
 
+  it('окно на отзыв истекло (>7 дней после закрытия) — 409', async () => {
+    await prisma.order.update({
+      where: { id: orderId },
+      data: { closedAt: new Date(Date.now() - 8 * 24 * 3600 * 1000) },
+    });
+    await post(client.token, 'review', { rating: 5 }).expect(409);
+  });
+
+  it('отзыв на 7-й день после закрытия ещё разрешён', async () => {
+    await prisma.order.update({
+      where: { id: orderId },
+      data: { closedAt: new Date(Date.now() - 6 * 24 * 3600 * 1000 - 3600 * 1000) },
+    });
+    await post(client.token, 'review', { rating: 5 }).expect(201);
+  });
+
   it('до закрытия заявки — 409', async () => {
     const other = await loginAs(app, '+77090000003');
     const otherMaster = await createActiveMaster(app, '+77090000004', plumbingId, pointAtKm(1));

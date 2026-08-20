@@ -8,15 +8,25 @@ export interface MasterRatingSummary {
   reviewCount: number;
 }
 
+/** §6 спеки: отзыв принимается только в течение 7 дней после закрытия заявки. */
+const REVIEW_WINDOW_MS = 7 * 24 * 3600 * 1000;
+
 @Injectable()
 export class ReviewsService {
   constructor(private readonly prisma: PrismaService) {}
+
+  private assertWithinReviewWindow(closedAt: Date | null): void {
+    if (closedAt && Date.now() - closedAt.getTime() > REVIEW_WINDOW_MS) {
+      throw new ConflictException('Окно на отзыв истекло — 7 дней после закрытия заявки');
+    }
+  }
 
   async submitForOrder(clientId: string, orderId: string, dto: SubmitReviewDto) {
     const order = await this.prisma.order.findUnique({ where: { id: orderId } });
     if (!order) throw new NotFoundException('Заявка не найдена');
     if (order.clientId !== clientId) throw new ForbiddenException('Нет доступа к заявке');
     if (order.status !== 'CLOSED') throw new ConflictException('Отзыв можно оставить только после закрытия заявки');
+    this.assertWithinReviewWindow(order.closedAt);
     return this.create({ orderId, clientId, masterUserId: order.masterId!, ...dto });
   }
 
@@ -25,6 +35,7 @@ export class ReviewsService {
     if (!order) throw new NotFoundException('Заявка не найдена');
     if (order.clientId !== clientId) throw new ForbiddenException('Нет доступа к заявке');
     if (order.status !== 'CLOSED') throw new ConflictException('Отзыв можно оставить только после закрытия заявки');
+    this.assertWithinReviewWindow(order.closedAt);
     return this.create({ plannedOrderId, clientId, masterUserId: order.masterId!, ...dto });
   }
 
