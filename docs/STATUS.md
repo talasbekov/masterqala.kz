@@ -93,7 +93,7 @@
 | CI | ✅ | `.github/workflows/ci.yml` — unit, e2e и сборка **всех пяти** фронтендов (`web`, `client`, `master`, `operator`, `site`) на каждый push. Сборка `site` поднимает реальный API: категории тянутся на этапе билда |
 | Dockerfile приложений | ✅ | `apps/api/Dockerfile` (multi-stage, полный `node_modules` — `pnpm deploy --prod` ломает генерацию Prisma Client, см. комментарий в файле) и `apps/web/Dockerfile` (nginx + SPA fallback). `apps/site`/`apps/client`/`apps/master`/`apps/operator/Dockerfile` (20.08.2026) — multi-stage на `output: 'standalone'` (Next трассирует зависимости сам, рантайм-образ не тащит весь workspace `node_modules`), `NEXT_PUBLIC_API_URL`/`API_URL` и т.д. — через `--build-arg`. Все шесть образов собраны и прогнаны живым контейнером (`docker run` + `curl` → 200). `docker-compose.yml` по-прежнему поднимает только БД — оркестрация всех сервисов вместе не собрана |
 | Деплой, мониторинг, бэкапы | 🟡 | Процедуры описаны в [technical/DEPLOYMENT_RUNBOOK.md](technical/DEPLOYMENT_RUNBOOK.md), но сам деплой не настроен: ни Sentry, ни метрик, ни алертов на застрявшие джобы |
-| Иконки PWA | ❌ | `icons: []` в `apps/web/vite.config.ts` — установка на домашний экран неполноценна. Касается только `apps/web`: новые приложения не PWA |
+| Иконки PWA | ✅ | Закрыто 20.08.2026: `pwa-192x192.png`/`pwa-512x512.png` (purpose `any`, прозрачный фон) и `maskable-512x512.png` (purpose `maskable`, белый фон, знак в safe zone) в `apps/web/public/`, растеризованы из существующего `favicon.svg`. Манифест собирается (`pnpm --filter web build` → `manifest.webmanifest` содержит все три записи). Касается только `apps/web`: новые приложения не PWA |
 
 ---
 
