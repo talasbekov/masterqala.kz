@@ -13,8 +13,8 @@ const STATUS_LABELS: Record<string, string> = {
 const STATUS_BADGE: Record<string, string> = {
   PENDING: 'bg-warning-bg text-warning-ink',
   PAID: 'bg-success-bg text-success-ink',
-  FAILED: 'bg-danger-bg text-danger',
-  ERROR: 'bg-danger-bg text-danger',
+  FAILED: 'bg-danger-bg text-danger-ink',
+  ERROR: 'bg-danger-bg text-danger-ink',
 };
 
 interface Withdrawal {
