@@ -13,10 +13,10 @@ export function BottomTabBar() {
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40 flex items-center border-t border-border bg-surface px-1 pb-1 pt-1.5 md:hidden">
-      <Link href="/" className={tabClass(pathname === '/')}>
+      <a href="/" className={tabClass(pathname === '/')}>
         <WrenchIcon className="h-5 w-5" />
         Работа
-      </Link>
+      </a>
       <a href="/?tab=planned" className={tabClass(false)}>
         <span className="text-lg leading-5">📅</span>
         Плановые
