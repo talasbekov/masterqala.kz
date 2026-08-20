@@ -17,10 +17,10 @@ export function BottomTabBar() {
         <WrenchIcon className="h-5 w-5" />
         Работа
       </Link>
-      <Link href="/?tab=planned" className={tabClass(false)}>
+      <a href="/?tab=planned" className={tabClass(false)}>
         <span className="text-lg leading-5">📅</span>
         Плановые
-      </Link>
+      </a>
       <div className="flex flex-1 justify-center">
         <Link
           href="/"
