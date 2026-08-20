@@ -8,14 +8,13 @@ export interface PlannedFeedItem {
   category: { name: string } | null;
   district: string;
   description: string;
+  budget: number | null;
   slotStart: string;
   slotEnd: string;
   _count: { bids: number };
 }
 
-export interface PlannedOrderDetail extends PlannedFeedItem {
-  budget: number | null;
-}
+export type PlannedOrderDetail = PlannedFeedItem;
 
 export async function fetchPlannedFeed(): Promise<PlannedFeedItem[]> {
   return api('/planned-orders/feed');
