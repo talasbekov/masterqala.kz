@@ -64,7 +64,7 @@ export default function BecomeMasterPage() {
   const canResubmit = app && (app.status === 'NEEDS_INFO' || app.status === 'REJECTED');
 
   return (
-    <div className="mx-auto max-w-[560px] space-y-4 p-8">
+    <div className="mx-auto max-w-[560px] space-y-4 p-4 md:p-8">
       <h1 className="text-xl font-extrabold text-ink">Анкета мастера</h1>
 
       {app && !editing && (
