@@ -7,12 +7,21 @@ const STATUS_LABELS: Record<string, string> = {
   PENDING: 'В обработке',
   PAID: 'Выплачено',
   FAILED: 'Отклонено',
+  ERROR: 'Уточняется',
+};
+
+const STATUS_BADGE: Record<string, string> = {
+  PENDING: 'bg-warning-bg text-warning-ink',
+  PAID: 'bg-success-bg text-success-ink',
+  FAILED: 'bg-danger-bg text-danger-ink',
+  ERROR: 'bg-danger-bg text-danger-ink',
 };
 
 interface Withdrawal {
   id: string;
   amount: number;
   status: string;
+  payoutPhone: string;
 }
 
 function maskPhone(phone: string): string {
@@ -85,7 +94,7 @@ export default function WalletPage() {
 
   if (!payoutsEnabled) {
     return (
-      <div className="mx-auto max-w-[480px] space-y-4 p-8">
+      <div className="mx-auto max-w-[480px] space-y-4 p-4 md:p-8">
         <h1 className="text-xl font-extrabold text-ink">Кошелёк</h1>
         <div className="rounded-lg border border-border bg-fill-soft p-5 text-center">
           <div className="text-lg font-extrabold text-primary">Расчёт напрямую с клиентом</div>
@@ -98,7 +107,7 @@ export default function WalletPage() {
   }
 
   return (
-    <div className="mx-auto max-w-[480px] space-y-4 p-8">
+    <div className="mx-auto max-w-[480px] space-y-4 p-4 md:p-8">
       <h1 className="text-xl font-extrabold text-ink">Кошелёк</h1>
       <div className="rounded-lg bg-fill-soft p-4 text-center">
         <div className="text-3xl font-extrabold text-primary">{balance} ₸</div>
@@ -150,6 +159,30 @@ export default function WalletPage() {
       </div>
 
       <div className="space-y-2">
+        <div className="flex gap-1.5">
+          <button
+            type="button"
+            onClick={() => setAmount('5000')}
+            className="rounded-pill border-[1.5px] border-border px-3.5 py-1.5 text-xs font-bold text-ink-soft"
+          >
+            5 000
+          </button>
+          <button
+            type="button"
+            onClick={() => setAmount('20000')}
+            className="rounded-pill border-[1.5px] border-border px-3.5 py-1.5 text-xs font-bold text-ink-soft"
+          >
+            20 000
+          </button>
+          <button
+            type="button"
+            onClick={() => setAmount(String(balance))}
+            disabled={balance < 5000}
+            className="rounded-pill border-[1.5px] border-border px-3.5 py-1.5 text-xs font-bold text-ink-soft disabled:opacity-40"
+          >
+            всё · {balance} ₸
+          </button>
+        </div>
         <input
           type="number"
           min="5000"
@@ -158,6 +191,10 @@ export default function WalletPage() {
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
         />
+        <div className="rounded-lg bg-fill-soft p-3 text-xs leading-relaxed text-ink">
+          Минимум 5 000 ₸, комиссии нет. Сумма спишется с баланса сразу; при отказе банка вернётся автоматически.
+          Обычно 1–3 рабочих дня.
+        </div>
         {error && <p className="text-sm text-danger">{error}</p>}
         <button
           className="w-full rounded-pill bg-primary p-3.5 text-sm font-extrabold text-white disabled:opacity-40"
@@ -171,9 +208,13 @@ export default function WalletPage() {
         <h2 className="text-sm font-extrabold text-ink">История</h2>
         {history.length === 0 && <p className="text-sm text-ink-soft">Заявок пока нет</p>}
         {history.map((w) => (
-          <div key={w.id} className="flex justify-between rounded-lg border border-border p-3 text-sm">
-            <span className="text-ink">{w.amount} ₸</span>
-            <span className="text-ink-soft">{STATUS_LABELS[w.status]}</span>
+          <div key={w.id} className="flex items-center justify-between rounded-lg border border-border p-3 text-sm">
+            <span className="text-ink">
+              {w.amount} ₸ на {maskPhone(w.payoutPhone)}
+            </span>
+            <span className={`rounded-pill px-2 py-0.5 text-xs font-extrabold ${STATUS_BADGE[w.status] ?? 'bg-fill-soft text-ink-soft'}`}>
+              {STATUS_LABELS[w.status] ?? w.status}
+            </span>
           </div>
         ))}
       </div>
