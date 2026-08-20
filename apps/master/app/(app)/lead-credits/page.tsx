@@ -44,7 +44,7 @@ export default function LeadCreditsPage() {
 
   if (!leadCreditsEnabled) {
     return (
-      <div className="mx-auto max-w-[480px] space-y-4 p-8">
+      <div className="mx-auto max-w-[480px] space-y-4 p-4 md:p-8">
         <h1 className="text-xl font-extrabold text-ink">Lead-кредиты</h1>
         <div className="rounded-lg border border-border bg-fill-soft p-5 text-center">
           <div className="text-lg font-extrabold text-primary">Отклики бесплатны</div>
@@ -57,11 +57,12 @@ export default function LeadCreditsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-[480px] space-y-4 p-8">
+    <div className="mx-auto max-w-[480px] space-y-4 p-4 md:p-8">
       <h1 className="text-xl font-extrabold text-ink">Lead-кредиты</h1>
       <div className="rounded-lg bg-fill-soft p-4 text-center">
-        <div className="text-3xl font-extrabold text-primary">{balance}</div>
+        <div className="text-3xl font-extrabold text-primary">⬡ {balance}</div>
         <div className="text-sm text-ink-soft">кредитов на балансе</div>
+        <div className="mt-1 text-xs text-ink-soft">кредиты — не деньги: тратятся только на отклики</div>
       </div>
       {error && <p className="text-sm text-danger">{error}</p>}
       <div className="space-y-2">
