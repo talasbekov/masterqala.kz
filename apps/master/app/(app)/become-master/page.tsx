@@ -67,6 +67,18 @@ export default function BecomeMasterPage() {
     <div className="mx-auto max-w-[560px] space-y-4 p-4 md:p-8">
       <h1 className="text-xl font-extrabold text-ink">Анкета мастера</h1>
 
+      {app?.blockedUntil && new Date(app.blockedUntil) > new Date() && (
+        <div className="rounded-lg bg-danger-bg p-4">
+          <div className="text-sm font-extrabold text-danger">
+            ⛔ Доступ к новым заявкам ограничен до{' '}
+            {new Date(app.blockedUntil).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}
+          </div>
+          <p className="mt-1 text-xs leading-relaxed text-danger">
+            Причина: 3 отмены заказов за 30 дней. Текущий активный заказ можно завершить. Вопросы — в поддержку.
+          </p>
+        </div>
+      )}
+
       {app && !editing && (
         <div className="space-y-2 rounded-lg border border-border bg-surface p-4">
           <p className="font-extrabold text-ink">Статус: {APPLICATION_STATUS_RU[app.status]}</p>
