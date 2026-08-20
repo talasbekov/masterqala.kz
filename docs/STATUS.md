@@ -173,7 +173,6 @@ whole-branch review, а поверх #21 прогонялся ultrareview с в�
 | §3.6 Коэф. спроса (surge) 1.0–2.0, «включение — фаза 2» | Поля и логики нет; включение потребует изменения формулы, а не конфига | [`pricing.service.ts`](../apps/api/src/pricing/pricing.service.ts) |
 | §3.6 Расстояние **по дорогам** через routing API | Прямая × 1.3. Клиенту показывается цена, посчитанная по приближению | [`postgis-routing.service.ts`](../apps/api/src/routing/postgis-routing.service.ts) |
 | §3.9 Понижение приоритета мастера на 24 ч | **Не действует, и не может** — см. «Приоритет внутри волны» ниже. `priorityPenaltyUntil` пишется, но не читается никем | [`master-penalty.service.ts:40`](../apps/api/src/common/master-penalty.service.ts:40) |
-| §6 Окно на отзыв — 7 дней | Не проверяется: отзыв принимается в любой момент после `CLOSED` | [`reviews.service.ts:19`](../apps/api/src/reviews/reviews.service.ts:19) |
 
 ### Код ушёл вперёд спеки
 
