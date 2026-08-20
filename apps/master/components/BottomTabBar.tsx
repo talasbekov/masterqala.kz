@@ -22,7 +22,7 @@ export function BottomTabBar() {
         Плановые
       </a>
       <div className="flex flex-1 justify-center">
-        <Link
+        <a
           href="/"
           className={`-mt-5 flex h-12 w-12 items-center justify-center rounded-full text-xl text-white shadow-card ${
             offer ? 'bg-danger' : 'bg-primary'
@@ -30,7 +30,7 @@ export function BottomTabBar() {
           aria-label={offer ? 'Открытый оффер' : 'Экран работы'}
         >
           {offer ? '⚡' : '🛠'}
-        </Link>
+        </a>
       </div>
       <Link href="/wallet" className={tabClass(pathname === '/wallet')}>
         <span className="text-lg leading-5">💳</span>
