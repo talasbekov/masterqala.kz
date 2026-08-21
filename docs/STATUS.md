@@ -91,9 +91,9 @@
 |---|---|---|
 | Тесты | ✅ | 220 e2e в 54 файлах + 153 unit в 35 файлах, включая гонки и жизненные циклы. На `main` (`cfb66cb`) в CI зелены все до одного. Локально `queue.e2e-spec.ts` может падать — он хардкодит порт 5433, который на машине разработчика бывает занят чужим контейнером; в CI такого нет, и это не регрессия |
 | CI | ✅ | `.github/workflows/ci.yml` — unit, e2e и сборка **всех пяти** фронтендов (`web`, `client`, `master`, `operator`, `site`) на каждый push. Сборка `site` поднимает реальный API: категории тянутся на этапе билда |
-| Dockerfile приложений | 🟡 | `apps/api/Dockerfile` (multi-stage, полный `node_modules` — `pnpm deploy --prod` ломает генерацию Prisma Client, см. комментарий в файле) и `apps/web/Dockerfile` (nginx + SPA fallback). Оба собраны и проверены живым контейнером. **У четырёх новых Next.js-приложений Dockerfile нет** — задеплоить нечем. `docker-compose.yml` по-прежнему поднимает только БД |
+| Dockerfile приложений | ✅ | `apps/api/Dockerfile` (multi-stage, полный `node_modules` — `pnpm deploy --prod` ломает генерацию Prisma Client, см. комментарий в файле) и `apps/web/Dockerfile` (nginx + SPA fallback). `apps/site`/`apps/client`/`apps/master`/`apps/operator/Dockerfile` (20.08.2026) — multi-stage на `output: 'standalone'` (Next трассирует зависимости сам, рантайм-образ не тащит весь workspace `node_modules`), `NEXT_PUBLIC_API_URL`/`API_URL` и т.д. — через `--build-arg`. Все шесть образов собраны и прогнаны живым контейнером (`docker run` + `curl` → 200). `docker-compose.yml` по-прежнему поднимает только БД — оркестрация всех сервисов вместе не собрана |
 | Деплой, мониторинг, бэкапы | 🟡 | Процедуры описаны в [technical/DEPLOYMENT_RUNBOOK.md](technical/DEPLOYMENT_RUNBOOK.md), но сам деплой не настроен: ни Sentry, ни метрик, ни алертов на застрявшие джобы |
-| Иконки PWA | ❌ | `icons: []` в `apps/web/vite.config.ts` — установка на домашний экран неполноценна. Касается только `apps/web`: новые приложения не PWA |
+| Иконки PWA | ✅ | Закрыто 20.08.2026: `pwa-192x192.png`/`pwa-512x512.png` (purpose `any`, прозрачный фон) и `maskable-512x512.png` (purpose `maskable`, белый фон, знак в safe zone) в `apps/web/public/`, растеризованы из существующего `favicon.svg`. Манифест собирается (`pnpm --filter web build` → `manifest.webmanifest` содержит все три записи). Касается только `apps/web`: новые приложения не PWA |
 
 ---
 
@@ -246,11 +246,12 @@ enum (`SEARCHING`). Таблица соответствия —
    валидацией конфигурации в production. Остаётся выбрать и оплатить конкретного
    провайдера (Mobizon/SMSC.kz/др.) и указать его URL/тело/секрет в env.
 4. **Web-push.** Без него срочный режим работает только у мастера с открытой вкладкой.
-5. **Прод-обвязка.** Dockerfile есть только у `apps/api` и `apps/web` — оба собраны
-   и прогнаны живым контейнером. **У четырёх новых Next.js-приложений Dockerfile
-   нет:** весь редизайн под десктоп готов и смержен, но выкатить его нечем. Сверх
-   этого не хватает деплоя в KZ-ЦОД, Sentry, алертов на застрявшие джобы, бэкапов.
-   CI уже есть.
+5. **Прод-обвязка.** ~~Dockerfile есть только у `apps/api` и `apps/web`~~ —
+   закрыто 20.08.2026: у всех шести приложений (`api`, `web`, `site`, `client`,
+   `master`, `operator`) теперь есть Dockerfile, каждый собран и прогнан живым
+   контейнером. Сверх этого не хватает единого `docker-compose`/оркестрации всех
+   сервисов вместе, деплоя в KZ-ЦОД, Sentry, алертов на застрявшие джобы,
+   бэкапов. CI уже есть.
 
 Закрыто стеком: `JWT_SECRET` без фолбэка, CORS по списку origin, rate-limit и
 security-заголовки на API, владение и TTL загрузок, карантин с ClamAV, аудит и
