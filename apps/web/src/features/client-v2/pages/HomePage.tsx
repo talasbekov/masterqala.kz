@@ -28,15 +28,16 @@ export default function HomePage() {
   const [order, setOrder] = useState<ActiveOrder | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error,setError]=useState('');
 
   const load = () =>
     api('/orders/active')
-      .then((r) => setOrder(r.order))
+      .then((r) => {setOrder(r.order);setError('');}).catch(e=>setError((e as Error).message))
       .finally(() => setLoading(false));
 
   useEffect(() => {
     load();
-    api('/categories').then(setCategories);
+    api('/categories').then(setCategories).catch(()=>{});
     const socket = getSocket();
     const onStatus = () => load();
     socket.on('order:status', onStatus);
@@ -46,6 +47,8 @@ export default function HomePage() {
   }, []);
 
   if (loading) return <div className="p-6 text-ink-soft">{t('common.loading')}</div>;
+
+  if(error&&!order)return <div className="space-y-3 p-6"><p role="alert">{error}</p><button onClick={()=>void load()} className="min-h-11 rounded-md bg-primary px-4 text-white">{t('common.retry')}</button></div>;
 
   return (
     <div className="flex flex-col gap-3.5 px-5 pb-3.5 pt-1.5">

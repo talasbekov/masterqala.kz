@@ -1,12 +1,14 @@
 'use client';
+import { LocaleProvider, type Locale } from '@masterqala/ui';
+import { api } from '@/lib/api';
 import type { ReactNode } from 'react';
 import { AuthProvider } from '@/lib/auth';
 import { CommercialModeProvider } from '@/lib/commercial-mode';
 
-export function Providers({ children }: { children: ReactNode }) {
+export function Providers({ children, initialLanguage }: { children: ReactNode; initialLanguage?:Locale }) {
   return (
-    <CommercialModeProvider>
+    <LocaleProvider initialLanguage={initialLanguage} onChange={language=>{if(localStorage.getItem('token')) void api('/users/me',{method:'PATCH',body:JSON.stringify({language})}).catch(()=>{});}}><CommercialModeProvider>
       <AuthProvider>{children}</AuthProvider>
-    </CommercialModeProvider>
+    </CommercialModeProvider></LocaleProvider>
   );
 }

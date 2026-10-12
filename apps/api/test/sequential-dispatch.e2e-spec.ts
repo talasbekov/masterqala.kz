@@ -22,6 +22,11 @@ describe('Sequential dispatch (e2e)', () => {
     let offers=await prisma.orderOffer.findMany({where:{orderId:order.id},orderBy:{sentAt:'asc'}});
     expect(offers).toHaveLength(1);
     expect(offers[0].masterUserId).toBe(nearest.userId);
+    const restored=await request(app.getHttpServer()).get('/api/v1/master/pending-offer').set('Authorization',`Bearer ${nearest.token}`).expect(200);
+    expect(restored.body.offer).toMatchObject({offerId:offers[0].id,deadline:offers[0].expiresAt!.toISOString(),directPayment:true});
+    const unrelated=await request(app.getHttpServer()).get('/api/v1/master/pending-offer').set('Authorization',`Bearer ${client.token}`).expect(200);
+    expect(unrelated.body).toEqual({offer:null});
+
     expect(offers[0].expiresAt!.getTime()-offers[0].sentAt.getTime()).toBeGreaterThan(29000);
     expect(offers[0].expiresAt!.getTime()-offers[0].sentAt.getTime()).toBeLessThanOrEqual(30000);
     await prisma.orderOffer.update({where:{id:offers[0].id},data:{expiresAt:new Date(Date.now()-1000)}});

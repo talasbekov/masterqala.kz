@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import {DirectMasterContainer} from './DirectMasterContainer';
 import MapView from './MapView';
 import { ActiveOrderViewMobile } from './ActiveOrderViewMobile';
 import { useMasterPresence } from '@/lib/masterPresence';
@@ -20,6 +21,8 @@ export function ActiveOrderView({ order, onChanged }: { order: ActiveOrder; onCh
   const [comment, setComment] = useState('');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+
+  if(order.lifecycleVersion>=2) return <DirectMasterContainer id={order.id}/>;
 
   const center = order.lat != null && order.lng != null ? { lat: order.lat, lng: order.lng } : FALLBACK_CENTER;
 

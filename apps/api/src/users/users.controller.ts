@@ -8,6 +8,7 @@ import { UpdateMeDto } from './dto';
 function toDto(user: User, masterProfile?: { blockedUntil: Date | null; status: string } | null) {
   return {
     id: user.id,
+    language:user.language,
     phone: user.phone,
     name: user.name,
     defaultAddress: user.defaultAddress,

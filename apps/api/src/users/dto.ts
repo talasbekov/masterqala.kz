@@ -1,6 +1,9 @@
-import { IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsOptional, IsIn, IsString, MaxLength } from 'class-validator';
 
 export class UpdateMeDto {
+  @IsOptional() @IsIn(['ru','kk','en'])
+  language?: string;
+
   @IsOptional()
   @IsString()
   @MaxLength(100)

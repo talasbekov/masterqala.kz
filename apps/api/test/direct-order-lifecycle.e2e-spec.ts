@@ -44,6 +44,12 @@ describe('Direct quote and explicit acceptance (e2e)',()=>{
     expect((await prisma.order.findUniqueOrThrow({where:{id:order.id}})).status).toBe('DONE');
     const active=await request(app.getHttpServer()).get('/api/v1/master/active-order').set('Authorization',`Bearer ${master.token}`).expect(200);
     expect(active.body.order?.id).toBe(order.id);
+    const operator=await loginAs(app,'+77073000004');await prisma.user.update({where:{id:operator.userId},data:{role:'OPERATOR'}});
+    const dispute=await request(app.getHttpServer()).post(`/api/v1/orders/${order.id}/disputes`).set('Authorization',`Bearer ${client.token}`).send({reason:'Check support resolution preserves client acceptance'}).expect(201);
+    await request(app.getHttpServer()).post(`/api/v1/admin/disputes/${dispute.body.id}/resolve`).set('Authorization',`Bearer ${operator.token}`).send({refundServiceFee:true,penalizeMaster:true,resolutionNote:'Unapproved finance'}).expect(409);
+    await request(app.getHttpServer()).post(`/api/v1/admin/disputes/${dispute.body.id}/resolve`).set('Authorization',`Bearer ${operator.token}`).send({refundServiceFee:false,penalizeMaster:false,resolutionNote:'Support handled'}).expect(201);
+    expect((await prisma.order.findUniqueOrThrow({where:{id:order.id}})).status).toBe('DONE');
+
     await post(client.token,'confirm-completion').expect(201);
     await post(client.token,'confirm-completion').expect(201);
     expect(await prisma.paymentTransaction.count({where:{orderId:order.id}})).toBe(0);

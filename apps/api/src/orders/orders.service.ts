@@ -55,6 +55,16 @@ export class OrdersService implements OnModuleInit {
     private readonly directLifecycle: DirectOrderLifecycleService,
   ) {}
 
+  async pendingOffer(masterUserId:string) {
+    const offer=await this.prisma.orderOffer.findFirst({
+      where:{masterUserId,outcome:'PENDING',sequential:true,expiresAt:{gt:new Date()},order:{status:'SEARCHING',dispatchMode:'SEQUENTIAL'}},
+      include:{order:{include:{category:true}}},orderBy:{sentAt:'desc'},
+    });
+    if(!offer||offer.attempt!==offer.order.searchAttempt||!offer.expiresAt)return null;
+    return {orderId:offer.orderId,offerId:offer.id,category:offer.order.category.name,description:offer.order.description,district:offer.order.district,
+      commercialMode:'DIRECT_PAYMENT',directPayment:true,compensation:0,freePilot:false,distanceKm:offer.distanceKm,deadline:offer.expiresAt.toISOString(),wave:1};
+  }
+
   async preview(clientId: string, dto: PreviewOrderDto) {
     if (this.commercialMode.mode() === 'DIRECT_PAYMENT') {
       return { available: true, commercialMode: 'DIRECT_PAYMENT', quoteRequired: true, calloutPrice: 0, serviceFee: 0 };
@@ -606,14 +616,15 @@ export class OrdersService implements OnModuleInit {
     // (его OrderOffer.outcome === 'ACCEPTED'); санкция мастеру — §3.9/этап 5.
     const masterUserId = order.masterId!;
     if(order.lifecycleVersion>=2 && order.status!=='ACCEPTED') throw new ConflictException('После выезда обратитесь в поддержку');
-    await this.prisma.$transaction(async (tx) => {
-      await this.gate(
-        order.id,
-        ['ACCEPTED', 'MASTER_ON_WAY'],
-        { status: 'SEARCHING', masterId: null, acceptedAt: null, departedAt:null, onSiteAt:null, wave: 0, searchAttempt: { increment: 1 } },
-        tx,
-      );
-      if(order.lifecycleVersion<2) await this.penalties.penalizeForCancellation(tx, masterUserId, 'URGENT', order.id);
+    await this.prisma.$transaction(async tx=>{
+      const data={status:'SEARCHING' as const,masterId:null,acceptedAt:null,departedAt:null,onSiteAt:null,wave:0,searchAttempt:{increment:1}};
+      if(order.lifecycleVersion>=2){
+        const result=await tx.order.updateMany({where:{id:order.id,masterId:masterUserId,status:'ACCEPTED',departedAt:null},data});
+        if(!result.count)throw new ConflictException('Заказ изменился; после выезда обратитесь в поддержку');
+      }else{
+        await this.gate(order.id,['ACCEPTED','MASTER_ON_WAY'],data,tx);
+        await this.penalties.penalizeForCancellation(tx,masterUserId,'URGENT',order.id);
+      }
     });
     await this.queue.send(order.lifecycleVersion>=2?JOBS.SEQUENTIAL_DISPATCH:JOBS.WAVE,order.lifecycleVersion>=2?{orderId:order.id,attempt:order.searchAttempt+1}:{ orderId: order.id, wave: 1 });
     await this.emitOrderStatus(order.id);

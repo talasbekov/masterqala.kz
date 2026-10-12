@@ -236,8 +236,8 @@ export default function OrdersPage() {
               <div className="text-xs text-ink-soft">Создана {formatDateTime(detail.createdAt)}</div>
 
               <div className="rounded-md bg-fill-soft p-3">
-                <div className="text-[10px] font-bold uppercase text-ink-soft">Платежи</div>
-                {detail.type === 'urgent' ? (
+                <div className="text-[10px] font-bold uppercase text-ink-soft">{detail.type==='urgent'&&detail.lifecycleVersion>=2?'Прямой расчёт':'Платежи'}</div>
+                {detail.type === 'urgent' && detail.lifecycleVersion>=2 ? (<div className="mt-1 space-y-2 text-sm text-ink">{detail.cancellationAmount!==null?<p>За отменённый выезд: {detail.cancellationAmount} ₸ напрямую мастеру</p>:<><p>Смета v{detail.quoteVersion}: {detail.quoteTotal===null?'Ещё не предложена':`${detail.quoteTotal} ₸`}</p><p>Работа {detail.workPrice??'—'} ₸ · Материалы {detail.materialsPrice} ₸ · Выезд {detail.calloutPrice} ₸</p></>}<p className="text-xs text-ink-soft">Платформа не принимает оплату. Приёмка работы не подтверждает расчёт.</p></div>):detail.type === 'urgent' ? (
                   <div className="mt-1 text-sm font-extrabold text-ink">
                     Выезд {detail.calloutPrice} ₸ · Сбор {detail.serviceFee} ₸
                     {detail.workPrice !== null && <> · Работа {detail.workPrice} ₸</>}

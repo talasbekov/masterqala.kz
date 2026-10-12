@@ -1,3 +1,4 @@
+import type {DirectOrder} from '@masterqala/ui';
 import { api } from './api';
 
 export interface ActiveOrderClient {
@@ -9,7 +10,7 @@ export interface ActiveOrderCategory {
   name: string;
 }
 
-export interface ActiveOrder {
+export interface ActiveOrder extends DirectOrder {
   id: string;
   status: string;
   address: string;

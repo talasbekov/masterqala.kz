@@ -79,7 +79,7 @@ export default function MyOrdersPage() {
         </button>
       </div>
       {error && <p className="text-sm font-semibold text-danger">{error}</p>}
-      {!loading && shown.length === 0 && (
+      {!loading && !error && shown.length === 0 && (
         <div className="rounded-lg border-[1.5px] border-dashed border-border bg-surface p-6 text-center text-sm font-semibold text-ink-soft">
           {tab === 'active' ? t('myOrders.emptyActive') : t('myOrders.emptyHistory')}
         </div>

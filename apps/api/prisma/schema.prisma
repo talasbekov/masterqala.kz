@@ -8,6 +8,7 @@ datasource db {
 }
 
 model User {
+  language String @default("ru")
   id                     String                  @id @default(uuid())
   phone                  String                  @unique
   name                   String?

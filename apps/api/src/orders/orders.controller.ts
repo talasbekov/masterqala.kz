@@ -56,6 +56,9 @@ export class OrdersController {
     return presented as unknown as T;
   }
 
+  @Get('master/pending-offer')
+  async pendingOffer(@CurrentUser() user:User){return {offer:await this.orders.pendingOffer(user.id)};}
+
   @Post('orders/preview')
   preview(@CurrentUser() user: User, @Body() dto: PreviewOrderDto) {
     return this.present(this.orders.preview(user.id, dto));

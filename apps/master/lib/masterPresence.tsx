@@ -6,6 +6,8 @@ import { getSocket } from './socket';
 
 export interface UrgentOffer {
   orderId: string;
+  offerId?:string;
+  directPayment?:boolean;
   category: string;
   description: string;
   district?: string;
@@ -32,6 +34,7 @@ interface MasterPresenceCtx {
   goOffline: () => void;
   dismissOfferNote: () => void;
   acceptOffer: () => Promise<void>;
+  declineOffer:()=>Promise<void>;
 }
 
 const Ctx = createContext<MasterPresenceCtx>({
@@ -46,6 +49,7 @@ const Ctx = createContext<MasterPresenceCtx>({
   goOffline: () => {},
   dismissOfferNote: () => {},
   acceptOffer: async () => {},
+  declineOffer:async()=>{},
 });
 
 function beepAndVibrate() {
@@ -72,27 +76,37 @@ export function MasterPresenceProvider({ children }: { children: ReactNode }) {
   const [offerNote, setOfferNote] = useState('');
   const [myPosition, setMyPosition] = useState<LatLng | null>(null);
   const [acceptingOffer, setAcceptingOffer] = useState(false);
+  const offerLock=useRef(false),offerRevision=useRef(0);
   const geoTimer = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     const socket = getSocket();
     setConnected(socket.connected);
-    const onConnect = () => setConnected(true);
+    let mounted=true;
+    const restore=async()=>{
+      const current=++offerRevision.current;
+      try{const {offer:pending}=await api('/master/pending-offer');if(mounted&&offerRevision.current===current)setOffer(previous=>(pending&&Date.parse(pending.deadline)>Date.now()?pending:null)??(previous?.directPayment?null:previous));}catch{/* Socket delivery remains usable; retry at the next reconnect/foreground. */}
+    };
+    const onConnect = () => {setConnected(true);void restore();};
+    const foreground=()=>{if(document.visibilityState==='visible')void restore();};
     const onDisconnect = () => setConnected(false);
     const onOffer = (incoming: UrgentOffer) => {
-      setOffer(incoming);
+      ++offerRevision.current;setOffer(incoming);
       setOfferNote('');
       beepAndVibrate();
     };
-    const onOfferClosed = (payload: { orderId: string; reason: string }) => {
-      setOffer((current) => (current?.orderId === payload.orderId ? null : current));
+    const onOfferClosed = (payload: { orderId: string; offerId?:string; reason: string }) => {
+      ++offerRevision.current;setOffer((current) => (current?.orderId === payload.orderId && (!payload.offerId||!current.offerId||current.offerId===payload.offerId) ? null : current));
       setOfferNote(payload.reason);
     };
     socket.on('connect', onConnect);
     socket.on('disconnect', onDisconnect);
     socket.on('offer:new', onOffer);
     socket.on('offer:closed', onOfferClosed);
+    document.addEventListener('visibilitychange',foreground);
+    if(socket.connected)void restore();
     return () => {
+      mounted=false;document.removeEventListener('visibilitychange',foreground);
       socket.off('connect', onConnect);
       socket.off('disconnect', onDisconnect);
       socket.off('offer:new', onOffer);
@@ -131,19 +145,27 @@ export function MasterPresenceProvider({ children }: { children: ReactNode }) {
   const dismissOfferNote = useCallback(() => setOfferNote(''), []);
 
   const acceptOffer = useCallback(async () => {
-    if (!offer) return;
-    setAcceptingOffer(true);
+    if (!offer||offerLock.current||Date.parse(offer.deadline)<=Date.now()||!navigator.onLine) return;
+    ++offerRevision.current;offerLock.current=true;setAcceptingOffer(true);
     try {
-      await api(`/orders/${offer.orderId}/accept`, { method: 'POST' });
-      setOffer(null);
-      router.push('/');
+      const accepted=await api(`/orders/${offer.orderId}/accept`, { method: 'POST' });
+      setOffer(current=>current?.orderId===offer.orderId?null:current);
+      router.push(accepted.lifecycleVersion>=2?`/order/${offer.orderId}`:'/');
     } catch (e) {
-      setOffer(null);
+      setOffer(current=>current?.orderId===offer.orderId?null:current);
       setOfferNote((e as Error).message);
     } finally {
-      setAcceptingOffer(false);
+      ++offerRevision.current;offerLock.current=false;setAcceptingOffer(false);
     }
   }, [offer, router]);
+
+  const declineOffer=useCallback(async()=>{
+    if(!offer||offerLock.current||!navigator.onLine)return;
+    ++offerRevision.current;offerLock.current=true;setAcceptingOffer(true);
+    try{if(offer.directPayment)await api(`/orders/${offer.orderId}/decline`,{method:'POST'});setOffer(current=>current?.orderId===offer.orderId?null:current);}
+    catch(e){setOfferNote((e as Error).message);}
+    finally{++offerRevision.current;offerLock.current=false;setAcceptingOffer(false);}
+  },[offer]);
 
   return (
     <Ctx.Provider
@@ -159,6 +181,7 @@ export function MasterPresenceProvider({ children }: { children: ReactNode }) {
         goOffline,
         dismissOfferNote,
         acceptOffer,
+        declineOffer,
       }}
     >
       {children}

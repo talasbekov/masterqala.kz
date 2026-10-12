@@ -1,4 +1,5 @@
 'use client';
+import {Button,useLocale} from '@masterqala/ui';
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '@/lib/auth';
@@ -13,11 +14,13 @@ import { PlannedFeedView } from '@/components/PlannedFeedView';
 type Tab = 'urgent' | 'planned';
 
 export default function WorkDashboardPage() {
+  const{t}=useLocale();
   const { user } = useAuth();
   const { online, connected, geoDenied, goOnline, goOffline } = useMasterPresence();
   const [application, setApplication] = useState<Application | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [tab, setTab] = useState<Tab>('urgent');
+  const[activeLoading,setActiveLoading]=useState(true),[activeError,setActiveError]=useState('');
   const [activeOrder, setActiveOrder] = useState<ActiveOrder | null>(null);
   const [stats, setStats] = useState<MasterStats | null>(null);
 
@@ -39,7 +42,7 @@ export default function WorkDashboardPage() {
   }, []);
 
   const loadActive = useCallback(() => {
-    fetchActiveOrder().then(setActiveOrder);
+    fetchActiveOrder().then(order=>{setActiveOrder(order);setActiveError('');}).catch(e=>setActiveError((e as Error).message)).finally(()=>setActiveLoading(false));
   }, []);
 
   useEffect(() => {
@@ -78,6 +81,10 @@ export default function WorkDashboardPage() {
       </div>
     );
   }
+
+  if(activeLoading)return <p className="p-6 text-ink-soft">{t('loading')}</p>;
+  if(activeError&&!activeOrder)return <div className="space-y-4 p-6"><p role="alert">{activeError}</p><Button onClick={loadActive}>{t('retry')}</Button></div>;
+  if(activeOrder && (activeOrder.lifecycleVersion ?? 1) >= 2)return <div className="space-y-6 p-6"><h1 className="text-[28px] font-medium text-primary">{t('order')}</h1><section className="space-y-3 rounded-lg bg-surface p-6"><p>{activeOrder.description}</p><p className="text-sm text-ink-soft">{activeOrder.address}</p><Link className="inline-flex min-h-[52px] items-center rounded-md bg-primary px-6 font-semibold text-white" href={`/order/${activeOrder.id}`}>{t('order')}</Link></section></div>;
 
   if (activeOrder) {
     return (

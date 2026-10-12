@@ -1,10 +1,12 @@
 'use client';
+import {Button,useLocale} from '@masterqala/ui';
 import { useMasterPresence } from '@/lib/masterPresence';
 import { useCountdown } from '@/lib/useCountdown';
 import { OfferOverlayMobile } from './OfferOverlayMobile';
 
 export function OfferOverlay() {
-  const { offer, offerNote, acceptingOffer, acceptOffer, dismissOfferNote } = useMasterPresence();
+  const { offer, offerNote, acceptingOffer, acceptOffer, declineOffer, dismissOfferNote } = useMasterPresence();
+  const {t}=useLocale();
   const secondsLeft = useCountdown(offer?.deadline ?? null);
 
   if (!offer) {
@@ -37,7 +39,7 @@ export function OfferOverlay() {
           <h2 className="text-xl font-extrabold text-ink">{offer.category}</h2>
           <p className="text-sm text-ink-soft">{offer.description}</p>
           {offer.district && <p className="text-sm text-ink-soft">{offer.district}</p>}
-          {offer.freePilot ? (
+          {offer.directPayment?<div className="rounded-lg bg-fill-soft p-4 text-sm leading-relaxed text-primary">{t('directCreateNote')}</div>:offer.freePilot ? (
             <div className="rounded-md bg-fill-soft p-3 text-sm font-semibold text-ink">
               Бесплатный пилот: стоимость работ согласовывается с клиентом напрямую.
             </div>
@@ -46,12 +48,13 @@ export function OfferOverlay() {
           )}
           <button
             type="button"
-            disabled={acceptingOffer}
+            disabled={acceptingOffer||secondsLeft===0}
             onClick={acceptOffer}
             className="w-full rounded-pill bg-primary p-4 text-base font-extrabold text-white disabled:opacity-40"
           >
-            {acceptingOffer ? 'Принимаем…' : `Принять (${secondsLeft} с)`}
+            {offer.directPayment?t('acceptOffer'):acceptingOffer ? 'Принимаем…' : `Принять (${secondsLeft} с)`}
           </button>
+          {offer.directPayment&&<Button variant="secondary" className="w-full" disabled={acceptingOffer} onClick={()=>void declineOffer()}>{t('skip')}</Button>}
         </div>
       </div>
       <OfferOverlayMobile />

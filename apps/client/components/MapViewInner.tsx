@@ -13,7 +13,7 @@ interface MapViewProps {
   center: LatLng;
   onCenterChange?: (coords: LatLng) => void;
   masterPosition?: LatLng | null;
-  height?: number;
+  height?: number | string;
   className?: string;
 }
 

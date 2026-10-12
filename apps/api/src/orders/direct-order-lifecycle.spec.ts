@@ -11,7 +11,7 @@ function fixture(status='AWAITING_PRICE_CONFIRM') {
   const delegate={
     findUnique:async()=>({...state}),findUniqueOrThrow:async()=>({...state}),
     updateMany:async({where,data}:any)=>{const matches=Array.isArray(where.status?.in)?where.status.in.includes(state.status):(!where.status||where.status===state.status);
-      if(!matches)return{count:0};Object.assign(state,data,{updatedAt:new Date()});return{count:1};},
+      if(!matches||(where.masterId&&where.masterId!==state.masterId)||('departedAt' in where&&where.departedAt!==state.departedAt))return{count:0};Object.assign(state,data,{updatedAt:new Date()});return{count:1};},
     update:async({data}:any)=>{Object.assign(state,data,{updatedAt:new Date()});return{...state};},
   };
   const prisma:any={order:delegate,orderOffer:{findMany:async()=>[],updateMany:async()=>({count:0})},dispute:{findFirst:async()=>null},$queryRaw:async()=>[{id:state.id}],
@@ -24,6 +24,13 @@ function fixture(status='AWAITING_PRICE_CONFIRM') {
 }
 
 describe('Direct order transitions',()=>{
+  it('recovers a persisted offer with its original server deadline',async()=>{
+    const{service,prisma}=fixture('SEARCHING');
+    const expiresAt=new Date(Date.now()+20000);
+    prisma.orderOffer.findFirst=jest.fn(async()=>({id:'offer-1',orderId:'order-1',masterUserId:'master-1',attempt:1,expiresAt,distanceKm:1.2,order:{id:'order-1',searchAttempt:1,category:{name:'Plumbing'},description:'Pipe',district:'Centre'}}));
+    await expect(service.pendingOffer('master-1')).resolves.toMatchObject({offerId:'offer-1',deadline:expiresAt.toISOString(),directPayment:true});
+    expect(prisma.orderOffer.findFirst).toHaveBeenCalledWith(expect.objectContaining({where:expect.objectContaining({masterUserId:'master-1',outcome:'PENDING'})}));
+  });
   it('approval waits for the master instead of silently starting work',async()=>{
     const{service,state}=fixture();await service.confirmPrice('client-1','order-1',{quoteVersion:1});
     expect(state.status).toBe('PRICE_APPROVED');expect(state.consentedVersion).toBe(1);expect(state.workStartedAt).toBeNull();
@@ -40,6 +47,16 @@ describe('Direct order transitions',()=>{
 });
 
 describe('Direct cancellation',()=>{
+  it('stale master cannot cancel a new assignment',async()=>{
+    const{service,state}=fixture('ACCEPTED');state.departedAt=null;const stale={...state};state.masterId='another-master';
+    await expect(service.cancelByMaster(stale)).rejects.toMatchObject({status:409});expect(state.masterId).toBe('another-master');
+  });
+  it('master cancellation cannot erase a departure committed after the preliminary read',async()=>{
+    const{service,state}=fixture('ACCEPTED');state.departedAt=null;
+    const stale={...state};state.status='MASTER_ON_WAY';state.departedAt=new Date();
+    await expect(service.cancelByMaster(stale)).rejects.toMatchObject({status:409});
+    expect(state.status).toBe('MASTER_ON_WAY');expect(state.departedAt).not.toBeNull();
+  });
   it('does not charge an assignment before actual departure',async()=>{
     const{service,state}=fixture('ACCEPTED');state.departedAt=null;
     await service.cancel({id:'client-1'},'order-1',{expectedAmount:0,expectedUpdatedAt:state.updatedAt.toISOString()});

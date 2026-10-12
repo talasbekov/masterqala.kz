@@ -138,7 +138,7 @@ export class AdminOrdersService {
     if (!order) throw new NotFoundException('Заказ не найден');
 
     const timeline: TimelineEntry[] = [
-      { at: order.createdAt, event: `создана · выезд ${order.calloutPrice} ₸` },
+      { at: order.createdAt, event: order.lifecycleVersion>=2?'создана · стоимость согласуется после осмотра':`создана · выезд ${order.calloutPrice} ₸` },
       ...(order.acceptedAt ? [{ at: order.acceptedAt, event: `принял ${order.master?.name ?? order.master?.phone}` }] : []),
       ...(order.priceProposedAt ? [{ at: order.priceProposedAt, event: 'цена предложена клиенту' }] : []),
       ...(order.completedAt ? [{ at: order.completedAt, event: 'выполнено' }] : []),
@@ -159,6 +159,13 @@ export class AdminOrdersService {
       client: { name: order.client.name, phone: order.client.phone },
       master: order.master ? { name: order.master.name, phone: order.master.phone } : null,
       category: order.category.name,
+      lifecycleVersion:order.lifecycleVersion,
+      commercialMode:order.commercialMode,
+      cancellationAmount:order.cancellationAmount,
+      quoteVersion:order.quoteVersion,
+      consentedVersion:order.consentedVersion,
+      materialsPrice:order.materialsPrice,
+      quoteTotal:order.workPrice===null?null:order.workPrice+order.materialsPrice+order.calloutPrice,
       calloutPrice: order.calloutPrice,
       serviceFee: order.serviceFee,
       workPrice: order.workPrice,

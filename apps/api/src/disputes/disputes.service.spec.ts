@@ -66,6 +66,21 @@ describe('DisputesService.resolve — коммерческий режим воз
     errorSpy.mockRestore();
   });
 
+  it('does not accept direct-payment work on behalf of the client when resolving support',async()=>{
+    prisma.dispute.findUnique.mockResolvedValue({id:'d3',orderId:'o3',plannedOrderId:null,status:'OPEN'});
+    prisma.dispute.updateMany.mockResolvedValue({count:1});
+    prisma.order.findUniqueOrThrow.mockResolvedValue({id:'o3',masterId:'m3',status:'DONE',commercialMode:'DIRECT_PAYMENT',lifecycleVersion:2,serviceFee:0});
+    await service.resolve('op1','d3',{refundServiceFee:false,penalizeMaster:false,resolutionNote:'Support note'});
+    expect(prisma.order.updateMany).not.toHaveBeenCalled();expect(payments.refund).not.toHaveBeenCalled();
+  });
+  it('rejects unapproved financial dispute actions for direct-payment orders',async()=>{
+    prisma.dispute.updateMany.mockResolvedValue({count:1});
+    prisma.dispute.findUnique.mockResolvedValue({id:'d3',orderId:'o3',plannedOrderId:null,status:'OPEN'});
+    prisma.order.findUniqueOrThrow.mockResolvedValue({commercialMode:'DIRECT_PAYMENT',lifecycleVersion:2,serviceFee:0});
+    await expect(service.resolve('op1','d3',{refundServiceFee:true,penalizeMaster:true,resolutionNote:'Refund'})).rejects.toMatchObject({status:409});
+    expect(prisma.dispute.updateMany).not.toHaveBeenCalled();expect(payments.refund).not.toHaveBeenCalled();
+  });
+
   it('для FREE_PILOT сохраняет refundServiceFee=false и не вызывает провайдер', async () => {
     prisma.dispute.findUnique
       .mockResolvedValueOnce({ id: 'd2', orderId: 'o2', plannedOrderId: null, status: 'OPEN' })

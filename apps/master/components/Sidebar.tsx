@@ -1,10 +1,14 @@
 'use client';
+import {useLocale,WrenchIcon,UserIcon,ListIcon} from '@masterqala/ui';
+import {useCommercialMode} from '@/lib/commercial-mode';
 import { useEffect, useState } from 'react';
 import { NavLink } from './NavLink';
 import { useMasterPresence } from '@/lib/masterPresence';
 import { fetchMyDisputes } from '@/lib/disputes';
 
 export function Sidebar() {
+  const{t}=useLocale();
+  const {leadCreditsEnabled,payoutsEnabled}=useCommercialMode();
   const { online, connected, geoDenied, goOnline, goOffline } = useMasterPresence();
   const [openDisputes, setOpenDisputes] = useState(0);
 
@@ -17,26 +21,26 @@ export function Sidebar() {
   return (
     <aside className="hidden w-60 shrink-0 flex-col gap-1 border-r border-border bg-surface p-4 md:flex">
       <div className="mb-4 px-3 text-lg font-extrabold text-primary">MasterQala</div>
-      <NavLink href="/" icon="🛠">
-        Работа
+      <NavLink href="/" icon={<WrenchIcon className="h-5 w-5"/>}>
+        {t('workHub')}
       </NavLink>
-      <NavLink href="/become-master" icon="📋">
-        Анкета
+      <NavLink href="/become-master" icon={<UserIcon className="h-5 w-5"/>}>
+        {t('application')}
       </NavLink>
-      <NavLink href="/lead-credits" icon="🎫">
+      {leadCreditsEnabled&&<NavLink href="/lead-credits" icon="🎫">
         Lead-кредиты
-      </NavLink>
-      <NavLink href="/wallet" icon="💳">
+      </NavLink>}
+      {payoutsEnabled&&<NavLink href="/wallet" icon="💳">
         Кошелёк
-      </NavLink>
-      <NavLink href="/disputes" icon="⚖️" badge={openDisputes}>
-        Мои споры
+      </NavLink>}
+      <NavLink href="/disputes" icon={<ListIcon className="h-5 w-5"/>} badge={openDisputes}>
+        {t('disputes')}
       </NavLink>
       <div className="mt-auto space-y-2 border-t border-border pt-3">
         <div className="rounded-md bg-fill-soft px-3 py-2 text-xs">
-          <div className="font-extrabold text-ink">{online ? 'Вы онлайн' : 'Вы офлайн'}</div>
-          <div className="text-ink-soft">{connected ? 'Соединение активно' : 'Нет соединения'}</div>
-          {geoDenied && <div className="mt-1 text-danger">Нет доступа к геолокации</div>}
+          <div className="font-extrabold text-ink">{online ? t('online') : t('off')}</div>
+          <div className="text-ink-soft">{connected ? t('connected') : t('disconnected')}</div>
+          {geoDenied && <div className="mt-1 text-danger">{t('geoDenied')}</div>}
         </div>
         <button
           type="button"
@@ -45,7 +49,7 @@ export function Sidebar() {
             online ? 'bg-ink-soft' : 'bg-primary'
           }`}
         >
-          {online ? 'Выйти' : 'Стать онлайн'}
+          {online ? t('goOffline') : t('goOnline')}
         </button>
         <a
           href="https://client.masterqala.kz"

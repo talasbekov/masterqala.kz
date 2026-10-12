@@ -253,11 +253,12 @@ export class DisputesService {
     const urgentOrder = orderId
       ? await this.prisma.order.findUniqueOrThrow({
           where: { id: orderId },
-          select: { commercialMode: true, serviceFee: true },
+          select: { commercialMode: true, serviceFee: true, lifecycleVersion:true },
         })
       : null;
+    if(urgentOrder && urgentOrder.lifecycleVersion>=2 && (dto.refundServiceFee||dto.penalizeMaster)) throw new ConflictException('Финансовые решения и санкции для прямого расчёта ещё не утверждены');
     const refundServiceFee = Boolean(
-      urgentOrder && urgentOrder.commercialMode !== 'FREE_PILOT' && dto.refundServiceFee,
+      urgentOrder && ['PAID_MOCK','PAID_LIVE'].includes(urgentOrder.commercialMode) && dto.refundServiceFee,
     );
 
     await this.prisma.$transaction(async (tx) => {
@@ -289,7 +290,7 @@ export class DisputesService {
       if (orderId) {
         const order = await tx.order.findUniqueOrThrow({ where: { id: orderId } });
         if (dto.penalizeMaster && order.masterId) await this.penalties.applyPenalty(tx, order.masterId);
-        if (order.status === 'DONE') {
+        if (order.status === 'DONE' && (order.lifecycleVersion??1)<2) {
           await tx.order.updateMany({ where: { id: orderId, status: 'DONE' }, data: { status: 'CLOSED', closedAt: new Date() } });
           await this.compensation.accrueCallout(tx, order);
         }

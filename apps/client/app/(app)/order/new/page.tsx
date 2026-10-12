@@ -1,5 +1,6 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import {useLocale} from '@masterqala/ui';
 import { useRouter } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
 import { api, apiUpload } from '@/lib/api';
@@ -32,7 +33,10 @@ const ASTANA_CENTER: LatLng = { lat: 51.1605, lng: 71.4704 };
 
 export default function NewOrderPage() {
   const { t } = useTranslation();
-  const { paymentsEnabled } = useCommercialMode();
+  const { paymentsEnabled,commercialMode } = useCommercialMode();
+  const direct=commercialMode==='DIRECT_PAYMENT';
+  const {t:copy}=useLocale();
+  const submitLock=useRef(false);
   const router = useRouter();
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
 
@@ -97,6 +101,8 @@ export default function NewOrderPage() {
   }
 
   async function submit() {
+    if(submitLock.current||!navigator.onLine)return;
+    submitLock.current=true;
     setError('');
     setSubmitting(true);
     try {
@@ -120,7 +126,7 @@ export default function NewOrderPage() {
     } catch (e) {
       setError((e as Error).message);
     } finally {
-      setSubmitting(false);
+      setSubmitting(false);submitLock.current=false;
     }
   }
 
@@ -334,7 +340,8 @@ export default function NewOrderPage() {
           </div>
         </div>
         {preview?.available === false && <p className="text-sm font-semibold text-danger">{t('newOrder.unavailable')}</p>}
-        {preview?.available && (
+        {direct&&preview&&<div className="rounded-lg border border-border bg-surface p-4 text-sm leading-relaxed text-ink-soft">{copy('directCreateNote')}</div>}
+      {!direct&&preview?.available && (
           <div className="rounded-lg border border-border bg-surface p-3.5">
             <div className="flex justify-between text-sm font-bold text-ink">
               <span>{t('newOrder.step4CalloutLabel')}</span>
@@ -356,7 +363,7 @@ export default function NewOrderPage() {
         )}
         <div className="flex items-center justify-between rounded-md border border-border bg-surface p-3">
           <span className="text-sm font-extrabold text-ink">
-            {paymentsEnabled ? t('newOrder.step4PaymentMethod') : 'Бесплатный пилот · без привязки карты'}
+            {direct?copy('directPayment'):paymentsEnabled ? t('newOrder.step4PaymentMethod') : 'Бесплатный пилот · без привязки карты'}
           </span>
         </div>
         <p className="text-xs leading-relaxed text-ink-soft">
@@ -372,7 +379,7 @@ export default function NewOrderPage() {
           disabled={submitting || !preview?.available}
           className="rounded-pill bg-primary p-4 text-[15.5px] font-extrabold text-white disabled:opacity-40"
         >
-          {paymentsEnabled ? t('newOrder.step4Submit', { price: preview?.calloutPrice ?? '' }) : 'Найти мастера бесплатно'}
+          {direct?copy('findMaster'):paymentsEnabled ? t('newOrder.step4Submit', { price: preview?.calloutPrice ?? '' }) : 'Найти мастера бесплатно'}
         </button>
       </>
     );
