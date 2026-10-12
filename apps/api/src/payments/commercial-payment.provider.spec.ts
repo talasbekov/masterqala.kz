@@ -4,7 +4,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CommercialPaymentProvider } from './commercial-payment.provider';
 import { MockPaymentProvider } from './mock-payment.provider';
 
-function setup(orderMode: 'FREE_PILOT' | 'PAID_MOCK', globalEnabled = true) {
+function setup(orderMode: 'FREE_PILOT' | 'PAID_MOCK' | 'DIRECT_PAYMENT', globalEnabled = true) {
   const prisma = {
     order: {
       findUnique: jest.fn().mockResolvedValue({ commercialMode: orderMode }),
@@ -48,6 +48,18 @@ describe('CommercialPaymentProvider', () => {
     expect(refund).toEqual({ status: 'SUCCEEDED', providerRef: 'free-pilot-noop' });
     expect(paidProvider.hold).not.toHaveBeenCalled();
     expect(paidProvider.capture).not.toHaveBeenCalled();
+    expect(paidProvider.refund).not.toHaveBeenCalled();
+  });
+
+  it('never delegates direct-payment order collections or refunds to a platform provider', async () => {
+    const {provider, paidProvider} = setup('DIRECT_PAYMENT', true);
+    await provider.hold('direct-1', 2500);
+    await provider.capture('direct-1');
+    await provider.void('direct-1');
+    await provider.refund('direct-1', 2500);
+    expect(paidProvider.hold).not.toHaveBeenCalled();
+    expect(paidProvider.capture).not.toHaveBeenCalled();
+    expect(paidProvider.void).not.toHaveBeenCalled();
     expect(paidProvider.refund).not.toHaveBeenCalled();
   });
 

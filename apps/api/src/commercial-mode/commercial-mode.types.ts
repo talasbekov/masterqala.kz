@@ -1,4 +1,4 @@
-export const COMMERCIAL_MODES = ['FREE_PILOT', 'PAID_MOCK', 'PAID_LIVE'] as const;
+export const COMMERCIAL_MODES = ['DIRECT_PAYMENT', 'FREE_PILOT', 'PAID_MOCK', 'PAID_LIVE'] as const;
 
 export type CommercialMode = (typeof COMMERCIAL_MODES)[number];
 

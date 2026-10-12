@@ -17,6 +17,16 @@ describe('Prisma commercial mode stamp', () => {
     expect(params.args.data).toEqual({ clientId: 'client-1', commercialMode: 'FREE_PILOT' });
   });
 
+  it('stamps a new direct urgent order as lifecycle v2 without rewriting legacy records', () => {
+    process.env.COMMERCIAL_MODE = 'DIRECT_PAYMENT';
+    const params = { model: 'Order', action: 'create', args: { data: {} as Record<string, unknown> } };
+    stampCommercialMode(params);
+    expect(params.args.data).toEqual({commercialMode: 'DIRECT_PAYMENT', lifecycleVersion: 2, dispatchMode: 'SEQUENTIAL'});
+    const legacy = {model: 'Order', action: 'update', args: {data: {status: 'DONE'} as Record<string, unknown>}};
+    stampCommercialMode(legacy);
+    expect(legacy.args.data).toEqual({status: 'DONE'});
+  });
+
   it('фиксирует режим и для плановой заявки', () => {
     process.env.COMMERCIAL_MODE = 'PAID_MOCK';
     const params = { model: 'PlannedOrder', action: 'create', args: { data: {} as Record<string, unknown> } };

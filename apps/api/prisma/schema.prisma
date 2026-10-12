@@ -133,6 +133,15 @@ model VerificationDecision {
 }
 
 model Order {
+  lifecycleVersion Int @default(1)
+  dispatchMode String @default("WAVE")
+  departedAt DateTime?
+  materialsPrice Int @default(0)
+  quoteVersion Int @default(0)
+  consentedVersion Int?
+  quoteApprovedAt DateTime?
+  workStartedAt DateTime?
+  cancellationAmount Int?
   id              String                    @id @default(uuid())
   clientId        String
   categoryId      String
@@ -179,6 +188,8 @@ model Order {
 }
 
 model OrderOffer {
+  expiresAt DateTime?
+  sequential Boolean @default(false)
   id           String       @id @default(uuid())
   orderId      String
   masterUserId String
@@ -468,6 +479,7 @@ enum DecisionType {
 }
 
 enum CommercialMode {
+  DIRECT_PAYMENT
   FREE_PILOT
   PAID_MOCK
   PAID_LIVE
@@ -494,6 +506,7 @@ enum OrderStatus {
   MASTER_ON_WAY
   INSPECTION
   AWAITING_PRICE_CONFIRM
+  PRICE_APPROVED
   IN_PROGRESS
   DONE
   CLOSED

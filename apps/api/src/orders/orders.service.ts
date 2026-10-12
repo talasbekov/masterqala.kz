@@ -9,6 +9,7 @@ import {
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { Order, Prisma, User } from '@prisma/client';
+import { CommercialModeService } from '../commercial-mode/commercial-mode.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { PricingService } from '../pricing/pricing.service';
 import {
@@ -49,9 +50,13 @@ export class OrdersService implements OnModuleInit {
     @Inject(FILE_STORAGE) private readonly storage: FileStorage,
     private readonly reviews: ReviewsService,
     private readonly auditLog: AuditLogService,
+    private readonly commercialMode: CommercialModeService,
   ) {}
 
   async preview(clientId: string, dto: PreviewOrderDto) {
+    if (this.commercialMode.mode() === 'DIRECT_PAYMENT') {
+      return { available: true, commercialMode: 'DIRECT_PAYMENT', quoteRequired: true, calloutPrice: 0, serviceFee: 0 };
+    }
     const quote = await this.pricing.quote(
       dto.categoryId,
       { lat: dto.lat, lng: dto.lng },
@@ -72,7 +77,8 @@ export class OrdersService implements OnModuleInit {
     if (active > 0)
       throw new ConflictException('У вас уже есть активная заявка');
 
-    const quote = await this.pricing.quote(
+    const direct = this.commercialMode.mode() === 'DIRECT_PAYMENT';
+    const quote = direct ? { calloutPrice: 0, serviceFee: 0 } : await this.pricing.quote(
       dto.categoryId,
       { lat: dto.lat, lng: dto.lng },
       clientId,
@@ -83,6 +89,9 @@ export class OrdersService implements OnModuleInit {
       const created = await tx.order.create({
         data: {
           clientId,
+          commercialMode: this.commercialMode.mode(),
+          lifecycleVersion: direct ? 2 : 1,
+          dispatchMode: direct ? 'SEQUENTIAL' : 'WAVE',
           categoryId: dto.categoryId,
           description: dto.description,
           address: dto.address,
@@ -115,7 +124,7 @@ export class OrdersService implements OnModuleInit {
     // с реальным провайдером компенсация платилась бы из денег, которых
     // платформа не собирала (P0, §23 отчёта).
     // Ошибка холда → заявка остаётся CREATED и не публикуется (§3.3).
-    await this.payments.hold(order.id, order.calloutPrice);
+    if (!direct) await this.payments.hold(order.id, order.calloutPrice);
     await this.gate(order.id, 'CREATED', { status: 'SEARCHING' });
     await this.queue.send(JOBS.WAVE, { orderId: order.id, wave: 1 });
     return this.findOrThrow(order.id);

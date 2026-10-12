@@ -11,6 +11,7 @@ export const ACTIVE_MASTER_STATUSES: OrderStatus[] = [
   'MASTER_ON_WAY',
   'INSPECTION',
   'AWAITING_PRICE_CONFIRM',
+  'PRICE_APPROVED',
   'IN_PROGRESS',
 ];
 
