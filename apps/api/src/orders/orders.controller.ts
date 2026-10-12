@@ -100,6 +100,9 @@ export class OrdersController {
     return this.present(this.orders.accept(user.id, id));
   }
 
+  @Post('orders/:id/decline')
+  decline(@CurrentUser() user: User, @Param('id') id: string) { return this.orders.declineOffer(user.id,id); }
+
   @Post('orders/:id/on-way')
   onWay(@CurrentUser() user: User, @Param('id') id: string) {
     return this.present(this.orders.onWay(user.id, id));

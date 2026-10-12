@@ -1,4 +1,7 @@
 export const JOBS = {
+  SEQUENTIAL_DISPATCH: 'order-sequential-dispatch',
+  SEQUENTIAL_TIMEOUT: 'order-sequential-timeout',
+  SEQUENTIAL_RECOVERY: 'order-sequential-recovery',
   WAVE: 'order-wave',
   WAVE_TIMEOUT: 'order-wave-timeout',
   PRICE_TIMEOUT: 'order-price-timeout',

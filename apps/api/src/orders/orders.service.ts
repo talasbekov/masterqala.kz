@@ -86,6 +86,10 @@ export class OrdersService implements OnModuleInit {
     if (!quote) throw new UnprocessableEntityException('Мастеров рядом нет');
 
     const order = await this.prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM "User" WHERE id=${clientId} FOR UPDATE`;
+      if (await tx.order.count({where:{clientId,status:{in:ACTIVE_CLIENT_STATUSES}}})) {
+        throw new ConflictException('У вас уже есть активная заявка');
+      }
       const created = await tx.order.create({
         data: {
           clientId,
@@ -126,7 +130,7 @@ export class OrdersService implements OnModuleInit {
     // Ошибка холда → заявка остаётся CREATED и не публикуется (§3.3).
     if (!direct) await this.payments.hold(order.id, order.calloutPrice);
     await this.gate(order.id, 'CREATED', { status: 'SEARCHING' });
-    await this.queue.send(JOBS.WAVE, { orderId: order.id, wave: 1 });
+    await this.queue.send(direct ? JOBS.SEQUENTIAL_DISPATCH : JOBS.WAVE, direct ? {orderId:order.id,attempt:order.searchAttempt} : { orderId: order.id, wave: 1 });
     return this.findOrThrow(order.id);
   }
 
@@ -150,7 +154,7 @@ export class OrdersService implements OnModuleInit {
 
   async getMasterActive(masterUserId: string) {
     const order = await this.prisma.order.findFirst({
-      where: { masterId: masterUserId, status: { in: ACTIVE_MASTER_STATUSES } },
+      where: { masterId: masterUserId, OR:[{status:{in:ACTIVE_MASTER_STATUSES}},{lifecycleVersion:{gte:2},status:'DONE'}] },
       include: ORDER_INCLUDE,
     });
     return { order: order ? await this.reviews.attachRating(this.withDeadlines(order)) : null };
@@ -247,18 +251,30 @@ export class OrdersService implements OnModuleInit {
   /** Гонка «Принять»: гейт SEARCHING→ACCEPTED атомарен; проигравший получает 409. */
   async accept(masterUserId: string, orderId: string): Promise<Order> {
     const losers = await this.prisma.$transaction(async (tx) => {
-      const busy = await tx.order.count({
-        where: { masterId: masterUserId, status: { in: ACTIVE_MASTER_STATUSES } },
-      });
-      if (busy > 0) throw new ConflictException('У вас уже есть активная заявка');
-
+      await tx.$queryRaw`SELECT id FROM "Order" WHERE id=${orderId} FOR UPDATE`;
       const order = await tx.order.findUnique({ where: { id: orderId } });
       if (!order) throw new NotFoundException('Заявка не найдена');
+      if (order.status !== 'SEARCHING') throw new ConflictException('Заявку уже принял другой мастер');
+      await tx.$queryRaw`SELECT id FROM "User" WHERE id=${masterUserId} FOR UPDATE`;
+      const busy = await tx.order.count({
+        where: { masterId: masterUserId, OR:[{status:{in:ACTIVE_MASTER_STATUSES}}, {lifecycleVersion:{gte:2},status:'DONE'}] },
+      });
+      if (busy > 0 || await tx.plannedOrder.count({where:{masterId:masterUserId,status:'IN_PROGRESS'}})) {
+        throw new ConflictException('У вас уже есть активная заявка');
+      }
+      if(order.lifecycleVersion>=2) {
+        const profile=await tx.masterProfile.findUnique({where:{userId:masterUserId}});
+        const account=await tx.user.findUnique({where:{id:masterUserId}});
+        if(!profile || profile.status!=='ACTIVE' || account?.isBlocked || (profile.blockedUntil && profile.blockedUntil>new Date())) {
+          throw new ForbiddenException('Мастер недоступен для назначения');
+        }
+      }
 
       const offer = await tx.orderOffer.findFirst({
         where: { orderId, masterUserId, attempt: order.searchAttempt, outcome: 'PENDING' },
       });
       if (!offer) throw new ForbiddenException('Предложение недоступно');
+      if (offer.sequential && (!offer.expiresAt || offer.expiresAt <= new Date())) throw new ConflictException('Время на принятие истекло');
 
       const gate = await tx.order.updateMany({
         where: { id: orderId, status: 'SEARCHING' },
@@ -280,7 +296,7 @@ export class OrdersService implements OnModuleInit {
       return rest;
     });
 
-    await this.payments.capture(orderId); // идемпотентен: при повторном поиске capture уже есть
+    if ((await this.findOrThrow(orderId)).commercialMode !== 'DIRECT_PAYMENT') await this.payments.capture(orderId);
     for (const o of losers) {
       this.gateway.emitToUser(o.masterUserId, 'offer:closed', { orderId, reason: 'Заявку принял другой мастер' });
     }
@@ -288,9 +304,25 @@ export class OrdersService implements OnModuleInit {
     return this.findOrThrow(orderId);
   }
 
+  async declineOffer(masterUserId: string, orderId: string) {
+    const attempt = await this.prisma.$transaction(async tx => {
+      await tx.$queryRaw`SELECT id FROM "Order" WHERE id=${orderId} FOR UPDATE`;
+      const order=await tx.order.findUnique({where:{id:orderId}});
+      if(!order || order.dispatchMode!=='SEQUENTIAL' || order.status!=='SEARCHING') throw new ConflictException('Предложение недоступно');
+      const offer=await tx.orderOffer.findFirst({where:{orderId,masterUserId,attempt:order.searchAttempt,sequential:true}});
+      if(!offer) throw new ForbiddenException('Предложение недоступно');
+      if(offer.outcome==='PENDING') await tx.orderOffer.update({where:{id:offer.id},data:{outcome:'EXPIRED',respondedAt:new Date()}});
+      return order.searchAttempt;
+    });
+    this.gateway.emitToUser(masterUserId,'offer:closed',{orderId,reason:'Предложение пропущено'});
+    await this.queue.send(JOBS.SEQUENTIAL_DISPATCH,{orderId,attempt});
+    return {orderId};
+  }
+
   /** Операторское назначение зависшего в поиске заказа конкретному мастеру, в обход offer-flow. */
   async manualAssign(operatorId: string, orderId: string, masterUserId: string): Promise<Order> {
     const losers = await this.prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM "Order" WHERE id=${orderId} FOR UPDATE`;
       const order = await tx.order.findUnique({ where: { id: orderId } });
       if (!order) throw new NotFoundException('Заявка не найдена');
       if (order.clientId === masterUserId) {
@@ -302,6 +334,7 @@ export class OrdersService implements OnModuleInit {
       // P2003 (FK) на updateMany ниже, либо тихое двойное бронирование занятого
       // мастера. Валидируем «активный мастер» + «сейчас свободен» тем же
       // критерием, что и candidates()/matching.service.ts.
+      await tx.$queryRaw`SELECT id FROM "User" WHERE id=${masterUserId} FOR UPDATE`;
       const profile = await tx.masterProfile.findUnique({ where: { userId: masterUserId } });
       if (!profile) throw new NotFoundException('Мастер не найден');
       if (profile.status !== 'ACTIVE' || (profile.blockedUntil && profile.blockedUntil > new Date())) {
@@ -318,7 +351,7 @@ export class OrdersService implements OnModuleInit {
         throw new ConflictException('Мастер недоступен для назначения: аккаунт заблокирован');
       }
       const busy = await tx.order.count({
-        where: { masterId: masterUserId, status: { in: ACTIVE_MASTER_STATUSES } },
+        where: { masterId: masterUserId, OR:[{status:{in:ACTIVE_MASTER_STATUSES}},{lifecycleVersion:{gte:2},status:'DONE'}] },
       });
       if (busy > 0) throw new ConflictException('Мастер уже занят другой заявкой');
 
@@ -351,7 +384,7 @@ export class OrdersService implements OnModuleInit {
       return rest;
     });
 
-    await this.payments.capture(orderId); // идемпотентен: при повторном поиске capture уже есть
+    if ((await this.findOrThrow(orderId)).commercialMode !== 'DIRECT_PAYMENT') await this.payments.capture(orderId);
     for (const o of losers) {
       this.gateway.emitToUser(o.masterUserId, 'offer:closed', { orderId, reason: 'Заявку назначил оператор' });
     }
@@ -370,7 +403,7 @@ export class OrdersService implements OnModuleInit {
       });
       return offers;
     });
-    await this.payments.void(orderId); // после capture (отмена мастером) mock трактует как возврат
+    if((await this.findOrThrow(orderId)).commercialMode !== 'DIRECT_PAYMENT') await this.payments.void(orderId);
     for (const o of pending) {
       this.gateway.emitToUser(o.masterUserId, 'offer:closed', { orderId, reason: 'Поиск завершён' });
     }

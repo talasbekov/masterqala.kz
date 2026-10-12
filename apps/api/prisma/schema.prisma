@@ -188,6 +188,7 @@ model Order {
 }
 
 model OrderOffer {
+  distanceKm Float?
   expiresAt DateTime?
   sequential Boolean @default(false)
   id           String       @id @default(uuid())

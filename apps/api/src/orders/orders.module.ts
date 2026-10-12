@@ -10,6 +10,7 @@ import { ReviewsModule } from '../reviews/reviews.module';
 import { AuditLogModule } from '../audit-log/audit-log.module';
 import { OrdersService } from './orders.service';
 import { OrdersController } from './orders.controller';
+import { SequentialMatchingService } from './sequential-matching.service';
 import { MatchingService } from './matching.service';
 
 @Module({
@@ -24,7 +25,7 @@ import { MatchingService } from './matching.service';
     ReviewsModule,
     AuditLogModule,
   ],
-  providers: [OrdersService, MatchingService],
+  providers: [OrdersService, MatchingService, SequentialMatchingService],
   controllers: [OrdersController],
   exports: [OrdersService, MatchingService],
 })
