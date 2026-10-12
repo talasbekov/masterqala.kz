@@ -10,6 +10,7 @@ import { ReviewsModule } from '../reviews/reviews.module';
 import { AuditLogModule } from '../audit-log/audit-log.module';
 import { OrdersService } from './orders.service';
 import { OrdersController } from './orders.controller';
+import { DirectOrderLifecycleService } from './direct-order-lifecycle.service';
 import { SequentialMatchingService } from './sequential-matching.service';
 import { MatchingService } from './matching.service';
 
@@ -25,7 +26,7 @@ import { MatchingService } from './matching.service';
     ReviewsModule,
     AuditLogModule,
   ],
-  providers: [OrdersService, MatchingService, SequentialMatchingService],
+  providers: [OrdersService, MatchingService, SequentialMatchingService, DirectOrderLifecycleService],
   controllers: [OrdersController],
   exports: [OrdersService, MatchingService],
 })

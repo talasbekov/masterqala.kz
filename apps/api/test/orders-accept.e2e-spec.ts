@@ -44,56 +44,23 @@ describe('Принятие заявки (e2e)', () => {
   });
 
   it('гонка: двое принимают одновременно → 1×200(201) и 1×409, офферы ACCEPTED/LOST, CAPTURE один', async () => {
-    // Барьер синхронизации только для теста. Локальная тестовая БД настолько
-    // быстрая, что вся транзакция accept() (guard + чтение оффера + гейт +
-    // обновления) у первого запроса успевает полностью закоммититься раньше,
-    // чем второй запрос вообще дойдёт до своей транзакции — проверено вручную
-    // трассировкой с временными console.log внутри accept(): TX COMMITTED
-    // первого вызова раньше TX BEGIN второго на 8-20мс. Из-за этого голый
-    // Promise.all на двух HTTP-вызовах не гарантирует, что оба запроса реально
-    // одновременно видят PENDING-офферы и одновременно бьются за гейт —
-    // первый может успеть проиграть/выиграть в одиночку до того, как второй
-    // вообще стартует, и тест "проходит" не благодаря атомарности гейта, а
-    // благодаря порядку выполнения.
-    //
-    // Чтобы гонка была настоящей, перехватываем PrismaService.$transaction:
-    // каждый вызов accept() должен дойти внутри переданного колбэка до конца
-    // чтения PENDING-оффера (offer:findFirst) — та же точка, что и в проде —
-    // и там ждать, пока оба конкурента не доберутся до неё. Только после этого
-    // оба продолжают в исходном коде без изменений: дальше настоящий гейт
-    // (tx.order.updateMany where status='SEARCHING') решает победителя сам,
-    // под настоящей блокировкой Postgres — мы НЕ патчим сам updateMany и не
-    // подсказываем, кто выиграет.
-    let checkedIn = 0;
-    let releaseAll: () => void;
-    const bothArrived = new Promise<void>((resolve) => { releaseAll = resolve; });
-    const original = prisma.$transaction.bind(prisma);
-    const spy = jest.spyOn(prisma, '$transaction').mockImplementation(async (fn: any, ...rest: any[]) => {
-      const wrapped = async (tx: any) => {
-        const origFindFirst = tx.orderOffer.findFirst.bind(tx.orderOffer);
-        let intercepted = false;
-        tx.orderOffer.findFirst = async (...findArgs: any[]) => {
-          const result = await origFindFirst(...findArgs);
-          // Перехватываем только первый findFirst в транзакции — это чтение
-          // PENDING-оффера в accept(). Оба вызова должны "прибыть" сюда, уже
-          // получив свой результат чтения, прежде чем кто-либо пойдёт дальше
-          // к гейту — так оба гарантированно проходят проверку оффера и упираются
-          // именно в updateMany, а не расходятся по времени раньше.
-          if (!intercepted) {
-            intercepted = true;
-            checkedIn += 1;
-            if (checkedIn >= 2) releaseAll();
-            await bothArrived;
-          }
-          return result;
-        };
+    // Both real transactions start before acquiring row locks. A barrier AFTER
+    // reading the offer would deadlock: the new serializable assignment boundary
+    // deliberately prevents the second transaction from reading under the first lock.
+    let checkedIn=0;
+    let releaseAll!:()=>void;
+    const bothArrived=new Promise<void>(resolve=>{releaseAll=resolve;});
+    const original=prisma.$transaction.bind(prisma);
+    const spy=jest.spyOn(prisma,'$transaction').mockImplementation(async(fn:any,...rest:any[])=>{
+      return (original as any)(async(tx:any)=>{
+        checkedIn++;
+        if(checkedIn===2) releaseAll();
+        await bothArrived;
         return fn(tx);
-      };
-      return (original as any)(wrapped, ...rest);
+      },...rest);
     });
-
-    const [r1, r2] = await Promise.all([accept(app, m1.token, orderId), accept(app, m2.token, orderId)]);
-    spy.mockRestore();
+    const [r1,r2]=await Promise.all([accept(app,m1.token,orderId),accept(app,m2.token,orderId)])
+      .finally(()=>spy.mockRestore());
 
     const statuses = [r1.status, r2.status].sort();
     expect(statuses).toEqual([201, 409]);

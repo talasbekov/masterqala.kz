@@ -9,6 +9,7 @@ import {
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { Order, Prisma, User } from '@prisma/client';
+import { DirectOrderLifecycleService } from './direct-order-lifecycle.service';
 import { CommercialModeService } from '../commercial-mode/commercial-mode.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { PricingService } from '../pricing/pricing.service';
@@ -32,7 +33,7 @@ import {
   ORDER_INCLUDE,
   PRICE_CONFIRM_TIMEOUT_S,
 } from './order.constants';
-import { CreateOrderDto, PreviewOrderDto, ProposePriceDto } from './dto';
+import { CreateOrderDto, PreviewOrderDto, ProposePriceDto, QuoteVersionDto, CancelOrderDto } from './dto';
 
 type Tx = Prisma.TransactionClient;
 
@@ -51,6 +52,7 @@ export class OrdersService implements OnModuleInit {
     private readonly reviews: ReviewsService,
     private readonly auditLog: AuditLogService,
     private readonly commercialMode: CommercialModeService,
+    private readonly directLifecycle: DirectOrderLifecycleService,
   ) {}
 
   async preview(clientId: string, dto: PreviewOrderDto) {
@@ -187,10 +189,11 @@ export class OrdersService implements OnModuleInit {
     return this.storage.absolutePath(photo.path);
   }
 
-  private withDeadlines<T extends { priceProposedAt: Date | null }>(order: T) {
+  private withDeadlines<T extends { priceProposedAt: Date | null; lifecycleVersion?:number; quoteVersion?:number;workPrice?:number|null;materialsPrice?:number;calloutPrice?:number }>(order: T) {
     return {
       ...order,
-      priceDeadline: order.priceProposedAt
+      ...(order.lifecycleVersion && order.lifecycleVersion>=2 ? {quoteTotal:order.quoteVersion ? (order.workPrice??0)+(order.materialsPrice??0)+(order.calloutPrice??0):null} : {}),
+      priceDeadline: order.priceProposedAt && (!order.lifecycleVersion || order.lifecycleVersion<2)
         ? new Date(order.priceProposedAt.getTime() + PRICE_CONFIRM_TIMEOUT_S * 1000).toISOString()
         : null,
     };
@@ -428,22 +431,31 @@ export class OrdersService implements OnModuleInit {
     return order;
   }
 
+  private async directResult(result: Promise<Order>) {
+    const order=await result;
+    await this.emitOrderStatus(order.id);
+    return this.findOrThrow(order.id);
+  }
+
   async onWay(masterUserId: string, orderId: string) {
-    await this.guardMaster(masterUserId, orderId);
+    const current=await this.guardMaster(masterUserId, orderId);
+    if(current.lifecycleVersion>=2) return this.directResult(this.directLifecycle.onWay(masterUserId,orderId));
     await this.gate(orderId, 'ACCEPTED', { status: 'MASTER_ON_WAY' });
     await this.emitOrderStatus(orderId);
     return this.findOrThrow(orderId);
   }
 
   async onSite(masterUserId: string, orderId: string) {
-    await this.guardMaster(masterUserId, orderId);
+    const current=await this.guardMaster(masterUserId, orderId);
+    if(current.lifecycleVersion>=2) return this.directResult(this.directLifecycle.onSite(masterUserId,orderId));
     await this.gate(orderId, 'MASTER_ON_WAY', { status: 'INSPECTION', onSiteAt: new Date() });
     await this.emitOrderStatus(orderId);
     return this.findOrThrow(orderId);
   }
 
   async proposePrice(masterUserId: string, orderId: string, dto: ProposePriceDto) {
-    await this.guardMaster(masterUserId, orderId);
+    const current=await this.guardMaster(masterUserId, orderId);
+    if(current.lifecycleVersion>=2) return this.directResult(this.directLifecycle.propose(masterUserId,orderId,dto));
     await this.gate(orderId, 'INSPECTION', {
       status: 'AWAITING_PRICE_CONFIRM',
       workPrice: dto.amount,
@@ -455,15 +467,21 @@ export class OrdersService implements OnModuleInit {
     return this.findOrThrow(orderId);
   }
 
-  async confirmPrice(clientId: string, orderId: string) {
-    await this.guardClient(clientId, orderId);
+  async confirmPrice(clientId: string, orderId: string, dto: QuoteVersionDto = {}) {
+    const current=await this.guardClient(clientId, orderId);
+    if(current.lifecycleVersion>=2) return this.directResult(this.directLifecycle.approve(clientId,orderId,dto.quoteVersion));
     await this.gate(orderId, 'AWAITING_PRICE_CONFIRM', { status: 'IN_PROGRESS' });
     await this.emitOrderStatus(orderId);
     return this.findOrThrow(orderId);
   }
 
-  async rejectPrice(clientId: string, orderId: string) {
-    await this.guardClient(clientId, orderId);
+  async startWork(masterUserId:string,orderId:string,dto:QuoteVersionDto) {
+    return this.directResult(this.directLifecycle.start(masterUserId,orderId,dto.quoteVersion));
+  }
+
+  async rejectPrice(clientId: string, orderId: string, dto:CancelOrderDto={}) {
+    const current=await this.guardClient(clientId, orderId);
+    if(current.lifecycleVersion>=2) return this.directResult(this.directLifecycle.cancel(clientId,orderId,{...dto,reason:dto.reason??'Клиент отклонил смету'}));
     await this.cancelPaidFromAwaiting(orderId, 'Клиент отклонил цену работ');
     return this.findOrThrow(orderId);
   }
@@ -471,7 +489,7 @@ export class OrdersService implements OnModuleInit {
   /** Джоба: клиент молчал 15 минут. Не в AWAITING — тихий выход (идемпотентность). */
   async handlePriceTimeout({ orderId }: { orderId: string }): Promise<void> {
     const order = await this.prisma.order.findUnique({ where: { id: orderId } });
-    if (!order || order.status !== 'AWAITING_PRICE_CONFIRM') return;
+    if (!order || order.lifecycleVersion>=2 || order.status !== 'AWAITING_PRICE_CONFIRM') return;
     await this.cancelPaidFromAwaiting(orderId, 'Таймаут подтверждения цены (15 минут)');
   }
 
@@ -486,7 +504,8 @@ export class OrdersService implements OnModuleInit {
   }
 
   async complete(masterUserId: string, orderId: string) {
-    await this.guardMaster(masterUserId, orderId);
+    const current=await this.guardMaster(masterUserId, orderId);
+    if(current.lifecycleVersion>=2) return this.directResult(this.directLifecycle.complete(masterUserId,orderId));
     await this.gate(orderId, 'IN_PROGRESS', { status: 'DONE', completedAt: new Date() });
     await this.queue.send(JOBS.AUTO_CLOSE, { orderId }, AUTO_CLOSE_S);
     await this.emitOrderStatus(orderId);
@@ -494,7 +513,8 @@ export class OrdersService implements OnModuleInit {
   }
 
   async confirmCompletion(clientId: string, orderId: string) {
-    await this.guardClient(clientId, orderId);
+    const current=await this.guardClient(clientId, orderId);
+    if(current.lifecycleVersion>=2) return this.directResult(this.directLifecycle.acceptResult(clientId,orderId));
     await this.closeOrder(orderId);
     return this.findOrThrow(orderId);
   }
@@ -502,7 +522,7 @@ export class OrdersService implements OnModuleInit {
   /** Джоба: клиент молчал 24 ч после «Выполнено». Заморожена, пока открыт спор. */
   async handleAutoClose({ orderId }: { orderId: string }): Promise<void> {
     const order = await this.prisma.order.findUnique({ where: { id: orderId } });
-    if (!order || order.status !== 'DONE') return;
+    if (!order || order.lifecycleVersion>=2 || order.status !== 'DONE') return;
     if (await this.disputes.hasOpenDispute({ orderId })) return;
     await this.closeOrder(orderId);
     await this.auditLog.write({ actorType: 'SYSTEM', action: 'AUTO_CLOSED', targetType: 'ORDER', targetId: orderId });
@@ -519,8 +539,18 @@ export class OrdersService implements OnModuleInit {
   }
 
   /** §3.9: ветвление по инициатору отмены. */
-  async cancel(user: User, orderId: string): Promise<Order> {
+  async cancellationPreview(user:User,orderId:string) {
+    return this.directLifecycle.cancellationPreview(user.id,orderId);
+  }
+
+  async cancel(user: User, orderId: string, dto:CancelOrderDto={}): Promise<Order> {
     const order = await this.findOrThrow(orderId);
+    if(order.lifecycleVersion>=2 && order.clientId===user.id) {
+      const pending=await this.prisma.orderOffer.findMany({where:{orderId,outcome:'PENDING'}});
+      const result=await this.directResult(this.directLifecycle.cancel(user.id,orderId,dto));
+      for(const offer of pending) this.gateway.emitToUser(offer.masterUserId,'offer:closed',{orderId,offerId:offer.id,reason:'Клиент отменил заявку'});
+      return result;
+    }
     if (order.clientId === user.id) {
       await this.cancelByClient(order);
     } else if (order.masterId === user.id) {
@@ -575,16 +605,17 @@ export class OrdersService implements OnModuleInit {
     // §3.9 + дизайн-дока §4: перезапуск поиска с волны 1, отменивший исключён
     // (его OrderOffer.outcome === 'ACCEPTED'); санкция мастеру — §3.9/этап 5.
     const masterUserId = order.masterId!;
+    if(order.lifecycleVersion>=2 && order.status!=='ACCEPTED') throw new ConflictException('После выезда обратитесь в поддержку');
     await this.prisma.$transaction(async (tx) => {
       await this.gate(
         order.id,
         ['ACCEPTED', 'MASTER_ON_WAY'],
-        { status: 'SEARCHING', masterId: null, acceptedAt: null, wave: 0, searchAttempt: { increment: 1 } },
+        { status: 'SEARCHING', masterId: null, acceptedAt: null, departedAt:null, onSiteAt:null, wave: 0, searchAttempt: { increment: 1 } },
         tx,
       );
-      await this.penalties.penalizeForCancellation(tx, masterUserId, 'URGENT', order.id);
+      if(order.lifecycleVersion<2) await this.penalties.penalizeForCancellation(tx, masterUserId, 'URGENT', order.id);
     });
-    await this.queue.send(JOBS.WAVE, { orderId: order.id, wave: 1 });
+    await this.queue.send(order.lifecycleVersion>=2?JOBS.SEQUENTIAL_DISPATCH:JOBS.WAVE,order.lifecycleVersion>=2?{orderId:order.id,attempt:order.searchAttempt+1}:{ orderId: order.id, wave: 1 });
     await this.emitOrderStatus(order.id);
   }
 
@@ -594,13 +625,14 @@ export class OrdersService implements OnModuleInit {
     // Hold ставится до гейта: если гейт бросит 409 (статус уже не NO_MASTERS),
     // лишний HOLD останется висеть в mock-журнале — приемлемо для этапа 2
     // (реальный провайдер этапа 4 получит компенсирующий void).
-    await this.payments.hold(orderId, (await this.findOrThrow(orderId)).calloutPrice);
+    const current=await this.findOrThrow(orderId);
+    if(current.lifecycleVersion<2) await this.payments.hold(orderId, current.calloutPrice);
     await this.gate(orderId, 'NO_MASTERS', {
       status: 'SEARCHING',
       wave: 0,
       searchAttempt: { increment: 1 },
     });
-    await this.queue.send(JOBS.WAVE, { orderId, wave: 1 });
+    await this.queue.send(current.lifecycleVersion>=2?JOBS.SEQUENTIAL_DISPATCH:JOBS.WAVE,current.lifecycleVersion>=2?{orderId,attempt:current.searchAttempt+1}:{orderId,wave:1});
     await this.emitOrderStatus(orderId);
     return this.findOrThrow(orderId);
   }

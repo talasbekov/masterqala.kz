@@ -2,6 +2,7 @@ import {
   ArrayMaxSize,
   ArrayUnique,
   IsInt,
+  IsDateString,
   IsNotEmpty,
   IsNumber,
   IsOptional,
@@ -74,12 +75,34 @@ export class CreateOrderDto extends PreviewOrderDto {
 }
 
 export class ProposePriceDto {
+  @IsOptional() @IsInt() @Min(0) @Max(2147483647)
+  materialsPrice?: number;
+  @IsOptional() @IsInt() @Min(0) @Max(2147483647)
+  calloutPrice?: number;
+  @IsOptional() @IsInt() @Min(0) @Max(2147483647)
+  expectedQuoteVersion?: number;
+
   @IsInt()
   @Min(1)
+  @Max(2147483647)
   amount!: number;
 
   @IsOptional()
   @IsString()
   @MaxLength(1000)
   comment?: string;
+}
+
+export class QuoteVersionDto {
+  @IsOptional() @IsInt() @Min(1) @Max(2147483647)
+  quoteVersion?: number;
+}
+
+export class CancelOrderDto {
+  @IsOptional() @IsInt() @Min(0) @Max(2500)
+  expectedAmount?: number;
+  @IsOptional() @IsDateString()
+  expectedUpdatedAt?: string;
+  @IsOptional() @IsString() @MaxLength(1000)
+  reason?: string;
 }

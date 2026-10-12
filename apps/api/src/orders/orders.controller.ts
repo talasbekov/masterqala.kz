@@ -7,7 +7,7 @@ import { CommercialModeService } from '../commercial-mode/commercial-mode.servic
 import { PhotoReferenceGuard } from '../storage/photo-reference.guard';
 import { mimeTypeForStoredPath } from '../storage/upload-security';
 import { OrdersService } from './orders.service';
-import { CreateOrderDto, PreviewOrderDto, ProposePriceDto } from './dto';
+import { CreateOrderDto, PreviewOrderDto, ProposePriceDto, QuoteVersionDto, CancelOrderDto } from './dto';
 
 @Controller()
 @UseGuards(JwtAuthGuard)
@@ -119,14 +119,17 @@ export class OrdersController {
   }
 
   @Post('orders/:id/confirm-price')
-  confirmPrice(@CurrentUser() user: User, @Param('id') id: string) {
-    return this.present(this.orders.confirmPrice(user.id, id));
+  confirmPrice(@CurrentUser() user: User, @Param('id') id: string, @Body() dto: QuoteVersionDto) {
+    return this.present(this.orders.confirmPrice(user.id, id, dto));
   }
 
   @Post('orders/:id/reject-price')
-  rejectPrice(@CurrentUser() user: User, @Param('id') id: string) {
-    return this.present(this.orders.rejectPrice(user.id, id));
+  rejectPrice(@CurrentUser() user: User, @Param('id') id: string,@Body() dto:CancelOrderDto) {
+    return this.present(this.orders.rejectPrice(user.id, id,dto));
   }
+
+  @Post('orders/:id/start-work')
+  startWork(@CurrentUser() user:User,@Param('id') id:string,@Body() dto:QuoteVersionDto) { return this.present(this.orders.startWork(user.id,id,dto)); }
 
   @Post('orders/:id/complete')
   complete(@CurrentUser() user: User, @Param('id') id: string) {
@@ -138,9 +141,12 @@ export class OrdersController {
     return this.present(this.orders.confirmCompletion(user.id, id));
   }
 
+  @Get('orders/:id/cancellation-preview')
+  cancellationPreview(@CurrentUser() user:User,@Param('id') id:string) { return this.orders.cancellationPreview(user,id); }
+
   @Post('orders/:id/cancel')
-  cancel(@CurrentUser() user: User, @Param('id') id: string) {
-    return this.present(this.orders.cancel(user, id));
+  cancel(@CurrentUser() user: User, @Param('id') id: string,@Body() dto:CancelOrderDto) {
+    return this.present(this.orders.cancel(user, id,dto));
   }
 
   @Post('orders/:id/retry-search')
