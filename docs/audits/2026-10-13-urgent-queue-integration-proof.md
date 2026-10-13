@@ -30,3 +30,9 @@ QueueService's original registered handlers are wrapped only to observe start/co
 Latest published preceding Vite14a9935e exact CI38347293744 passed15Vite/55shared/66Next,201unit/265PostGIS,migrations/all builds. This queue batch is separate and unreviewed until its frozen checkpoint is accepted.
 
 Review corrections preserve offer-count invariants while allowing duplicate persisted timeout records, establish timeout causality with recovery isolated in only those cases, and identify both duplicate deliveries precisely. Guards/types rerun on corrected checkpoint; real database cases remain unexecuted locally.
+
+## First actual CI outcome and test-observer correction
+
+Publisheda09f42e CI38348707530 ran real PostGIS application cases: nearest delivery, captured persisted restart and actual minute recovery passed. The expiry case passed causal PENDING→EXPIRED/next offer and both distinct marked jobs completed, then failed a final test observer because another AppModule cron invocation had data:null. This is a harness TypeError, not an established runtime defect. Normal201unit/265PostGIS,15Vite/55shared/66Next and isolated migrations passed; frontend builds were skipped after the queue failure.
+
+The corrected observer requires the exact SEQUENTIAL_TIMEOUT name and optional-data marker before successful completion. New pure null-cron/wrong-name/exact-marker/unfinished/error assertions reproduced two failures with the previous predicate, then passed.13 safety/observer tests and API TypeScript pass locally. Causality/exact persisted job/offer-count assertions remain unchanged. Four real cases need corrected exact-head CI before a full queue proof claim.

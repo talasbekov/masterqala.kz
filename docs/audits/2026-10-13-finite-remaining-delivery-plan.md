@@ -37,3 +37,5 @@ Route inventory clarification:39 Next page files (client16/master8/operator10/si
 Latest recovery checkpoint: expected-red80250e CI38344304003 reproduced SEARCHING/NO_MASTERS transient-lock failure; true-empty control passed. Reviewed fix56dcaa6 CI38344891224 and shared extractiond4a77d53 CI38345584253 are GREEN with265PostGIS/201unit and all builds. Queue-enabled application recovery remains pending; the existing standalone pg-boss delivery self-test is already covered.
 
 Dedicated application queue proof is a separate test-only local batch: real30s expiry, persisted restart and minute missed-dispatch recovery, isolated loopback5434/masterqala_urgent_queue_ci and worker-quiescence guards. Four PostGIS cases are unexecuted until exact-head CI. See2026-10-13-urgent-queue-integration-proof.md.
+
+Actual queue CI update: a09f42e/run38348707530 ran all four isolated cases; three passed and expiry failed only after successful causal/job assertions on a test observer data:null TypeError. No runtime defect established. Test-only predicate correction adds two observed RED→GREEN regressions and needs corrected exact-head CI; previous green app builds remain14a9935e.

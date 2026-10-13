@@ -5,6 +5,7 @@ import PgBoss = require('pg-boss');
 import {PrismaService} from '../src/prisma/prisma.service';
 import {QueueService} from '../src/queue/queue.service';
 import {JOBS} from '../src/queue/queue.constants';
+import {completedMarkedTimeout} from './queue-observation';
 import {assertIsolatedQueueDatabase} from './queue-safety';
 import {ALMATY,createActiveMaster,createTestApp,loginAs,pointAtKm,resetDb,seedCategories} from './helpers';
 
@@ -119,7 +120,7 @@ describe('urgent lifecycle through real AppModule pg-boss workers',()=>{
   for(const testDeliveryMarker of markers)await queue.send(JOBS.SEQUENTIAL_TIMEOUT,{...timeout,testDeliveryMarker});
   const delivered=await until(()=>prisma.$queryRaw<{id:string;state:string;marker:string}[]>`SELECT id,state::text,data->>'testDeliveryMarker' AS marker FROM pgboss.job WHERE name=${JOBS.SEQUENTIAL_TIMEOUT} AND (data->>'testDeliveryMarker'=${markers[0]} OR data->>'testDeliveryMarker'=${markers[1]})`,rows=>rows.length===2&&rows.every(row=>row.state==='completed'),'both exact marked duplicate jobs completed');
   expect(new Set(delivered.map(row=>row.id)).size).toBe(2);expect(delivered.map(row=>row.marker).sort()).toEqual([...markers].sort());
-  for(const marker of markers)expect(calls.some(call=>call.data.testDeliveryMarker===marker&&call.finished&&!call.error)).toBe(true);
+  for(const marker of markers)expect(calls.some(call=>completedMarkedTimeout(call,marker))).toBe(true);
   expect(await offers(order.id)).toHaveLength(2);expect(calls.some(call=>call.error)).toBe(false);
  });
  it('stop/restart resumes persisted delayed timeout without dispatch/recovery shortcuts',async()=>{
