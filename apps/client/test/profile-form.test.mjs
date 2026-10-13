@@ -52,7 +52,7 @@ test('pending/loading suppress submit, error is accessible, and empty name remai
 
 
 test('profile layout source has no fixed 380px column on narrow screens', () => {
-  const css = readFileSync(new URL('../app/globals.css', import.meta.url), 'utf8');
+  const css = readFileSync(new URL('../../../packages/ui/src/account.css', import.meta.url), 'utf8');
   assert.match(css, /\.mq-profile-columns\s*\{[^}]*grid-template-columns:\s*minmax\(0, 1fr\)/);
   const page = readFileSync(new URL('../app/(app)/profile/page.tsx', import.meta.url), 'utf8');
   assert.doesNotMatch(page, /w-\[380px\]/);

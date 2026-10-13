@@ -38,3 +38,14 @@ export {useOwnedOrders} from './hooks/useOwnedOrders';
 export {OwnedOrdersView} from './OwnedOrdersView';
 export type {OwnedOrderLinkProps} from './OwnedOrdersView';
 export {ServiceAvailabilityView} from './ServiceAvailabilityView';
+
+export {ProfileForm} from './ProfileForm';
+export {AddressEditor,AddressDetails} from './AddressEditor';
+export type {AddressFormValue} from './AddressEditor';
+export {useOwnedAccountResource} from './hooks/useOwnedAccountResource';
+export type {AccountApi} from './hooks/useOwnedAccountResource';
+export {AccountProfileView} from './AccountProfileView';
+export type {AccountProfile} from './AccountProfileView';
+export {AccountAddressBook} from './AccountAddressBook';
+export type {SavedAccountAddress} from './AccountAddressBook';
+export {LanguageDialogController,useLanguageDialog} from './LanguageDialogController';

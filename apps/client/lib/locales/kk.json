@@ -72,7 +72,9 @@
     "delete": "Жою",
     "entranceShort": "кір.",
     "floorShort": "қаб.",
-    "apartmentShort": "пәт."
+    "apartmentShort": "пәт.",
+    "back": "Артқа",
+    "deleting": "Жойылуда…"
   },
   "navigation": {
     "order": "Шебер шақыру",

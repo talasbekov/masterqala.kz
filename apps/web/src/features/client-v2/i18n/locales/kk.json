@@ -51,5 +51,56 @@
   },
   "home": {
     "urgentButton": "Шұғыл шебер шақыру"
+  },
+  "profile": {
+    "title": "Менің профилім",
+    "subtitle": "Аккаунт баптаулары және байланыс мәліметтері.",
+    "personalTitle": "Жеке деректер",
+    "nameLabel": "Аты",
+    "phoneLabel": "Телефон",
+    "languageLabel": "Тіл",
+    "saving": "Сақталуда…",
+    "save": "Сақтау",
+    "noName": "Аты көрсетілмеген",
+    "editName": "Өзгерту",
+    "items": {
+      "addresses": "Мекенжайлар",
+      "payments": "Төлем тәсілдері",
+      "notifications": "Хабарландырулар",
+      "support": "Қолдау"
+    },
+    "becomeMasterTitle": "Шебер болу",
+    "becomeMasterSubtitle": "Дағдыларыңызбен табыс табыңыз — тексеру 1–2 күн.",
+    "becomeMasterLink": "Толығырақ",
+    "wallet": "Әмиян",
+    "adminPanel": "Оператор панелі",
+    "logout": "Аккаунттан шығу",
+    "blockedUntil": "Жаңа тапсырыстарға қолжетімділік {{date}} дейін уақытша шектелген"
+  },
+  "addresses": {
+    "title": "Менің мекенжайларым",
+    "addNew": "Мекенжай қосу",
+    "empty": "Сақталған мекенжайлар жоқ",
+    "change": "өзгерту",
+    "addTitle": "Жаңа мекенжай",
+    "editTitle": "Мекенжайды өзгерту",
+    "label": "Атауы",
+    "labelPlaceholder": "Мысалы, үй немесе жұмыс",
+    "addressLabel": "Көше және үй",
+    "addressPlaceholder": "Көше мен үй нөмірін енгізіңіз",
+    "entrance": "Кіреберіс",
+    "floor": "Қабат",
+    "apartment": "Пәтер",
+    "commentLabel": "Түсініктеме",
+    "commentPlaceholder": "Қосымша мәліметтер",
+    "setDefault": "Негізгі мекенжай ету",
+    "save": "Сақтау",
+    "saving": "Сақталуда…",
+    "delete": "Жою",
+    "entranceShort": "кір.",
+    "floorShort": "қаб.",
+    "apartmentShort": "пәт.",
+    "back": "Артқа",
+    "deleting": "Жойылуда…"
   }
 }

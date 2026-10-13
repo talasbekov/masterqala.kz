@@ -218,10 +218,23 @@
       "notifications": "Уведомления",
       "support": "Поддержка"
     },
-    "logout": "Выйти из аккаунта"
+    "becomeMasterTitle": "Стать мастером",
+    "becomeMasterSubtitle": "Зарабатывайте на своих навыках — верификация за 1–2 дня.",
+    "becomeMasterLink": "Подробнее",
+    "wallet": "Кошелёк",
+    "adminPanel": "Панель оператора",
+    "logout": "Выйти из аккаунта",
+    "blockedUntil": "Доступ к новым заявкам временно ограничен до {{date}}",
+    "title": "Мой профиль",
+    "subtitle": "Настройки аккаунта и контакты.",
+    "personalTitle": "Личные данные",
+    "nameLabel": "Имя",
+    "phoneLabel": "Телефон",
+    "languageLabel": "Язык",
+    "saving": "Сохранение…"
   },
   "addresses": {
-    "title": "Адреса",
+    "title": "Мои адреса",
     "addNew": "Добавить адрес",
     "empty": "Сохранённых адресов пока нет",
     "change": "изменить",
@@ -235,7 +248,16 @@
     "commentPlaceholder": "Комментарий",
     "setDefault": "Сделать основным",
     "save": "Сохранить",
-    "delete": "Удалить"
+    "delete": "Удалить",
+    "label": "Название",
+    "addressLabel": "Улица и дом",
+    "commentLabel": "Комментарий",
+    "saving": "Сохранение…",
+    "entranceShort": "под.",
+    "floorShort": "эт.",
+    "apartmentShort": "кв.",
+    "back": "Назад",
+    "deleting": "Удаление…"
   },
   "support": {
     "title": "Поддержка",

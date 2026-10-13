@@ -267,7 +267,9 @@
     "saving": "Сохранение…",
     "entranceShort": "под.",
     "floorShort": "эт.",
-    "apartmentShort": "кв."
+    "apartmentShort": "кв.",
+    "back": "Назад",
+    "deleting": "Удаление…"
   },
   "support": {
     "title": "Поддержка",

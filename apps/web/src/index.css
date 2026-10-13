@@ -1,5 +1,8 @@
 @import "tailwindcss";
 @import "@masterqala/ui/tokens.css";
+@import "@masterqala/ui/controls.css";
+@import "@masterqala/ui/locale.css";
+@import "@masterqala/ui/account.css";
 @source "../../../packages/ui/src";
 
 body {

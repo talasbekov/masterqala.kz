@@ -1,8 +1,8 @@
 # Fixed 55-route × locale remaining checklist
 
-Published baseline: b65ea861e6f1d77a3ffa5f6bd21685e023958a55, including reviewed owned-orders lists and source-token CTA correction; exact-head CI38373382030 is green. The local availability batch adds honest UI coverage while retaining four unimplemented service contracts. Buckets: 16 dependency-gated, 4 unimplemented service contracts, 24 other unimplemented parity/locales, 11 scoped implementations. Source/static inventory, not rendered acceptance. Verified means only the named scoped implementation/tests, never whole-route/Figma readiness. Every route still requires permitted native geometry/live evidence.
+Published baseline:14f7ed85fd2d98b7daa8a143864e288063893578; exact-head CI38375413821 is green. Local account reuse adds two scoped Vite routes and strengthens both-client owner-safe controllers. Buckets:16 dependency-gated,4 unimplemented service contracts,22 other unimplemented parity/locales,13 scoped implementations. Source/static inventory, not rendered acceptance. Verified means only the named scoped implementation/tests, never whole-route/Figma readiness. Every route still requires permitted native geometry/live evidence.
 
-Dictionary leaves: Next client RU255 /KK113 /EN113; common,newOrder,profile,addresses,navigation complete, auth24/25 (splashTagline missing),11other sections fallback. Vite RU217 /KK45 /EN45; common/newOrder and the four visible tabs are complete; home has only the new-request aria-label, and other sections remain incomplete. Owned orders uses the separate shared dictionary. Shared direct-order dictionary is separate and supports all3languages.
+Dictionary leaves: Next client RU257/KK115/EN115; common,newOrder,profile21,addresses24,navigation complete, auth24/25 (splashTagline missing),11 other sections fallback. Vite RU239/KK90/EN90; common/newOrder/profile21/addresses24 and four visible tabs complete; home has only the new-request aria-label, other sections remain incomplete. Owned orders, availability and direct-order dictionaries are separate shared three-language resources.
 
 | Bucket | App / route | RU/KK/EN evidence | Gate / remaining boundary |
 | --- | --- | --- | --- |
@@ -49,8 +49,8 @@ Dictionary leaves: Next client RU255 /KK113 /EN113; common,newOrder,profile,addr
 | Unimplemented service contract | web `/notifications` | Shared RU/KK/EN honest availability UI and internal navigation; mounted route/draft tests | Persisted owner-safe feed/push unimplemented; no true-empty or fabricated event assertion; native parity unverified |
 | Unimplemented parity/locales | web `/order/:id/dispute` | RU present; KK/EN page sections fall back to RU | Native rendered/live acceptance unverified (global) |
 | Verified scoped implementation | web `/orders` | Shared RU/KK/EN active/history, truthful amounts, owner-safe partial GET/retry; mounted route tests | Native geometry/live APIs and full desktop controls/assets unverified |
-| Unimplemented parity/locales | web `/profile` | RU present; KK/EN page sections fall back to RU | Native rendered/live acceptance unverified (global) |
-| Unimplemented parity/locales | web `/profile/addresses` | RU present; KK/EN page sections fall back to RU | Native rendered/live acceptance unverified (global) |
+| Verified scoped implementation | web `/profile` | Shared accessible profile form, owner-safe read/write guards and RU/KK/EN profile section; query-owned locale dialog | Native rendered/live acceptance unverified (global) |
+| Verified scoped implementation | web `/profile/addresses` | Shared owner-safe address CRUD controller, labelled forms, complete RU/KK/EN section; fixture tests only | Native rendered/live acceptance unverified (global) |
 | Unimplemented service contract | web `/support` | Shared RU/KK/EN honest availability UI and internal navigation; mounted route/draft tests | General contact/intake unimplemented; no verified contact; existing financial dispute window unchanged; native parity unverified |
 | Verified scoped implementation | client `/addresses` | RU/KK/EN section complete; reviewed form interactions | Native rendered/live acceptance unverified (global) |
 | Verified scoped implementation | client `/login` | RU/KK/EN auth24/25; unused splashTagline missing | Native rendered/live acceptance unverified (global) |

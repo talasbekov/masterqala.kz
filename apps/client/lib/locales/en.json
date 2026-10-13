@@ -72,7 +72,9 @@
     "delete": "Delete",
     "entranceShort": "entr.",
     "floorShort": "fl.",
-    "apartmentShort": "apt."
+    "apartmentShort": "apt.",
+    "back": "Back",
+    "deleting": "Deleting…"
   },
   "navigation": {
     "order": "Book a master",

@@ -51,5 +51,56 @@
   },
   "home": {
     "urgentButton": "Request an urgent specialist"
+  },
+  "profile": {
+    "title": "My profile",
+    "subtitle": "Account settings and contacts.",
+    "personalTitle": "Personal details",
+    "nameLabel": "Name",
+    "phoneLabel": "Phone",
+    "languageLabel": "Language",
+    "saving": "Saving…",
+    "save": "Save",
+    "noName": "No name",
+    "editName": "Edit",
+    "items": {
+      "addresses": "Addresses",
+      "payments": "Payment methods",
+      "notifications": "Notifications",
+      "support": "Support"
+    },
+    "becomeMasterTitle": "Become a master",
+    "becomeMasterSubtitle": "Earn with your skills. Verification takes 1–2 days.",
+    "becomeMasterLink": "Learn more",
+    "wallet": "Wallet",
+    "adminPanel": "Operator panel",
+    "logout": "Sign out",
+    "blockedUntil": "Access to new orders is temporarily restricted until {{date}}"
+  },
+  "addresses": {
+    "title": "My addresses",
+    "addNew": "Add address",
+    "empty": "No saved addresses yet",
+    "change": "edit",
+    "addTitle": "New address",
+    "editTitle": "Edit address",
+    "label": "Name",
+    "labelPlaceholder": "For example, home or work",
+    "addressLabel": "Street and building",
+    "addressPlaceholder": "Enter street and building number",
+    "entrance": "Entrance",
+    "floor": "Floor",
+    "apartment": "Apartment",
+    "commentLabel": "Comment",
+    "commentPlaceholder": "Additional details",
+    "setDefault": "Set as default",
+    "save": "Save",
+    "saving": "Saving…",
+    "delete": "Delete",
+    "entranceShort": "entr.",
+    "floorShort": "fl.",
+    "apartmentShort": "apt.",
+    "back": "Back",
+    "deleting": "Deleting…"
   }
 }

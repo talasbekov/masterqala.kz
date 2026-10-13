@@ -7,3 +7,5 @@ body {
   color: var(--color-ink);
   font-family: var(--font-sans);
 }
+
+@import "./account.css";

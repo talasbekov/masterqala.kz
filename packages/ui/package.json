@@ -14,13 +14,15 @@
     "./tokens.css": "./src/tokens.css",
     "./styles.css": "./dist/styles.css",
     "./controls.css": "./src/controls.css",
-    "./locale.css": "./src/locale.css"
+    "./locale.css": "./src/locale.css",
+    "./account.css": "./src/account.css"
   },
   "files": [
     "dist",
     "src/tokens.css",
     "src/controls.css",
-    "src/locale.css"
+    "src/locale.css",
+    "src/account.css"
   ],
   "scripts": {
     "build": "tsup src/index.ts --format esm --dts --external react --external react-dom && tailwindcss -i ./src/styles.css -o ./dist/styles.css --minify",
