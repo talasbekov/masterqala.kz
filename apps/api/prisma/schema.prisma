@@ -30,6 +30,7 @@ model User {
   presence               MasterPresence?
   masterProfile          MasterProfile?
   masterWalletAccount    MasterWalletAccount?
+  orderCreationRequests  OrderCreationRequest[]
   clientOrders           Order[]                 @relation("ClientOrders")
   masterOrders           Order[]                 @relation("MasterOrders")
   offers                 OrderOffer[]
@@ -133,7 +134,22 @@ model VerificationDecision {
   operator        User          @relation(fields: [operatorId], references: [id])
 }
 
+model OrderCreationRequest {
+  id                 String   @id @default(uuid())
+  ownerId            String
+  requestKey         String
+  payloadHash        String
+  orderId            String   @unique
+  successfulResponse Json?
+  createdAt          DateTime @default(now())
+  owner              User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  order              Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@unique([ownerId, requestKey])
+}
+
 model Order {
+  creationRequest OrderCreationRequest?
   lifecycleVersion Int @default(1)
   dispatchMode String @default("WAVE")
   departedAt DateTime?

@@ -1,6 +1,6 @@
 # Current-order creation idempotency proposal
 
-Status: design only; backend implementation requires review. Applies to POST /orders, not planned orders, payments or quote actions.
+Status: approved design; implementation remains review-gated. Applies to POST /orders, not planned orders, payments or quote actions.
 
 ## Existing evidence
 
@@ -12,7 +12,7 @@ Status: design only; backend implementation requires review. Applies to POST /or
 
 ## Proposed contract and storage
 
-Add optional UUID `clientRequestId` to validated CreateOrderDto, preserving callers that omit it. The client allocates one stable key for an intentional submission and retains it while its result is uncertain; editing a previously submitted payload must not silently reuse that key.
+Add optional UUID `clientRequestId` to validated CreateOrderDto, preserving callers that omit it. Provide a dedicated POST /orders/idempotent with a required UUID DTO so old APIs return404 before mutation instead of silently stripping an unknown field. The client never falls back to the legacy route from a keyed submission. The client allocates one stable key for an intentional submission and retains it while its result is uncertain; editing a previously submitted payload must not silently reuse that key.
 
 Add `OrderCreationRequest` with ownerId (User relation), requestKey, payloadHash, orderId (Order relation), optional successfulResponse JSON, createdAt. Add a unique `(ownerId, requestKey)` constraint and unique orderId. Historical orders have no associated request record. This is an additive table/migration, not a legacy backfill or fee change.
 

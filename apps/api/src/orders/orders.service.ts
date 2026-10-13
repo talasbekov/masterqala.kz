@@ -9,6 +9,7 @@ import {
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { Order, Prisma, User } from '@prisma/client';
+import {creationPayloadHash} from './order-creation-request.service';
 import { DirectOrderLifecycleService } from './direct-order-lifecycle.service';
 import { CommercialModeService } from '../commercial-mode/commercial-mode.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -77,17 +78,22 @@ export class OrdersService implements OnModuleInit {
     return quote ? { available: true, ...quote } : { available: false };
   }
 
-  async create(clientId: string, dto: CreateOrderDto) {
+  async createWithRequest(clientId:string,dto:CreateOrderDto){return this.createInternal(clientId,dto);}
+
+  async create(clientId: string, dto: CreateOrderDto) {return (await this.createInternal(clientId,dto)).order;}
+
+  private async createInternal(clientId:string,dto:CreateOrderDto) {
     const category = await this.prisma.category.findUnique({
       where: { id: dto.categoryId },
     });
     if (!category) throw new BadRequestException('Неизвестная категория');
 
-    const active = await this.prisma.order.count({
-      where: { clientId, status: { in: ACTIVE_CLIENT_STATUSES } },
-    });
-    if (active > 0)
-      throw new ConflictException('У вас уже есть активная заявка');
+    // A keyed replay may commit after the coordinator's initial lookup.
+    // Do not reject it through an unlocked outside active-order count.
+    if(!dto.clientRequestId){
+      const active=await this.prisma.order.count({where:{clientId,status:{in:ACTIVE_CLIENT_STATUSES}}});
+      if(active>0)throw new ConflictException('У вас уже есть активная заявка');
+    }
 
     const direct = this.commercialMode.mode() === 'DIRECT_PAYMENT';
     const quote = direct ? { calloutPrice: 0, serviceFee: 0 } : await this.pricing.quote(
@@ -97,8 +103,15 @@ export class OrdersService implements OnModuleInit {
     );
     if (!quote) throw new UnprocessableEntityException('Мастеров рядом нет');
 
-    const order = await this.prisma.$transaction(async (tx) => {
+    const creation = await this.prisma.$transaction(async (tx) => {
       await tx.$queryRaw`SELECT id FROM "User" WHERE id=${clientId} FOR UPDATE`;
+      if(dto.clientRequestId){
+        const previous=await tx.orderCreationRequest.findUnique({where:{ownerId_requestKey:{ownerId:clientId,requestKey:dto.clientRequestId}}});
+        if(previous){
+          if(previous.payloadHash!==creationPayloadHash(dto))throw new ConflictException('IDEMPOTENCY_PAYLOAD_MISMATCH');
+          return {orderId:previous.orderId,replayed:true as const,created:null};
+        }
+      }
       if (await tx.order.count({where:{clientId,status:{in:ACTIVE_CLIENT_STATUSES}}})) {
         throw new ConflictException('У вас уже есть активная заявка');
       }
@@ -131,8 +144,11 @@ export class OrdersService implements OnModuleInit {
           data: dto.photoPaths.map((path) => ({ orderId: created.id, path })),
         });
       }
-      return created;
+      if(dto.clientRequestId)await tx.orderCreationRequest.create({data:{ownerId:clientId,requestKey:dto.clientRequestId,payloadHash:creationPayloadHash(dto),orderId:created.id}});
+      return {orderId:created.id,replayed:false as const,created};
     });
+    if(creation.replayed)return {order:await this.findOrThrow(creation.orderId),replayed:true};
+    const order=creation.created;
 
     // Холд на полную стоимость выезда, не только на сбор: при ПРИНЯТА капчится
     // целиком, платформа удерживает serviceFee себе, остаток уходит мастеру
@@ -143,7 +159,7 @@ export class OrdersService implements OnModuleInit {
     if (!direct) await this.payments.hold(order.id, order.calloutPrice);
     await this.gate(order.id, 'CREATED', { status: 'SEARCHING' });
     await this.queue.send(direct ? JOBS.SEQUENTIAL_DISPATCH : JOBS.WAVE, direct ? {orderId:order.id,attempt:order.searchAttempt} : { orderId: order.id, wave: 1 });
-    return this.findOrThrow(order.id);
+    return {order:await this.findOrThrow(order.id),replayed:false};
   }
 
   async getActive(clientId: string) {
