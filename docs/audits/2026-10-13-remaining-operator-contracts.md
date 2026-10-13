@@ -38,3 +38,7 @@ Manual delivery retry is non-idempotent: it creates a fresh UUID/dedupeKey MANUA
 ## Archived withdrawals remain held
 
 Existing route resolves legacy PAID/FAILED outcomes and may alter funds/accounting. Product migration/archival decisions and financial boundaries are unresolved. Do not retrofit direct-payment settlement, transfer/retry or remove history. Existing page remains unverified, without real actions.
+
+## Scoped progress after users publication
+
+Users a720c8a / CI38422104369 is fully green: 120 operator fixtures,201 API units,265 PostGIS,17 queue/guard tests,both migrations/all builds. Eight of ten existing operator routes now have published scoped implementations. Security observability local controller/route follows its separately approved spec, with immutable verified dashboard availability for manual delivery, positive original alert read guards and unresolved uncertain delivery requests. Archived withdrawals remains held. Full source account-security/ADMIN configuration and native/live acceptance remain unimplemented.

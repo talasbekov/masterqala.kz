@@ -21,3 +21,5 @@ export {useOperatorDisputeReads,useOperatorResolution,financialChoices} from "..
 export {default as Disputes} from '../app/(app)/disputes/page';
 export {useOperatorUserRead,useOperatorUserAction} from '../lib/operator-users-controller';
 export {default as Users} from '../app/(app)/users/page';
+export {useOperatorSecurityReads,useOperatorSecurityAction} from '../lib/operator-security-controller';
+export {default as Security} from '../app/(app)/security/page';

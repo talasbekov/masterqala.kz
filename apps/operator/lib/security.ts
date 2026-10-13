@@ -6,6 +6,7 @@ export interface Dependency {
   enabled?: boolean;
   mode?: string;
   lastError?: string | null;
+  error?: string | null;
 }
 
 export interface SecurityAlert {
