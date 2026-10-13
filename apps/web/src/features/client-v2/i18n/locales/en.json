@@ -102,5 +102,31 @@
     "apartmentShort": "apt.",
     "back": "Back",
     "deleting": "Deleting…"
+  },
+  "auth": {
+    "pageTitle": "Sign in to MasterQala",
+    "pageSubtitle": "One account to book services and work as a master.",
+    "phoneTitle": "Sign in with your phone number",
+    "phoneLabel": "Phone number",
+    "phoneSubtitle": "We will send a confirmation code by SMS.",
+    "phonePlaceholder": "701 123 45 67",
+    "confirmTitle": "Confirm your number",
+    "codeLabel": "SMS code",
+    "codeHelp": "Enter the 6 digits from the message.",
+    "country": "Kazakhstan · +7",
+    "accountTitle": "One number, your account",
+    "accountDescription": "Your orders and profile are saved. No password needed.",
+    "requesting": "Sending code…",
+    "verifying": "Checking code…",
+    "getCodeButton": "Get code",
+    "smsTitle": "Enter the SMS code",
+    "smsSubtitle": "Code sent to {{phone}}.",
+    "resendIn": "Send again in {{time}}",
+    "resendNow": "Send code again",
+    "loginButton": "Sign in",
+    "changeNumber": "Change number",
+    "termsPrefix": "By continuing, you agree to the",
+    "termsLink": "terms of service",
+    "phonePanelTitle": "Sign in by phone"
   }
 }

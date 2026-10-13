@@ -3,6 +3,7 @@
 @import "@masterqala/ui/controls.css";
 @import "@masterqala/ui/locale.css";
 @import "@masterqala/ui/account.css";
+@import "@masterqala/ui/login.css";
 @source "../../../packages/ui/src";
 
 body {

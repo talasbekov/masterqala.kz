@@ -3,6 +3,7 @@
 @import "@masterqala/ui/controls.css";
 @import "@masterqala/ui/locale.css";
 @import "@masterqala/ui/account.css";
+@import "@masterqala/ui/login.css";
 @source "../app";
 @source "../components";
 @source "../lib";
@@ -14,55 +15,6 @@ body {
 }
 
 @source "../../../packages/ui/src";
-
-.mq-login-content { width: 100%; max-width: 1328px; margin: 40px auto 0; padding: 32px 24px; font-family: Inter, Arial, sans-serif; }
-.mq-login-content h1 { margin: 0 0 24px; color: #123b52; font: 600 32px/1.4 Inter, Arial, sans-serif; }
-.mq-login-content > p { margin: 0 0 24px; color: #666; font: 400 16px/1.5 Inter, Arial, sans-serif; }
-.mq-login-form { display: flex; flex-direction: column; align-items: stretch; gap: 16px; width: min(832px, 100%); padding: 24px; border-radius: 16px; background: white; }
-.mq-login-form h2 { margin: 0; color: #123b52; font: 600 20px/1.4 Inter, Arial, sans-serif; }
-.mq-login-form p { margin: 0; color: #666; font: 400 16px/1.5 Inter, Arial, sans-serif; }
-.mq-login-actions { display: flex; flex-direction: column; gap: 8px; }
-.mq-login-account-note, .mq-login-country { display: none; }
-.mq-login-form .mq-login-terms { font-size: 12px; }
-@media (max-width: 767px) {
-  .mq-login-content { margin: 0; padding: 24px; background: white; }
-  .mq-login-content h1 { font-weight: 500; font-size: 28px; line-height: 34px; }
-  .mq-login-content > p { font-size: 14px; line-height: 21px; }
-  .mq-login-form { padding: 0; gap: 24px; }
-  .mq-login-form h2 { font-size: 16px; }
-  .mq-login-form p { font-size: 14px; line-height: 21px; }
-  .mq-login-account-note { display: flex; flex-direction: column; gap: 12px; padding: 16px; border-radius: 16px; background: #f4f3ef; }
-  .mq-login-account-note h3 { margin: 0; color: #123b52; font: 600 14px/1.3 Inter, Arial, sans-serif; }
-  .mq-login-form .mq-login-country { display: block; }
-  .mq-login-actions > button { min-height: 56px; }
-}
-.mq-login-title-mobile { display: none; }
-@media (min-width: 768px) {
-  .mq-login-form[data-step='phone'] .mq-field { order: 1; }
-  .mq-login-form[data-step='phone'] .mq-login-actions { order: 2; }
-  .mq-login-form[data-step='phone'] .mq-login-explainer { order: 3; }
-  .mq-login-form[data-step='phone'] .mq-login-terms { order: 4; }
-}
-@media (max-width: 767px) {
-  .mq-auth-main { padding-bottom: 0; display: flex; flex-direction: column; }
-  .mq-login-content { flex: 1; display: flex; flex-direction: column; }
-  .mq-login-content > p, .mq-login-title-web, .mq-login-form h2 { display: none; }
-  .mq-login-title-mobile { display: inline; }
-  .mq-login-form { flex: 1; }
-  .mq-login-form .mq-login-explainer { order: -1; }
-  .mq-login-actions { margin-top: auto; padding-top: 12px; padding-bottom: env(safe-area-inset-bottom, 0px); }
-}
-.mq-login-sms-mobile { display: none; }
-@media (max-width: 767px) {
-  .mq-login-sms-web { display: none; }
-  .mq-login-sms-mobile { display: block; }
-  .mq-code[data-error='true'] .mq-code-editor:focus-within { outline: 2px solid #123b52; outline-offset: 2px; }
-}
-
-
-/* Auth route owns its viewport; direct-order shells remain unchanged. */
-.mq-auth-shell { min-height: 100dvh; display: flex; flex-direction: column; }
-.mq-auth-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 
 /* Image-free desktop header 93:1599; mobile fallback retains routes without sidebar width. */
 

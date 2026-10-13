@@ -102,5 +102,31 @@
     "apartmentShort": "пәт.",
     "back": "Артқа",
     "deleting": "Жойылуда…"
+  },
+  "auth": {
+    "pageTitle": "MasterQala-ға кіру",
+    "pageSubtitle": "Тапсырыс беруге және шебер болып жұмыс істеуге арналған бір аккаунт.",
+    "phoneTitle": "Телефон нөмірі арқылы кіріңіз",
+    "phoneLabel": "Телефон нөмірі",
+    "phoneSubtitle": "Растау кодын SMS арқылы жібереміз.",
+    "phonePlaceholder": "701 123 45 67",
+    "confirmTitle": "Нөмірді растау",
+    "codeLabel": "SMS коды",
+    "codeHelp": "Хабарламадағы 6 санды енгізіңіз.",
+    "country": "Қазақстан · +7",
+    "accountTitle": "Бір нөмір — сіздің аккаунтыңыз",
+    "accountDescription": "Тапсырыстарыңыз бен профиліңіз сақталады. Құпиясөз қажет емес.",
+    "requesting": "Код жіберілуде…",
+    "verifying": "Код тексерілуде…",
+    "getCodeButton": "Код алу",
+    "smsTitle": "SMS кодын енгізіңіз",
+    "smsSubtitle": "Код {{phone}} нөміріне жіберілді.",
+    "resendIn": "{{time}} уақыттан кейін қайта жіберу",
+    "resendNow": "Кодты қайта жіберу",
+    "loginButton": "Кіру",
+    "changeNumber": "Нөмірді өзгерту",
+    "termsPrefix": "Жалғастыру арқылы сіз",
+    "termsLink": "қызмет шарттарымен келісесіз",
+    "phonePanelTitle": "Телефон нөмірімен кіру"
   }
 }

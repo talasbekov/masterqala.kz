@@ -93,7 +93,7 @@ test('resending and verifying present busy status only on the actual asynchronou
 
 test('auth layout supplies viewport-height flex ancestors for mobile bottom actions', () => {
   const layout = readFileSync(new URL('../app/(auth)/layout.tsx', import.meta.url), 'utf8');
-  const css = readFileSync(new URL('../app/globals.css', import.meta.url), 'utf8');
+  const css = readFileSync(new URL('../../../packages/ui/src/login.css', import.meta.url), 'utf8');
   assert.match(layout, /className="mq-auth-shell"/);
   assert.match(layout, /className="mq-auth-main"/);
   assert.match(css, /\.mq-auth-shell\s*\{[^}]*min-height:\s*100dvh;[^}]*display:\s*flex;[^}]*flex-direction:\s*column/);

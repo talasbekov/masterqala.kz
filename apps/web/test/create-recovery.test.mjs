@@ -67,7 +67,7 @@ test('explicit Vite logout clears owner pending/draft without clearing locale',a
 function inputValue(input,value){Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype,'value').set.call(input,value);input.dispatchEvent(new window.Event('input',{bubbles:true}));}
 test('actual Vite login resumes safe interrupted current-order route with query/hash',async()=>{
  reset();localStorage.removeItem('user');localStorage.removeItem('token');const app=await mount({initialEntry:'/login?returnTo='+encodeURIComponent('/order/new?draft=yes#address')});
- try{await act(async()=>button('MasterQala').click());await act(async()=>inputValue(document.querySelector('input'),'7010000000'));await act(async()=>button('Получить код').click());await act(async()=>inputValue(document.querySelector('input'),'123456'));await act(async()=>button('Войти').click());assert.equal(document.querySelector('[data-location]').textContent,'/order/new?draft=yes#address');}
+ try{assert.ok(document.querySelector('input[name="phone"]')); await act(async()=>inputValue(document.querySelector('input'),'7010000000'));await act(async()=>button('Получить код').click());await act(async()=>inputValue(document.querySelector('input'),'123456'));await act(async()=>button('Войти').click());assert.equal(document.querySelector('[data-location]').textContent,'/order/new?draft=yes#address');}
  finally{await app.cleanup()}
 });
 
@@ -102,7 +102,7 @@ test('actual Vite auth guard retains protected destination including query/hash'
  finally{await app.cleanup()}
 });
 test('actual SMS login refuses external return URL and login-loop destination',async()=>{
- for(const target of ['https://evil.example/path','//evil.example/path','/login?returnTo=/order/new','/%2f%2fevil.example']){reset();localStorage.removeItem('user');const app=await mount({initialEntry:'/login?returnTo='+encodeURIComponent(target)});try{await act(async()=>button('MasterQala').click());await act(async()=>inputValue(document.querySelector('input'),'7010000000'));await act(async()=>button('Получить код').click());await act(async()=>inputValue(document.querySelector('input'),'123456'));await act(async()=>button('Войти').click());assert.equal(document.querySelector('[data-location]').textContent,'/');}finally{await app.cleanup()}}
+ for(const target of ['https://evil.example/path','//evil.example/path','/login?returnTo=/order/new','/%2f%2fevil.example']){reset();localStorage.removeItem('user');const app=await mount({initialEntry:'/login?returnTo='+encodeURIComponent(target)});try{assert.ok(document.querySelector('input[name="phone"]')); await act(async()=>inputValue(document.querySelector('input'),'7010000000'));await act(async()=>button('Получить код').click());await act(async()=>inputValue(document.querySelector('input'),'123456'));await act(async()=>button('Войти').click());assert.equal(document.querySelector('[data-location]').textContent,'/');}finally{await app.cleanup()}}
 });
 test('offline creation remains editable and sends no POST until connectivity returns',async()=>{
  reset();seedDraft();const posts=[];const app=await mount({post:async(...args)=>{posts.push(args);return response({id:'created'})}});const descriptor=Object.getOwnPropertyDescriptor(navigator,'onLine');

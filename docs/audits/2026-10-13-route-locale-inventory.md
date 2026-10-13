@@ -1,8 +1,8 @@
 # Fixed 55-route × locale remaining checklist
 
-Published baseline:14f7ed85fd2d98b7daa8a143864e288063893578; exact-head CI38375413821 is green. Local account reuse adds two scoped Vite routes and strengthens both-client owner-safe controllers. Buckets:16 dependency-gated,4 unimplemented service contracts,22 other unimplemented parity/locales,13 scoped implementations. Source/static inventory, not rendered acceptance. Verified means only the named scoped implementation/tests, never whole-route/Figma readiness. Every route still requires permitted native geometry/live evidence.
+Published baseline:547c419237ef094ae7bd228940e948b01d9b997f; exact-head CI38378524380 is green. Local login reuse strengthens both-client lifetime/request guards and Vite auth presentation/localization. Buckets:16 dependency-gated,4 unimplemented service contracts,22 other unimplemented parity/locales,13 scoped implementations. Source/static inventory, not rendered acceptance. Verified means only the named scoped implementation/tests, never whole-route/Figma readiness. Every route still requires permitted native geometry/live evidence.
 
-Dictionary leaves: Next client RU257/KK115/EN115; common,newOrder,profile21,addresses24,navigation complete, auth24/25 (splashTagline missing),11 other sections fallback. Vite RU239/KK90/EN90; common/newOrder/profile21/addresses24 and four visible tabs complete; home has only the new-request aria-label, other sections remain incomplete. Owned orders, availability and direct-order dictionaries are separate shared three-language resources.
+Dictionary leaves: Next client RU257/KK115/EN115; common,newOrder,profile21,addresses24,navigation complete, auth24/25 (splashTagline missing),11 other sections fallback. Vite RU251/KK114/EN114; visible auth24 (unused splashTagline missing in KK/EN),common/newOrder/profile21/addresses24 and four visible tabs complete; home has only the new-request aria-label, other sections remain incomplete. Owned orders, availability and direct-order dictionaries are separate shared three-language resources.
 
 | Bucket | App / route | RU/KK/EN evidence | Gate / remaining boundary |
 | --- | --- | --- | --- |
@@ -58,7 +58,7 @@ Dictionary leaves: Next client RU257/KK115/EN115; common,newOrder,profile21,addr
 | Verified scoped implementation | client `/order/new` | RU/KK/EN newOrder35+common5; server content remains actual | Native rendered/live acceptance unverified (global) |
 | Verified scoped implementation | client `/profile` | RU/KK/EN section complete; reviewed form interactions | Native rendered/live acceptance unverified (global) |
 | Verified scoped implementation | master `/order/[id]` | Shared direct view RU/KK/EN | Native rendered/live acceptance unverified (global) |
-| Verified scoped implementation | web `/login` | RU present; KK/EN page sections fall back to RU | Native rendered/live acceptance unverified (global) |
+| Verified scoped implementation | web `/login` | Shared phone/OTP form and lifetime/request guards; visible auth RU/KK/EN complete, safe-return/draft mounted tests | Native rendered/live acceptance unverified (global) |
 | Verified scoped implementation | web `/order/:id` | Shared direct branch RU/KK/EN; legacy orderDetail RU fallback | Native rendered/live acceptance unverified (global) |
 | Verified scoped implementation | web `/order/new` | RU/KK/EN newOrder35+common5; server content actual | Native rendered/live acceptance unverified (global) |
 
