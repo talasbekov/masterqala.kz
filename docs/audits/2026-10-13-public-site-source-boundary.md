@@ -23,8 +23,13 @@ Small commits: canonical shell/data safeguards; localized existing views and ret
 After reviewed publication and exact-head CI, stop new implementation and consolidate fixed 55-route inventory plus remaining product/API/architecture/access decisions. General support/contact/feed, planned-v2, ADMIN/last-admin, archived withdrawals, ordinary callout policy, PWA/push, public assets/directory and real SMS/two-role/browser acceptance remain gates rather than silently added features.
 
 
-## Configuration and current local verification
+## Configuration and dated local verification
 
 Set `API_URL` to the actual API base, `APP_URL` to the actual HTTP(S) client base and `MASTER_APP_URL` to the actual HTTP(S) master base. No production destination is guessed; absent/invalid destinations have no actionable link. Optional `CONTACT_PHONE`/`CONTACT_EMAIL` are displayed only when configured and syntactically valid, without an operational-service claim. Public read retry uses uncached category GET so an invalid successful response is not retained for a day. Actual backend names remain untranslated content.
 
 Pinned local production compilation and type validation succeeded; page-data collection is blocked by `ECONNREFUSED` to the absent local API in `generateStaticParams`. This is an actual blocked build, not a full pass. Exact-head CI starts the real API for the site build and must establish full build success before publication is described as verified.
+
+
+## Reviewed publication — 2026-10-13 16:25 UTC
+
+Frozen local `83cd55e2` was independently accepted and published as `6399efdb4fafe17c11eea92edaf650da85db334d`, with exact tree `39bc08376d17283614b32677ad3688f7faa26540` and empty fetched diff. CI38429305501 passed29 site fixtures and the full real API-backed site build, plus all other frontend/API/PostGIS/queue checks and migrations. This later result resolves the API-availability build limitation for the published head without erasing the earlier local ECONNREFUSED failure. Existing photos/layout, native/SEO/live and Kazakh native-review limits remain unchanged. The final independent-work boundary is37 scoped/4 service contracts/14 dependencies across55 routes.

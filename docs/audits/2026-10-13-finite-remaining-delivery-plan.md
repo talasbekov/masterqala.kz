@@ -1,6 +1,6 @@
 # Remaining MasterQala delivery plan
 
-Current published verification: 75db72d718af5f1e901673e0c6e2a9bf24e87f54, exact CI 38425305117 GREEN: 152 UI / 127 Next / 81 Vite / 80 master / 142 operator, 201 API units / 265 PostGIS, 17 queue/guard tests, both migrations and all builds. PR37 remains 4060ba9. The final approved independent public-site information/category and text-localization batch is local, pending independent review and exact-head CI. Fixed inventory: 33 scoped + 4 pending public information/category + 4 service contracts + 14 dependencies = 55. Every route still needs native/live acceptance. After this batch, stop new implementation at the decision/access checklist in `2026-10-13-independent-work-boundary.md`; earlier paragraphs below are historical snapshots.
+Current published verification: 6399efdb4fafe17c11eea92edaf650da85db334d, exact CI 38429305501 GREEN on 2026-10-13: 152 UI / 127 Next / 81 Vite / 80 master / 142 operator / 29 site, 201 API units / 265 PostGIS, 17 queue/guard tests, both migrations and all five builds including the real API-backed public site. PR37 remains 4060ba9. The approved independent public information/category and text-localization batch is reviewed/published. Fixed inventory: 37 scoped + 4 service contracts + 14 dependencies =55. Every route still needs native/live acceptance. New implementation pauses at the decision/access checklist in `2026-10-13-independent-work-boundary.md`; earlier paragraphs below are dated historical snapshots, not the latest verification claim.
 
 ## Verified checkpoints
 
