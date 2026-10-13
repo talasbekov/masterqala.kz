@@ -133,3 +133,22 @@ test('DONE agreed quote preserves unknown amounts as unavailable and real zero a
  try{const quote=document.querySelector('[data-acceptance-quote]');assert.ok(quote);assert.match(quote.textContent,/Work—/);assert.match(quote.textContent,/Total—/);await app.render({order:{...approvedOrder,status:'DONE',workPrice:0,quoteTotal:0}});const realZero=document.querySelector('[data-acceptance-quote]');assert.match(realZero.textContent,/Work0/);assert.match(realZero.textContent,/Total0/);assert.equal(app.calls.length,0);}
  finally{await app.cleanup()}
 });
+test('master waiting/DONE refresh is read-only, localized, stale-retryable and guarded against repeated clicks',async()=>{
+ const {DirectMasterOrderView}=await import('../dist/index.js');
+ for(const language of ['ru','kk','en'])for(const status of ['AWAITING_PRICE_CONFIRM','DONE']){
+  let reads=0,resolve;const onRefresh=()=>{reads++;return new Promise(r=>resolve=r)};const app=await stateView(DirectMasterOrderView,language,{order:{...approvedOrder,status},fresh:false,onRefresh});
+  try{const refresh=document.querySelector('footer [data-action="refresh-status"]');assert.ok(refresh,'explicit GET refresh required');assert.equal(refresh.disabled,false);assert.ok(refresh.classList.contains('min-h-[56px]'));await act(async()=>{refresh.click();refresh.click()});assert.equal(reads,1);assert.equal(refresh.disabled,true);assert.equal(refresh.getAttribute('aria-busy'),'true');assert.equal(app.calls.length,0);await act(async()=>resolve());assert.equal(refresh.disabled,false);
+   for(const guard of [{online:false},{busy:true}]){await app.render(guard);await act(async()=>document.querySelector('footer [data-action="refresh-status"]').click());assert.equal(reads,1)}await app.render({order:{...approvedOrder,status:'PRICE_APPROVED'}});assert.equal(document.querySelector('[data-action="refresh-status"]'),null);assert.equal(app.calls.length,0);
+  }finally{await app.cleanup()}
+ }
+});
+test('master refresh request identity survives new-order rerender and ignores late old failure or settlement',async()=>{
+ const {DirectMasterOrderView}=await import('../dist/index.js');let firstResolve,secondResolve,firstReject;const app=await stateView(DirectMasterOrderView,'en',{order:{...approvedOrder,status:'DONE'},onRefresh:()=>new Promise((resolve,reject)=>{firstResolve=resolve;firstReject=reject})});
+ try{await act(async()=>document.querySelector('footer [data-action="refresh-status"]').click());await app.render({order:{...approvedOrder,id:'second-owned-order',status:'DONE'},onRefresh:()=>new Promise(resolve=>secondResolve=resolve)});assert.equal(document.querySelector('footer [data-action="refresh-status"]').disabled,false);await act(async()=>document.querySelector('footer [data-action="refresh-status"]').click());await act(async()=>firstReject(new Error('Old order failure')));assert.equal(document.querySelector('footer [data-action="refresh-status"]').disabled,true);assert.equal(document.querySelector('[role="alert"]'),null);await act(async()=>secondResolve());assert.equal(document.querySelector('footer [data-action="refresh-status"]').disabled,false);assert.equal(app.calls.length,0);}
+ finally{await app.cleanup()}
+});
+test('rejected read-only refresh shows actual error and allows explicit retry without an order mutation',async()=>{
+ const {DirectMasterOrderView}=await import('../dist/index.js');let reads=0;const app=await stateView(DirectMasterOrderView,'en',{order:{...approvedOrder,status:'DONE'},fresh:false,onRefresh:async()=>{reads++;if(reads===1)throw new Error('Actual refresh failure')}});
+ try{await act(async()=>document.querySelector('footer [data-action="refresh-status"]').click());assert.equal(document.querySelector('[role="alert"]').textContent,'Actual refresh failure');assert.equal(document.querySelector('footer [data-action="refresh-status"]').disabled,false);await act(async()=>document.querySelector('footer [data-action="refresh-status"]').click());assert.equal(reads,2);assert.equal(document.querySelector('[role="alert"]'),null);assert.equal(app.calls.length,0);}
+ finally{await app.cleanup()}
+});

@@ -2,13 +2,14 @@
 import {useCallback,useEffect,useRef,useState} from 'react';
 export function useOrderState<T>({id,read,subscribe}:{id:string;read:(id:string)=>Promise<T>;subscribe?:(refresh:()=>void)=>()=>void}) {
   const [order,setOrder]=useState<T|null>(null),[loading,setLoading]=useState(true),[error,setError]=useState(''),[online,setOnline]=useState(true),[busy,setBusy]=useState(false),[fresh,setFresh]=useState(false);
-  const generation=useRef(0),locked=useRef(false),mounted=useRef(false),activeId=useRef(id);
+  const generation=useRef(0),locked=useRef(false),mounted=useRef(false),activeId=useRef(id),verified=useRef<{id:string;generation:number}|null>(null);
   activeId.current=id;
+  const renderedGeneration=generation.current;
   const load=useCallback(async()=>{
     if(activeId.current!==id)return;
-    setFresh(false);
+    verified.current=null;setFresh(false);
     const request=++generation.current;
-    try {const result=await read(id);if(mounted.current&&generation.current===request){setOrder(result);setError('');setFresh(true);}}
+    try {const result=await read(id);if(mounted.current&&activeId.current===id&&generation.current===request){verified.current={id,generation:request};setOrder(result);setError('');setFresh(true);}}
     catch(e){if(mounted.current&&generation.current===request)setError((e as Error).message);}
     finally{if(mounted.current&&generation.current===request)setLoading(false);}
   },[id,read]);
@@ -19,10 +20,10 @@ export function useOrderState<T>({id,read,subscribe}:{id:string;read:(id:string)
     const foreground=()=>{if(document.visibilityState==='visible')refresh();};
     const unsubscribe=subscribe?.(refresh);
     window.addEventListener('online',network);window.addEventListener('offline',network);document.addEventListener('visibilitychange',foreground);
-    return()=>{mounted.current=false;++generation.current;unsubscribe?.();window.removeEventListener('online',network);window.removeEventListener('offline',network);document.removeEventListener('visibilitychange',foreground);};
+    return()=>{mounted.current=false;verified.current=null;++generation.current;unsubscribe?.();window.removeEventListener('online',network);window.removeEventListener('offline',network);document.removeEventListener('visibilitychange',foreground);};
   },[id,load,subscribe]);
   const mutate=async(action:()=>Promise<unknown>)=>{
-    if(locked.current||!fresh||!online||!navigator.onLine)return false;
+    if(!mounted.current||activeId.current!==id||locked.current||verified.current?.id!==id||verified.current?.generation!==renderedGeneration||generation.current!==renderedGeneration||!fresh||!online||!navigator.onLine)return false;
     locked.current=true;setBusy(true);setError('');
     let failure='';
     try {await action();}catch(e){failure=(e as Error).message;}

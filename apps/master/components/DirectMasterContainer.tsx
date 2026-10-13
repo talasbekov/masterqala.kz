@@ -11,6 +11,6 @@ export function DirectMasterContainer({id}:{id:string}) {
  const {order,loading,error,online,fresh,busy,load,mutate}=useOrderState<DirectOrder>({id,read,subscribe});
  if(loading)return <p className="p-6 text-ink-soft">{t('loading')}</p>;
  if(!order)return <div className="space-y-4 p-6"><p role="alert">{error}</p><Button onClick={()=>void load()}>{t('retry')}</Button></div>;
- return <DirectMasterOrderView order={order} busy={busy} error={error} online={online} fresh={fresh} onBack={()=>router.push('/')} onHelp={()=>router.push('/disputes')}
+ return <DirectMasterOrderView order={order} busy={busy} error={error} online={online} fresh={fresh} onRefresh={load} onBack={()=>router.push('/')} onHelp={()=>router.push('/disputes')}
    onAction={(action,body)=>mutate(()=>api(`/orders/${id}/${action}`,{method:'POST',body:JSON.stringify(body??{})}))}/>;
 }
