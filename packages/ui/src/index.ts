@@ -37,3 +37,4 @@ export type {OwnedOrderItem,OwnedOrderAmount} from './owned-orders';
 export {useOwnedOrders} from './hooks/useOwnedOrders';
 export {OwnedOrdersView} from './OwnedOrdersView';
 export type {OwnedOrderLinkProps} from './OwnedOrdersView';
+export {ServiceAvailabilityView} from './ServiceAvailabilityView';
