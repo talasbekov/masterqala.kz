@@ -83,6 +83,9 @@ jobs:
       - name: Test master login interactions
         run: pnpm --filter master run test
 
+      - name: Test operator interactions
+        run: pnpm --filter operator run test
+
       - name: Apply database migrations
         run: pnpm --filter api exec prisma migrate deploy
 

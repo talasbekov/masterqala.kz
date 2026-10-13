@@ -1,52 +1,12 @@
 'use client';
-import { NavLink } from './NavLink';
-import { useAuth } from '@/lib/auth';
-import { useOperatorMetrics } from '@/lib/operatorMetrics';
-
+import {useLocale} from '@masterqala/ui';
+import {NavLink} from './NavLink';
+import {useAuth} from '../lib/auth';
+import {useOperatorMetrics} from '../lib/operatorMetrics';
+import {operatorText,type OperatorCopyKey} from '../lib/operator-copy';
+const links:[string,OperatorCopyKey][]=[['/','home'],['/orders','orders'],['/verification','verification'],['/disputes','disputes'],['/masters','masters'],['/users','users'],['/journal','journal'],['/security','security'],['/withdrawals','withdrawals']];
 export function Sidebar() {
-  const { logout } = useAuth();
-  const { metrics } = useOperatorMetrics();
-
-  return (
-    <aside className="flex w-56 shrink-0 flex-col gap-1 border-r border-border bg-surface p-3">
-      <div className="mb-3 px-2 text-base font-extrabold text-primary">MasterQala · Оператор</div>
-      <NavLink href="/" icon="◫">
-        Обзор
-      </NavLink>
-      <NavLink href="/verification" icon="🛡" badge={metrics?.pendingVerificationCount}>
-        Верификация
-      </NavLink>
-      <NavLink href="/users" icon="👤">
-        Пользователи
-      </NavLink>
-      <NavLink href="/masters" icon="🛠">
-        Мастера
-      </NavLink>
-      <NavLink href="/orders" icon="☰" badge={metrics?.stuckSearches.length}>
-        Заказы
-      </NavLink>
-      <NavLink href="/disputes" icon="⚖️" badge={metrics?.openDisputesCount}>
-        Споры
-      </NavLink>
-      <NavLink href="/withdrawals" icon="₸" badge={metrics?.pendingWithdrawalsCount}>
-        Вывод средств
-      </NavLink>
-      <NavLink href="/journal" icon="▤">
-        Журнал
-      </NavLink>
-      <NavLink href="/security" icon="🔒">
-        Безопасность
-      </NavLink>
-      <div className="mt-auto border-t border-border pt-3">
-        <button
-          type="button"
-          onClick={logout}
-          className="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left text-sm font-bold text-ink-soft hover:bg-fill-faint"
-        >
-          <span className="text-lg">↩</span>
-          Выйти
-        </button>
-      </div>
-    </aside>
-  );
+  const {logout}=useAuth(),{metrics}=useOperatorMetrics(),{language}=useLocale();
+  const badge=(href:string)=>href==='/orders'?metrics?.stuckSearches.length:href==='/disputes'?metrics?.openDisputesCount:href==='/verification'?metrics?.pendingVerificationCount:href==='/withdrawals'?metrics?.pendingWithdrawalsCount:undefined;
+  return <aside className="flex w-full shrink-0 flex-col gap-4 bg-primary px-4 py-7 text-white md:w-56"><div><p className="text-2xl font-semibold leading-[1.4]">MasterQala</p><p className="mt-2 text-xs">{operatorText(language,'operator')}</p></div><nav aria-label={operatorText(language,'navigation')} className="flex flex-wrap gap-2 md:flex-col">{links.map(([href,key])=><NavLink key={href} href={href} badge={badge(href)}>{operatorText(language,key)}</NavLink>)}</nav><button type="button" onClick={logout} className="mt-auto min-h-[48px] rounded-md px-3 py-3 text-left text-sm font-semibold text-white hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-white">{operatorText(language,'logout')}</button></aside>;
 }

@@ -24,6 +24,7 @@ function authHeaders(): Record<string, string> {
 }
 
 export async function api(path: string, options: RequestInit = {}) {
+  if(options.signal?.aborted)throw new DOMException('Request cancelled','AbortError');
   const res = await fetch(`${API}${path}`, {
     ...options,
     headers: { 'Content-Type': 'application/json', ...authHeaders(), ...options.headers },
