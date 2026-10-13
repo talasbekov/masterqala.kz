@@ -29,10 +29,11 @@ const output=process.env.QA_SCREENSHOTS_DIR;
    await page.goto(`${base}/order/order-1`);
    const approve=page.getByRole('button',{name:language==='ru'?/Согласовать ·/:language==='kk'?/Келісу ·/:/Approve ·/});
    await approve.waitFor();await approve.dblclick();
-   await page.getByRole('heading',{name:language==='ru'?'Стоимость согласована':language==='kk'?'Құны келісілді':'Price approved',exact:true}).waitFor();
+   await page.getByRole('heading',{level:1,name:language==='ru'?'Стоимость согласована':language==='kk'?'Құны келісілді':'Price approved',exact:true}).waitFor();
    assert.equal(mutations.length,1,'Double click must issue only one mutation');
    assert.equal(await page.locator('nav').count(),0,'Order controls must not be covered by tabs');
    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,'No horizontal overflow');
+   assert.equal(await page.locator('[data-approved-notice]').isVisible(),width>=768,'Consent-change notice uses desktop layout only');
    assert.equal(await page.evaluate(()=>document.documentElement.lang),language);
    assert.equal(await page.locator('img').evaluateAll(images=>images.filter(image=>new URL(image.src).pathname.startsWith('/mq/')).some(image=>!image.complete||image.naturalWidth===0)),false,'Real SVG assets load');
    if(output){await fs.mkdir(output,{recursive:true});await page.screenshot({path:`${output}/client-approved-${language}-${width}.png`,fullPage:true});}

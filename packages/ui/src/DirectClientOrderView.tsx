@@ -28,8 +28,8 @@ export function DirectClientOrderView({order,busy,error,online,fresh,onAction,on
       <div className="hidden items-center gap-8 md:flex"><Button variant="white" onClick={()=>setHelpOpen(true)}>{t('support')}</Button><LanguageSelector/><button className="min-h-11 font-medium" onClick={onBack}>{t('orders')}</button></div>
       <button aria-label={t('help')} onClick={()=>setHelpOpen(true)} className="h-11 w-11 text-primary md:hidden">?</button>
     </header>
-    <div className="relative flex flex-1 flex-col md:mx-4 md:mt-5 md:max-w-[400px]">
-      <main className="flex flex-1 flex-col gap-6 p-6 md:rounded-lg md:bg-surface">
+    <div className={`relative flex flex-1 flex-col md:mx-4 md:mt-5 ${approved?'gap-6 lg:flex-row lg:items-start':'md:max-w-[400px]'}`}>
+      <div className="flex min-w-0 flex-1 flex-col md:max-w-[400px]"><main className="flex flex-1 flex-col gap-6 p-6 md:rounded-lg md:bg-surface">
         <div className="flex items-center justify-between gap-3"><span data-order-status={order.status} className={`rounded-md bg-fill-soft px-3 py-2 text-xs font-semibold ${approved?'text-approved':'text-primary'}`}>{quote?t('pending'):approved?t('approvedBadge',{amount:formatMoney(order.quoteTotal??0)}):t(titles[order.status]??'order')}</span></div>
         <h1 className="break-words text-[28px] font-medium leading-[34px] text-primary md:text-xl md:font-semibold">{t(titles[order.status]??'order')}</h1>
         {approved&&<p className="text-sm leading-[21px] text-ink-soft">{t('approvedNote')}</p>}
@@ -47,7 +47,9 @@ export function DirectClientOrderView({order,busy,error,online,fresh,onAction,on
         {(error||previewError)&&<p role="alert" className="text-sm text-danger">{error||previewError}</p>}
         <div className="hidden flex-col gap-2 md:flex">{primary}<Button variant="secondary" onClick={()=>setHelpOpen(true)}>{t('help')}</Button></div>
       </main>
-      <footer className="sticky bottom-0 z-10 flex flex-col gap-2 bg-surface px-6 pb-[max(16px,env(safe-area-inset-bottom))] pt-3 md:hidden">{primary}<Button variant="secondary" className="min-h-14" onClick={()=>setHelpOpen(true)}>{t('help')}</Button></footer>
+      <footer className="sticky bottom-0 z-10 flex flex-col gap-2 bg-surface px-6 pb-[max(16px,env(safe-area-inset-bottom))] pt-3 md:hidden">{primary}<Button variant="secondary" className="min-h-[56px]" onClick={()=>setHelpOpen(true)}>{t('help')}</Button></footer>
+    </div>
+      {approved&&<aside data-approved-notice className="hidden w-full max-w-[400px] rounded-lg bg-surface p-6 md:block lg:ml-auto lg:w-[330px] lg:shrink-0"><h2 className="text-xl font-semibold leading-[1.4] text-primary">{t('approved')}</h2><p className="mt-4 text-base leading-6 text-ink-soft">{t('approvedChangeNote')}</p></aside>}
     </div>
     <Dialog open={helpOpen} title={t('help')} busy={fetching} onClose={()=>setHelpOpen(false)}>
       <h2 className="text-xl font-semibold text-primary">{t('help')}</h2>

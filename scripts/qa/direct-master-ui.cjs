@@ -28,12 +28,14 @@ for(const language of ['ru','kk','en'])for(const width of [390,1440]){
  for(let i=0;i<3;i++)await page.getByRole('spinbutton',{name:labels[i],exact:true}).fill(['8000','3500','2500'][i]);
  const send=page.getByRole('button',{name:language==='ru'?/Отправить ·/:language==='kk'?/Жіберу ·/:/Send ·/}).filter({visible:true});
  await send.click();await page.getByRole('alert').filter({hasText:'Quote changed'}).waitFor();assert.equal(await page.getByRole('spinbutton',{name:labels[0],exact:true}).inputValue(),'8000');
- await send.click();await page.getByRole('heading',{name:language==='ru'?'Ждём согласования':language==='kk'?'Келісімді күтудеміз':'Waiting for approval',exact:true}).waitFor();
+ await send.click();await page.getByRole('heading',{level:1,name:language==='ru'?'Ждём согласования':language==='kk'?'Келісімді күтудеміз':'Waiting for approval',exact:true}).waitFor();
  order={...order,status:'PRICE_APPROVED',consentedVersion:1};await page.reload();
  const start=page.getByRole('button',{name:language==='ru'?'Начать работу':language==='kk'?'Жұмысты бастау':'Start work',exact:true}).filter({visible:true});await start.waitFor();
  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+ const consent=page.locator('[data-approved-explanation]');await consent.waitFor();assert.ok((await consent.textContent()).includes(order.client.name));assert.ok((await page.locator('[data-additional-consent]').textContent()).length>30);
+ if(width<768)assert.ok((await start.boundingBox()).height>=56,'Mobile start target56px');
  if(process.env.QA_SCREENSHOTS_DIR){await fs.mkdir(process.env.QA_SCREENSHOTS_DIR,{recursive:true});await page.screenshot({path:`${process.env.QA_SCREENSHOTS_DIR}/master-approved-${language}-${width}.png`,fullPage:true});}
- await start.click();await page.getByRole('heading',{name:language==='ru'?'Работа выполняется':language==='kk'?'Жұмыс орындалып жатыр':'Work in progress',exact:true}).waitFor();assert.equal(mutations.filter(m=>m.path.endsWith('/start-work')).length,1);assert.deepEqual(errors,[]);
+ await start.click();await page.getByRole('heading',{level:1,name:language==='ru'?'Работа выполняется':language==='kk'?'Жұмыс орындалып жатыр':'Work in progress',exact:true}).waitFor();assert.equal(mutations.filter(m=>m.path.endsWith('/start-work')).length,1);assert.deepEqual(errors,[]);
  await ctx.close();console.log(`PASS master ${language} ${width}: quote conflict, preserved draft, consent, explicit start`);
 }
 }finally{await browser.close();}})().catch(e=>{console.error(e);process.exitCode=1;});

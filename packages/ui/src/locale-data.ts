@@ -1,6 +1,7 @@
 export type Locale = 'ru'|'kk'|'en';
 export const localeNames = {ru:'Русский',kk:'Қазақша',en:'English'};
 export const ru = {
+  approvedChangeNote:'Если изменятся работы или материалы, мастер должен отправить новую смету и получить ваше согласие.',masterApprovedNamed:'Клиент {{name}} подтвердил объём работ и сумму {{amount}}.',masterApprovedGeneric:'Клиент подтвердил объём работ и сумму {{amount}}.',agreedScope:'Согласованный объём',additionalConsent:'Дополнительные работы согласуйте с клиентом до их начала.',
   workHub:'Работа',application:'Анкета',disputes:'Мои обращения',online:'Вы онлайн',off:'Вы офлайн',connected:'Соединение активно',disconnected:'Нет соединения',geoDenied:'Нет доступа к геолокации',goOnline:'Стать онлайн',goOffline:'Выйти',clientAccount:'Личный кабинет клиента',profile:'Профиль',planned:'Плановые',
   incoming:'Новая заявка',urgentDistance:'Срочно · {{distance}} км от вас',acceptOffer:'Принять заявку',addressAfter:'Точный адрес — после принятия',seconds:'{{seconds}} с',
   reconciling:'Обновляем состояние заказа. Действия доступны после проверки связи.',
@@ -25,6 +26,7 @@ export const ru = {
 };
 export type CopyKey = keyof typeof ru;
 const kk:Record<CopyKey,string>={
+  approvedChangeNote:'Жұмыс немесе материалдар өзгерсе, шебер жаңа смета жіберіп, келісіміңізді алуы керек.',masterApprovedNamed:'Тапсырыс беруші {{name}} жұмыс көлемін және {{amount}} сомасын растады.',masterApprovedGeneric:'Тапсырыс беруші жұмыс көлемін және {{amount}} сомасын растады.',agreedScope:'Келісілген жұмыс көлемі',additionalConsent:'Қосымша жұмыстарды бастамас бұрын тапсырыс берушінің келісімін алыңыз.',
   workHub:'Жұмыс',application:'Өтінім',disputes:'Менің өтініштерім',online:'Онлайнсыз',off:'Офлайнсыз',connected:'Байланыс белсенді',disconnected:'Байланыс жоқ',geoDenied:'Геолокацияға рұқсат жоқ',goOnline:'Онлайн болу',goOffline:'Шығу',clientAccount:'Тапсырыс берушінің кабинеті',profile:'Профиль',planned:'Жоспарланған',
   incoming:'Жаңа тапсырыс',urgentDistance:'Шұғыл · сізден {{distance}} км',acceptOffer:'Тапсырысты қабылдау',addressAfter:'Нақты мекенжай қабылдағаннан кейін ашылады',seconds:'{{seconds}} с',
   reconciling:'Тапсырыс күйі жаңартылуда. Әрекеттер байланыс тексерілгеннен кейін қолжетімді.',
@@ -48,6 +50,7 @@ const kk:Record<CopyKey,string>={
   moneyUnknown:'Құны тексеруден кейін',orderNumber:'№{{id}} тапсырыс',submitBusy:'Жіберілуде…',skip:'Өткізу',
 };
 const en:Record<CopyKey,string>={
+  approvedChangeNote:'If the work or materials change, the specialist must send a new quote and get your approval.',masterApprovedNamed:'Customer {{name}} approved the scope of work and the amount {{amount}}.',masterApprovedGeneric:'The customer approved the scope of work and the amount {{amount}}.',agreedScope:'Agreed scope',additionalConsent:'Get the customer’s approval for additional work before it begins.',
   workHub:'Work',application:'Application',disputes:'My support requests',online:'You are online',off:'You are offline',connected:'Connected',disconnected:'Disconnected',geoDenied:'Location access denied',goOnline:'Go online',goOffline:'Go offline',clientAccount:'Customer account',profile:'Profile',planned:'Scheduled',
   incoming:'New request',urgentDistance:'Urgent · {{distance}} km away',acceptOffer:'Accept request',addressAfter:'Exact address available after acceptance',seconds:'{{seconds}} s',
   reconciling:'Refreshing the order. Actions will be available after connection is verified.',
