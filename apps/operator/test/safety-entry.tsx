@@ -15,3 +15,7 @@ export {useVerificationReads,useVerificationDecision} from "../lib/operator-veri
 
 export {default as Verification} from "../app/(app)/verification/page";
 export {apiBlob} from "../lib/api";
+
+export {useOperatorDisputeReads,useOperatorResolution,financialChoices} from "../lib/operator-dispute-controller";
+
+export {default as Disputes} from '../app/(app)/disputes/page';

@@ -2,7 +2,7 @@ import { api } from './api';
 
 export type DisputeStatus = 'OPEN' | 'RESOLVED';
 export type DisputeRole = 'CLIENT' | 'MASTER';
-export type CommercialMode = 'FREE_PILOT' | 'PAID_MOCK' | 'PAID_LIVE' | null;
+export type CommercialMode = 'DIRECT_PAYMENT' | 'FREE_PILOT' | 'PAID_MOCK' | 'PAID_LIVE' | null;
 
 export const DISPUTE_STATUS_LABELS: Record<DisputeStatus, string> = {
   OPEN: 'Открыт',
@@ -28,6 +28,7 @@ export interface DisputeDetail {
   orderId: string | null;
   plannedOrderId: string | null;
   openedByRole: DisputeRole;
+  createdAt: string;
   reason: string;
   counterStatement: string | null;
   evidenceDocIds: string[];
