@@ -1,1 +1,46 @@
-{}
+{
+  "common": {
+    "loading": "Loading…",
+    "photosCount": "Photos: {{n}}",
+    "stepOf": "step {{n}} of {{total}}",
+    "next": "Next",
+    "retry": "Try again"
+  },
+  "newOrder": {
+    "step1Title": "Urgent callout",
+    "step1Question": "What happened?",
+    "step1Unknown": "I am not sure which service I need — help me choose",
+    "step2Title": "Describe the problem",
+    "step2Placeholder": "For example: “The pipe under the kitchen sink is leaking constantly. I have shut off the water.”",
+    "step2PhotosLabel": "Photos",
+    "step2PhotosHint": "(up to 5 — helps the master assess the work)",
+    "step2Next": "Next — address",
+    "step3Title": "Address",
+    "step3MyLocation": "My location",
+    "step3Entrance": "Entrance",
+    "step3Floor": "Floor",
+    "step3Apartment": "Apartment",
+    "step3District": "District",
+    "step3Comment": "Note for the master: intercom, landmarks…",
+    "step3Next": "Next — estimate",
+    "step4Title": "Review your request",
+    "step4CalloutLabel": "Master’s callout",
+    "step4FeeLabel": "including the platform service fee",
+    "step4Note": "The master will quote the work after inspection. You can approve or decline it separately. There are no hidden charges.",
+    "step4PaymentMethod": "Payment method details unavailable",
+    "step4CancelNote": "Cancellation before a master accepts is free. After acceptance, the callout payment is retained.",
+    "step4Submit": "Find a master · {{price}} ₸",
+    "unavailable": "No masters nearby — try again later.",
+    "geoError": "Could not determine your location — allow access and try again.",
+    "freePilotNote": "There is no callout charge during the free pilot. The master will quote the work after inspection; you will approve it and pay the master directly.",
+    "freePilotPaymentLabel": "Free pilot · no card linked",
+    "freePilotCancelNote": "Cancellation before work starts does not trigger platform charges. Any actual expenses are agreed directly with the master.",
+    "freePilotSubmit": "Find a master for free",
+    "category_plumbing": "Plumbing",
+    "category_electrics": "Electrical services",
+    "category_appliances": "Home appliances",
+    "category_locksmith": "Locks and doors",
+    "category_handyman": "Minor repairs",
+    "category_other": "Other services"
+  }
+}

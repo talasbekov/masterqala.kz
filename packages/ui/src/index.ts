@@ -31,3 +31,4 @@ export {useNewOrderDraft,useCurrentOrderCreation} from './useNewOrderDraft';
 
 export {NewOrderCreationStatusView} from './NewOrderCreationStatusView';
 export {safeReturnPath,protectedLoginUrl} from './auth-return';
+export {createPinCenterSync} from './pin-center-sync';

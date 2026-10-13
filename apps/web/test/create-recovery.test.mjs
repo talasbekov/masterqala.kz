@@ -12,7 +12,7 @@ const {MemoryRouter,Routes,Route,Link,useLocation}=await import('react-router-do
 const shared=await import('@masterqala/ui');
 const {default:i18next}=await import('i18next'),{initReactI18next}=await import('react-i18next');
 const ru=JSON.parse(readFileSync(new URL('../src/features/client-v2/i18n/locales/ru.json',import.meta.url),'utf8'));
-await i18next.use(initReactI18next).init({lng:'ru',resources:{ru:{translation:ru}},interpolation:{escapeValue:false}});
+await i18next.use(initReactI18next).init({lng:'ru',resources:Object.fromEntries(['ru','kk','en'].map(language=>[language,{translation:JSON.parse(readFileSync(new URL(`../src/features/client-v2/i18n/locales/${language}.json`,import.meta.url),'utf8'))}])),interpolation:{escapeValue:false}});
 const {AuthProvider,useAuth}=await import('../.test-build/auth.js');
 const {default:NewOrderPage}=await import('../.test-build/features/client-v2/pages/NewOrderPage.js');
 // Actual provider, transport and router; no success-shaped mock controller.
@@ -22,7 +22,7 @@ const categoryId='11111111-1111-4111-8111-111111111111';
 function seedDraft(owner='owner-a',step=4){
  const session=shared.createDraftSession(owner,window.sessionStorage);for(const [key,value] of Object.entries({step,categoryId,description:'Persisted request details',addressText:'Actual address',district:'Actual district',geo:{lat:51.2,lng:71.6},locationChosen:true}))session.set(key,value);session.dispose();
 }
-async function mount({post,onGet,initialEntry='/order/new',protectedRoute=false}={}){
+async function mount({post,onGet,initialEntry='/order/new',protectedRoute=false,language='ru'}={}){
  document.body.innerHTML='<div id="root"></div>';const root=createRoot(document.getElementById('root'));const requests=[];
  globalThis.fetch=async(url,options={})=>{
   const path=new URL(url).pathname.replace('/api/v1','');requests.push([path,options]);
@@ -34,7 +34,7 @@ async function mount({post,onGet,initialEntry='/order/new',protectedRoute=false}
  function Location(){const location=useLocation();return React.createElement('output',{'data-location':true},location.pathname+location.search+location.hash)}
  function AuthControls(){const auth=useAuth();return React.createElement('div',null,React.createElement('button',{onClick:auth.logout},'Logout test'),React.createElement('button',{onClick:()=>auth.login('fixture-b',{id:'owner-b',phone:'+77020000000',name:'B',role:'CLIENT'})},'Switch owner test'))}
  function Support(){return React.createElement('div',null,'Support route',React.createElement(Link,{to:'/order/new'},'Return to draft'))}
- await act(async()=>root.render(React.createElement(shared.LocaleProvider,{initialLanguage:'ru'},React.createElement(AuthProvider,null,React.createElement(CommercialModeProvider,null,React.createElement(MemoryRouter,{initialEntries:[initialEntry]},React.createElement(React.Fragment,null,React.createElement(AuthControls),React.createElement(Location),React.createElement(Routes,null,React.createElement(Route,{path:'/',element:React.createElement('p',null,'Home route')}),React.createElement(Route,{path:'/login',element:React.createElement(LoginPage)}),protectedRoute?React.createElement(Route,{element:React.createElement(RequireAuth)},React.createElement(Route,{path:'/order/new',element:React.createElement(NewOrderPage)})):React.createElement(Route,{path:'/order/new',element:React.createElement(NewOrderPage)}),React.createElement(Route,{path:'/support',element:React.createElement(Support)}),React.createElement(Route,{path:'/orders',element:React.createElement('p',null,'Owned orders')}),React.createElement(Route,{path:'/order/:id',element:React.createElement('p',null,'Created order route')})))))))));
+ await act(async()=>root.render(React.createElement(shared.LocaleProvider,{initialLanguage:language},React.createElement(AuthProvider,null,React.createElement(CommercialModeProvider,null,React.createElement(MemoryRouter,{initialEntries:[initialEntry]},React.createElement(React.Fragment,null,React.createElement(AuthControls),React.createElement(Location),React.createElement(Routes,null,React.createElement(Route,{path:'/',element:React.createElement('p',null,'Home route')}),React.createElement(Route,{path:'/login',element:React.createElement(LoginPage)}),protectedRoute?React.createElement(Route,{element:React.createElement(RequireAuth)},React.createElement(Route,{path:'/order/new',element:React.createElement(NewOrderPage)})):React.createElement(Route,{path:'/order/new',element:React.createElement(NewOrderPage)}),React.createElement(Route,{path:'/support',element:React.createElement(Support)}),React.createElement(Route,{path:'/orders',element:React.createElement('p',null,'Owned orders')}),React.createElement(Route,{path:'/order/:id',element:React.createElement('p',null,'Created order route')})))))))));
  return{requests,cleanup:async()=>act(async()=>root.unmount())};
 }
 test('Vite restores the same owner submitted draft and routes creation through the shared exact-key endpoint',async()=>{
@@ -86,9 +86,9 @@ test('new account does not restore previous owner data or navigate on its late r
 });
 
 test('explicit late geolocation cannot replace a newer saved address',async()=>{
- reset();seedDraft('owner-a',3);const calls=[];const geoDescriptor=Object.getOwnPropertyDescriptor(navigator,'geolocation');Object.defineProperty(navigator,'geolocation',{configurable:true,value:{getCurrentPosition:success=>calls.push(success)}});const app=await mount({onGet:(path,body)=>path==='/addresses'?[{id:'saved',label:'Saved home',address:'Chosen address',entrance:'2',floor:'3',apartment:'4',lat:51.4,lng:71.8}]:body});
- try{await act(async()=>button('Моё место').click());assert.equal(calls.length,2);await act(async()=>button('Saved home').click());await act(async()=>calls[1]({coords:{latitude:10,longitude:20}}));const saved=shared.readNewOrderDraft('owner-a');assert.equal(saved.addressText,'Chosen address');assert.deepEqual(saved.geo,{lat:51.4,lng:71.8});}
- finally{await app.cleanup();if(geoDescriptor)Object.defineProperty(navigator,'geolocation',geoDescriptor);else delete navigator.geolocation;}
+ reset();seedDraft('owner-a',3);const L=(await import('leaflet')).default,originalMap=L.map;let map;L.map=(...args)=>(map=originalMap(...args));const calls=[];const geoDescriptor=Object.getOwnPropertyDescriptor(navigator,'geolocation');Object.defineProperty(navigator,'geolocation',{configurable:true,value:{getCurrentPosition:success=>calls.push(success)}});const app=await mount({onGet:(path,body)=>path==='/addresses'?[{id:'saved',label:'Saved home',address:'Chosen address',entrance:'2',floor:'3',apartment:'4',lat:51.4,lng:71.8}]:body});
+ try{await act(async()=>button('Моё место').click());assert.equal(calls.length,2);await act(async()=>button('Saved home').click());await act(async()=>calls[1]({coords:{latitude:10,longitude:20}}));const saved=shared.readNewOrderDraft('owner-a');assert.equal(saved.addressText,'Chosen address');assert.deepEqual(saved.geo,{lat:51.4,lng:71.8});assert.deepEqual(map.getCenter(),L.latLng(51.4,71.8));}
+ finally{await app.cleanup();L.map=originalMap;if(geoDescriptor)Object.defineProperty(navigator,'geolocation',geoDescriptor);else delete navigator.geolocation;}
 });
 test('photo upload started by another owner cannot append a reference to the new account draft',async()=>{
  reset();seedDraft('owner-a',2);let finish;const app=await mount({onGet:(path,body)=>path==='/uploads'?new Promise(resolve=>{finish=resolve}):body});
@@ -117,4 +117,14 @@ test('an unresolved old-owner POST cannot keep a new owner draft busy',async()=>
  reset();seedDraft();let finishOld;const posts=[];const app=await mount({post:(path,options)=>{posts.push(JSON.parse(options.body));return posts.length===1?new Promise(resolve=>{finishOld=resolve}):Promise.resolve(response({id:'new-owner-created'},201))}});
  try{await act(async()=>button('Найти мастера').click());seedDraft('owner-b');await act(async()=>button('Switch owner test').click());assert.equal(button('Найти мастера').disabled,false);await act(async()=>button('Найти мастера').click());assert.equal(posts.length,2);assert.notEqual(posts[0].clientRequestId,posts[1].clientRequestId);await act(async()=>finishOld(response({id:'old-owner-late'},201)));assert.equal(document.querySelector('[data-location]').textContent,'/order/new-owner-created');}
  finally{await app.cleanup()}
+});
+
+test('Vite pilot summary uses actual localized note/payment/cancel/action copy',async()=>{
+ for(const language of ['kk','en']){reset();seedDraft();await i18next.changeLanguage(language);const expected=JSON.parse(readFileSync(new URL(`../../client/lib/locales/${language}.json`,import.meta.url),'utf8')).newOrder;const app=await mount({language,onGet:(path,body)=>path==='/config/public'?{commercialMode:'FREE_PILOT',paymentsEnabled:false,leadCreditsEnabled:false,payoutsEnabled:false}:body});try{for(const key of ['freePilotNote','freePilotCancelNote','freePilotPaymentLabel','freePilotSubmit'])assert.equal(document.body.textContent.includes(expected[key]),true,key+' must be localized');}finally{await app.cleanup();await i18next.changeLanguage('ru')}}
+});
+
+test('restored pending draft never mounts interactive pin map or writes a new location',async()=>{
+ reset();seedDraft('owner-a',3);const original=shared.readNewOrderDraft('owner-a');const submission=shared.currentOrderSubmission(original);shared.beginPendingCreate('owner-a',window.sessionStorage,submission);const L=(await import('leaflet')).default,originalMap=L.map;let mounts=0;L.map=(...args)=>{mounts++;return originalMap(...args)};const app=await mount();
+ try{assert.equal(mounts,0);assert.equal(!!document.querySelector('.leaflet-container'),false);await act(async()=>window.dispatchEvent(new window.Event('resize')));assert.deepEqual(shared.readNewOrderDraft('owner-a').geo,original.geo);assert.equal(!!button('Найти мастера'),false);}
+ finally{await app.cleanup();L.map=originalMap}
 });

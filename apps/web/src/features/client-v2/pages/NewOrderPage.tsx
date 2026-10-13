@@ -338,19 +338,19 @@ function OwnedNewOrderPage({ownerId}:{ownerId:string}) {
           <div className="text-xs leading-relaxed text-on-fill">
             {paymentsEnabled
               ? t('newOrder.step4Note')
-              : 'Выезд в бесплатном пилоте не оплачивается. Стоимость работ мастер назовёт после осмотра; вы подтвердите её и рассчитаетесь с мастером напрямую.'}
+              : t('newOrder.freePilotNote')}
           </div>
         </div>
       )}
       <div className="flex items-center justify-between rounded-md border border-border bg-surface p-3">
         <span className="text-sm font-extrabold text-ink">
-          {direct?copy('directPayment'):paymentsEnabled ? t('newOrder.step4PaymentMethod') : 'Бесплатный пилот · без привязки карты'}
+          {direct?copy('directPayment'):paymentsEnabled ? t('newOrder.step4PaymentMethod') : t('newOrder.freePilotPaymentLabel')}
         </span>
       </div>
       <p className="text-xs leading-relaxed text-ink-soft">
         {direct?copy('directCancelNote'):paymentsEnabled
           ? t('newOrder.step4CancelNote')
-          : 'Отмена до начала работ не вызывает списаний со стороны платформы. Договорённости по фактическим расходам обсуждаются напрямую с мастером.'}
+          : t('newOrder.freePilotCancelNote')}
       </p>
       {(error||creation.error) && <p className="text-sm font-semibold text-danger">{error||creation.error}</p>}
       <div className="mt-auto" />
@@ -360,7 +360,7 @@ function OwnedNewOrderPage({ownerId}:{ownerId:string}) {
         disabled={submitting || !creation.online || !preview || (!direct&&!preview.available)}
         className="rounded-pill bg-primary p-4 text-[15.5px] font-extrabold text-white disabled:opacity-40"
       >
-        {direct?copy('findMaster'):paymentsEnabled ? t('newOrder.step4Submit', { price: preview?.calloutPrice ?? '' }) : 'Найти мастера бесплатно'}
+        {direct?copy('findMaster'):paymentsEnabled ? t('newOrder.step4Submit', { price: preview?.calloutPrice ?? '' }) : t('newOrder.freePilotSubmit')}
       </button>
     </div>
   );

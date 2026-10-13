@@ -9,7 +9,7 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "test": "pnpm --filter @masterqala/ui exec tsup ../../apps/web/src/auth.tsx ../../apps/web/src/RequireAuth.tsx ../../apps/web/src/commercial-mode.tsx ../../apps/web/src/features/client-v2/pages/NewOrderPage.tsx ../../apps/web/src/features/client-v2/pages/LoginPage.tsx --format esm --clean --out-dir ../../apps/web/.test-build --external @masterqala/ui --external i18next --external react-i18next --external leaflet --external react --external react-dom --external react-router-dom --external socket.io-client --define.import.meta.env '{}' && node --import ./test/register-css.mjs --test test/*.test.mjs"
+    "test": "pnpm --filter @masterqala/ui exec tsup ../../apps/web/src/features/client-v2/components/MapView.tsx ../../apps/web/src/auth.tsx ../../apps/web/src/RequireAuth.tsx ../../apps/web/src/commercial-mode.tsx ../../apps/web/src/features/client-v2/pages/NewOrderPage.tsx ../../apps/web/src/features/client-v2/pages/LoginPage.tsx --format esm --clean --out-dir ../../apps/web/.test-build --external @masterqala/ui --external i18next --external react-i18next --external leaflet --external react --external react-dom --external react-router-dom --external socket.io-client --define.import.meta.env '{}' && node --import ./test/register-css.mjs --test test/*.test.mjs"
   },
   "dependencies": {
     "@masterqala/ui": "workspace:*",
