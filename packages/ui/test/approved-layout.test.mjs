@@ -103,3 +103,19 @@ test('desktop details preserve changed agreed scope alongside original request a
  try{const details=document.querySelector('[data-approved-order-details]');assert.ok(details.textContent.includes('Leaking pipe'));const scope=details.querySelector('[data-approved-desktop-scope]');assert.ok(scope);assert.ok(scope.textContent.includes('Replace pipe and valve'));assert.equal(scope.querySelector('h3').textContent,'Agreed scope');await app.render({order:{...approvedOrder,description:'Leaking pipe',workComment:'  Leaking pipe  '}});assert.equal(document.querySelector('[data-approved-desktop-scope]'),null);await app.render({order:{...approvedOrder,description:'Leaking pipe',workComment:' '}});assert.equal(document.querySelector('[data-approved-desktop-scope]'),null);assert.ok(document.querySelector('[data-approved-order-details]').textContent.includes('Leaking pipe'));assert.equal(app.calls.length,0);}
  finally{await app.cleanup()}
 });
+test('approved mobile master fixed actions are Start then real Call; guarded revise stays in scroll content and Help stays in header',async()=>{
+ const {DirectMasterOrderView}=await import('../dist/index.js');const app=await stateView(DirectMasterOrderView,'en');
+ try{const footer=document.querySelector('footer');assert.equal(footer.children.length,2);assert.equal(footer.firstElementChild.dataset.action,'start-work');assert.equal(footer.lastElementChild.getAttribute('href'),'tel:+77010000000');assert.ok(document.querySelector('main [data-action="revise-approved-quote"]'));
+  for(const guard of [{busy:true},{online:false},{fresh:false}]){await app.render(guard);const revise=document.querySelector('main [data-action="revise-approved-quote"]');assert.equal(revise.disabled,true);assert.equal(document.querySelector('footer [data-action="start-work"]').disabled,true);await act(async()=>revise.click());assert.ok(document.querySelector('footer [data-action="start-work"]'));assert.equal(app.calls.length,0);}
+  await app.render();await act(async()=>document.querySelector('header button:last-child').click());assert.equal(app.help(),1);assert.equal(app.calls.length,0);await act(async()=>document.querySelector('main [data-action="revise-approved-quote"]').click());assert.equal(document.querySelector('footer [data-action="start-work"]'),null);assert.equal(document.querySelector('main [data-action="revise-approved-quote"]'),null);assert.ok(document.querySelector('main input'));assert.equal(app.calls.length,0);
+ }finally{await app.cleanup()}
+});
+test('approved mobile master uses localized real targets without fabricating missing phone; awaiting and edit actions stay available',async()=>{
+ const {DirectMasterOrderView}=await import('../dist/index.js');
+ for(const language of ['ru','kk','en']){
+  const app=await stateView(DirectMasterOrderView,language,{order:{...approvedOrder,client:{name:'Actual client',phone:null}}});
+  try{assert.equal(document.querySelector('footer').children.length,1);assert.equal(document.querySelector('footer a'),null);assert.ok(document.querySelector('main [data-action="revise-approved-quote"]').classList.contains('md:hidden'));assert.ok(document.querySelector('header button:last-child').getAttribute('aria-label'));assert.equal(app.calls.length,0);
+   await app.render({order:{...approvedOrder,status:'AWAITING_PRICE_CONFIRM'}});assert.equal(document.querySelector('main [data-action="revise-approved-quote"]'),null);const footer=document.querySelector('footer');assert.equal(footer.children.length,3);assert.equal(footer.firstElementChild.tagName,'BUTTON');assert.equal(footer.children[1].getAttribute('href'),'tel:+77010000000');await act(async()=>footer.firstElementChild.click());assert.ok(document.querySelector('main input'));assert.equal(document.querySelector('footer').children.length,3);assert.equal(app.calls.length,0);
+  }finally{await app.cleanup()}
+ }
+});
