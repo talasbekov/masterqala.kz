@@ -71,3 +71,35 @@ test('generated scoped56px action rule wins over shared52px default',()=>{
  assert.ok(defaultRule>=0);assert.ok(actionRule>defaultRule);
  assert.ok(css.includes('.md\\:min-h-\\[52px\\]{min-height:52px}'));
 });
+
+test('approved desktop has separate summary/details cards with real prices/address and preserved actions in three languages',async()=>{
+ for(const language of ['ru','kk','en']){
+  const actual={...approvedOrder,id:'actual-owned-order-uuid',description:'Real task\nSecond line',address:'Real selected address',entrance:'3',floor:'7',apartment:'84',master:{name:'Actual master',phone:'+77010000000'},calloutPrice:777,quoteTotal:12277};
+  const app=await stateView(DirectClientOrderView,language,{order:actual});
+  try{const summary=document.querySelector('[data-approved-desktop-summary]'),details=document.querySelector('[data-approved-order-details]');assert.ok(summary);assert.ok(details);assert.notEqual(summary,details);assert.ok(summary.classList.contains('p-6'));assert.ok(details.classList.contains('p-6'));
+   assert.match(summary.querySelector('[data-approved-work-materials]').textContent.replace(/[^0-9]/g,''),/11500/);assert.match(summary.querySelector('[data-approved-callout]').textContent.replace(/[^0-9]/g,''),/777/);assert.match(summary.querySelector('[data-approved-total]').textContent.replace(/[^0-9]/g,''),/12277/);
+   assert.ok(details.textContent.includes(actual.description));assert.ok(details.textContent.includes(actual.address));for(const value of ['3','7','84'])assert.ok(details.querySelector('[data-approved-address-details]').textContent.includes(value));assert.ok(details.querySelector('h2').textContent.includes(actual.id.slice(0,8)));
+   assert.equal(summary.querySelector('a[href="tel:+77010000000"]')?.getAttribute('href'),'tel:+77010000000');assert.ok(details.querySelector('button'));assert.equal(app.calls.length,0);assert.ok(document.querySelector('footer'));assert.ok(document.querySelector('[data-quote-total]'));
+   for(const status of ['AWAITING_PRICE_CONFIRM','IN_PROGRESS','DONE']){await app.render({order:{...actual,status}});assert.equal(document.querySelector('[data-approved-desktop-summary]'),null);assert.equal(document.querySelector('[data-approved-order-details]'),null);assert.equal(app.calls.length,0);}
+  }finally{await app.cleanup()}
+ }
+});
+test('desktop approved call target uses52px while unavailable details stay honest and help retains real handler',async()=>{
+ const app=await stateView(DirectClientOrderView,'en',{order:{...approvedOrder,master:{name:null,phone:'+77010000000'}}});
+ try{const summary=document.querySelector('[data-approved-desktop-summary]');assert.ok(summary.querySelector('a').classList.contains('md:min-h-[52px]'));assert.ok(summary.querySelector('h1'));assert.equal(document.querySelector('[data-approved-address-details]'),null);assert.doesNotMatch(document.querySelector('[data-approved-order-details]').textContent,/undefined|null/);
+  globalThis.HTMLElement=app.dom.window.HTMLElement;app.dom.window.HTMLDialogElement.prototype.showModal=function(){this.open=true};app.dom.window.HTMLDialogElement.prototype.close=function(){this.open=false};await act(async()=>document.querySelector('[data-approved-order-details] button').click());assert.equal(document.querySelector('dialog').open,true);const support=[...document.querySelector('dialog').querySelectorAll('button')].find(button=>button.textContent==='Support');assert.ok(support);await act(async()=>support.click());assert.equal(app.help(),1);assert.equal(app.calls.length,0);
+ }finally{await app.cleanup();delete globalThis.HTMLElement;}
+});
+test('desktop approved explanation waits for actual start without promising an ETA',async()=>{
+ for(const language of ['ru','kk','en']){const app=await stateView(DirectClientOrderView,language);try{const note=document.querySelector('[data-approved-desktop-summary] [data-approved-desktop-note]');assert.ok(note);assert.doesNotMatch(note.textContent,/скоро|жақында|soon/i);assert.match(note.textContent,language==='ru'?/Ожидаем/:language==='kk'?/күтіп/:/Waiting/);}finally{await app.cleanup()}}
+});
+test('desktop summary retains unknown amounts and stale/offline/error states without render mutations',async()=>{
+ const app=await stateView(DirectClientOrderView,'en',{order:{...approvedOrder,id:'owned-null-price-order',workPrice:null,quoteTotal:null,entrance:null,floor:' ',apartment:null},fresh:false,error:'Actual error'});
+ try{const summary=document.querySelector('[data-approved-desktop-summary]');assert.equal(summary.querySelector('[data-approved-work-materials]').textContent,'—');assert.equal(summary.querySelector('[data-approved-total]').textContent,'—');assert.equal(summary.querySelector('[role="alert"]').textContent,'Actual error');assert.ok(summary.querySelector('[role="status"]'));assert.equal(document.querySelector('[data-approved-address-details]'),null);await app.render({online:false});assert.ok(document.querySelector('[data-approved-desktop-summary] [role="status"]'));assert.equal(app.calls.length,0);assert.doesNotMatch(document.querySelector('[data-approved-order-details]').textContent,/1842|undefined|null/);}
+ finally{await app.cleanup()}
+});
+test('desktop details preserve changed agreed scope alongside original request and avoid identical duplicates',async()=>{
+ const app=await stateView(DirectClientOrderView,'en',{order:{...approvedOrder,description:'Leaking pipe',workComment:'Replace pipe and valve'}});
+ try{const details=document.querySelector('[data-approved-order-details]');assert.ok(details.textContent.includes('Leaking pipe'));const scope=details.querySelector('[data-approved-desktop-scope]');assert.ok(scope);assert.ok(scope.textContent.includes('Replace pipe and valve'));assert.equal(scope.querySelector('h3').textContent,'Agreed scope');await app.render({order:{...approvedOrder,description:'Leaking pipe',workComment:'  Leaking pipe  '}});assert.equal(document.querySelector('[data-approved-desktop-scope]'),null);await app.render({order:{...approvedOrder,description:'Leaking pipe',workComment:' '}});assert.equal(document.querySelector('[data-approved-desktop-scope]'),null);assert.ok(document.querySelector('[data-approved-order-details]').textContent.includes('Leaking pipe'));assert.equal(app.calls.length,0);}
+ finally{await app.cleanup()}
+});

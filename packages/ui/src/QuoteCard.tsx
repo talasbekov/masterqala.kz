@@ -1,6 +1,6 @@
 import {useLocale} from './Locale';
 export interface DirectOrder {
-  id:string;status:string;lifecycleVersion:number;commercialMode?:string;description:string;address:string;
+  id:string;entrance?:string|null;floor?:string|null;apartment?:string|null;status:string;lifecycleVersion:number;commercialMode?:string;description:string;address:string;
   workPrice:number|null;materialsPrice:number;calloutPrice:number;quoteTotal:number|null;quoteVersion:number;consentedVersion:number|null;
   workComment:string|null;departedAt:string|null;cancellationAmount:number|null;updatedAt:string;
   master?:{name:string|null;phone:string;rating?:number|null;reviewCount?:number}|null;
