@@ -65,3 +65,5 @@ export type {DisputeTarget, DisputeContext, OrderDispute, DisputeEvidence, Dispu
 export {OrderDisputeView} from './OrderDisputeView';
 export {OwnedDisputesView} from './OwnedDisputesView';
 export {disputeText} from './dispute-copy';
+
+export {Dialog} from './Dialog';
