@@ -14,7 +14,12 @@ function authHeaders(): Record<string, string> {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
+function throwIfCancelled(signal?:AbortSignal|null) {
+  if(signal?.aborted)throw new DOMException('Request cancelled','AbortError');
+}
+
 export async function api(path: string, options: RequestInit = {}) {
+  throwIfCancelled(options.signal);
   const res = await fetch(`${API}${path}`, {
     ...options,
     headers: { 'Content-Type': 'application/json', ...authHeaders(), ...options.headers },
@@ -35,11 +40,23 @@ function isUploadScanResponse(value: unknown): value is UploadScanResponse {
   return typeof candidate.path === 'string' && typeof candidate.scanStatus === 'string';
 }
 
-async function waitForUploadScan(initial: UploadScanResponse): Promise<UploadScanResponse> {
+function scanDelay(signal?:AbortSignal):Promise<void> {
+  throwIfCancelled(signal);
+  return new Promise((resolve,reject)=>{
+    const cleanup=()=>signal?.removeEventListener('abort',cancel);
+    const cancel=()=>{window.clearTimeout(timer);cleanup();reject(new DOMException('Request cancelled','AbortError'));};
+    const timer=window.setTimeout(()=>{cleanup();resolve();},750);
+    signal?.addEventListener('abort',cancel,{once:true});
+    if(signal?.aborted)cancel();
+  });
+}
+
+async function waitForUploadScan(initial: UploadScanResponse,signal?:AbortSignal): Promise<UploadScanResponse> {
   let current = initial;
   const deadline = Date.now() + 30_000;
 
   while (true) {
+    throwIfCancelled(signal);
     if (current.scanStatus === 'CLEAN') return current;
     if (current.scanStatus === 'INFECTED') {
       throw new Error('Файл отклонён проверкой безопасности');
@@ -51,18 +68,23 @@ async function waitForUploadScan(initial: UploadScanResponse): Promise<UploadSca
       throw new Error('Проверка файла занимает слишком много времени. Повторите попытку позже');
     }
 
-    await new Promise((resolve) => window.setTimeout(resolve, 750));
+    await scanDelay(signal);
+    throwIfCancelled(signal);
     const statusPath = current.statusPath ?? `/uploads/${encodeURIComponent(current.path)}/status`;
-    current = await api(statusPath);
+    current = await api(statusPath,{signal});
   }
 }
 
-export async function apiUpload(path: string, formData: FormData) {
+export async function apiUpload(path: string, formData: FormData, options: {signal?:AbortSignal} = {}) {
+  throwIfCancelled(options.signal);
   const res = await fetch(`${API}${path}`, {
     method: 'POST',
+    signal: options.signal,
     headers: authHeaders(),
     body: formData,
   });
+  throwIfCancelled(options.signal);
   const result = await handle(res);
-  return isUploadScanResponse(result) ? waitForUploadScan(result) : result;
+  throwIfCancelled(options.signal);
+  return isUploadScanResponse(result) ? waitForUploadScan(result, options.signal) : result;
 }
