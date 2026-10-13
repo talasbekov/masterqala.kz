@@ -52,3 +52,6 @@ export {LanguageDialogController,useLanguageDialog} from './LanguageDialogContro
 export {LoginForm} from './LoginForm';
 export type {LoginFormProps,LoginPendingAction} from './LoginForm';
 export {usePhoneLogin} from './usePhoneLogin';
+export {useClientHome} from './hooks/useClientHome';
+export type {ClientHomeOrder,ClientHomeCategory} from './hooks/useClientHome';
+export {ClientHomeView} from './ClientHomeView';

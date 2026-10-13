@@ -4,7 +4,7 @@ import {useLocale} from './Locale';
 import type {CopyKey} from './locale-data';
 import {isOwnedOrderActive, presentOwnedOrderAmount, type OwnedOrderItem} from './owned-orders';
 export interface OwnedOrderLinkProps {href: string; children: ReactNode; className?: string; ariaLabel?: string}
-const statusKeys: Record<string, CopyKey> = {CREATED:'ownedCreated',SEARCHING:'searching',ACCEPTED:'assigned',MASTER_ON_WAY:'enroute',INSPECTION:'inspection',AWAITING_PRICE_CONFIRM:'quote',PRICE_APPROVED:'approved',IN_PROGRESS:'working',DONE:'done',CLOSED:'closed',NO_MASTERS:'nomatch',CANCELLED_BY_CLIENT:'ownedCancelledClient',CANCELLED_BY_MASTER:'ownedCancelledMaster',DISPUTE:'ownedDispute',PUBLISHED:'ownedPublished',MASTER_SELECTED:'ownedSelected',CONFIRMED:'ownedConfirmed',EXPIRED:'ownedExpired'};
+export const ownedOrderStatusKeys: Record<string, CopyKey> = {CREATED:'ownedCreated',SEARCHING:'searching',ACCEPTED:'assigned',MASTER_ON_WAY:'enroute',INSPECTION:'inspection',AWAITING_PRICE_CONFIRM:'quote',PRICE_APPROVED:'approved',IN_PROGRESS:'working',DONE:'done',CLOSED:'closed',NO_MASTERS:'nomatch',CANCELLED_BY_CLIENT:'ownedCancelledClient',CANCELLED_BY_MASTER:'ownedCancelledMaster',DISPUTE:'ownedDispute',PUBLISHED:'ownedPublished',MASTER_SELECTED:'ownedSelected',CONFIRMED:'ownedConfirmed',EXPIRED:'ownedExpired'};
 export function OwnedOrdersView({items,loading,error,incomplete,onRetry,renderLink}: {items: OwnedOrderItem[]; loading: boolean; error: string; incomplete: boolean; onRetry: () => void; renderLink: (props: OwnedOrderLinkProps) => ReactNode}) {
   const {language,t,formatMoney} = useLocale();
   const [tab,setTab] = useState<'active'|'history'>('active');
@@ -26,7 +26,7 @@ export function OwnedOrdersView({items,loading,error,incomplete,onRetry,renderLi
           const date = Number.isFinite(timestamp) ? new Intl.DateTimeFormat(language === 'ru' ? 'ru-KZ' : language === 'kk' ? 'kk-KZ' : 'en-GB', {day:'numeric',month:'long',year:'numeric'}).format(timestamp) : null;
           const href = `${item.kind === 'urgent' ? '/order/' : '/planned/'}${encodeURIComponent(item.id)}`;
           const versionedDirect = item.kind === 'urgent' && (item.lifecycleVersion ?? 0) >= 2 && item.commercialMode === 'DIRECT_PAYMENT';
-          const statusKey = !versionedDirect && item.status === 'DONE' ? 'ownedDone' : !versionedDirect && item.status === 'CLOSED' ? 'ownedClosed' : statusKeys[item.status] ?? 'ownedUnknownStatus';
+          const statusKey = !versionedDirect && item.status === 'DONE' ? 'ownedDone' : !versionedDirect && item.status === 'CLOSED' ? 'ownedClosed' : ownedOrderStatusKeys[item.status] ?? 'ownedUnknownStatus';
           const status = t(statusKey);
           return <li key={`${item.kind}:${item.id}`} className="min-w-0 rounded-2xl bg-fill-soft p-6 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)] lg:gap-6 lg:rounded-none lg:border-b lg:border-border lg:bg-surface">
             <div className="min-w-0 break-words text-sm leading-[21px]"><p>{t('orderNumber',{id:item.id})}</p><p className="mt-1 text-ink-soft">{item.kind === 'planned' ? t('planned') : t('ownedUrgent')}</p></div>
