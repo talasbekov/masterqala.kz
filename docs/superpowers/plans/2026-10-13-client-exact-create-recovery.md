@@ -1,0 +1,11 @@
+# Client exact current-order creation recovery
+
+Approved scope: integrate the frozen dedicated server endpoint; retain existing form/API fields, business modes and fees. No automatic offline submission or heuristic matching.
+
+1. Version pending records so new submissions explicitly retain SERVER_KEYED protocol, one UUID and a whitelisted submitted snapshot. Existing schema1/local-only markers remain LOCAL_ONLY forever and expose owned-orders/support without replay. No tokens/files/blob previews/prices/approval state are stored.
+2. Capture the actual current session snapshot before freezing it; the first POST and recovery use exactly that stored submitted payload plus the same UUID. Send only POST /orders/idempotent. Old-server404 and all other failures never trigger fallback to POST /orders or a fresh UUID.
+3. A duplicate/busy/offline guard permits at most one mounted request at a time. Recovery is a deliberate user action, never a mount/reload effect. Restore does not mutate server business state. Confirmed201 or committed-processing202 with an exact owned order ID settles only that marker and follows the actual order. Old-owner/older-request responses cannot clear newer data or navigate their success path.
+4. Unknown outcomes retain exact identity and snapshot. Provide localized same-key checking plus real owned-orders/support navigation. Legacy or malformed/missing snapshots cannot be upgraded or replayed. Storage-blocked fallback survives soft navigation but not reload, explicitly disclosed.
+5. Unit/mounted tests: immutable original snapshot, same UUID/body/path across response-loss remount, no old404/legacy fallback, no legacy marker upgrade, owner/newer-request isolation, duplicate/offline guards and exact success/processing resolution. Existing server PostGIS tests establish real owner/key concurrency only after CI; live Next/SMS/browser reload remain pending.
+
+Server validation and pricing are authoritative. Client validation can prevent obviously incomplete/oversized fields using the already-existing DTO constraints before allocating a pending intent; it does not infer the outcome of a previously sent request. Definitive rejection/editing recovery for all server errors is not promised by this bounded slice.

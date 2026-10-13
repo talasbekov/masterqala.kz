@@ -44,3 +44,31 @@ test('late success from an old request cannot remove another owner or a newer sa
 test('storage-denied pending requests are explicitly volatile rather than pretending reload-safe persistence',()=>{
  const blocked={getItem(){throw Error('blocked')},setItem(){throw Error('blocked')},removeItem(){throw Error('blocked')}};const request=beginPendingCreate('owner-a',blocked);assert.ok(request);assert.equal(request.persistent,false);assert.equal(readPendingCreate('owner-a',blocked),null);assert.equal(resolvePendingCreate(request,'known-order',blocked),false);
 });
+
+test('server-keyed marker preserves an immutable submitted snapshot and never upgrades old markers',()=>{
+ const s=storage();const submitted={categoryId:'21891e0b-ef13-47bc-a616-25fdf57d0d29',description:'Original task',address:'Original street',district:'District',lat:51.1,lng:71.4,photoPaths:[],entrance:'3'};
+ const request=beginPendingCreate('owner-a',s,submitted);
+ assert.equal(request.protocol,'SERVER_KEYED');assert.deepEqual(request.submitted,submitted);
+ submitted.description='Edited later';assert.equal(readPendingCreate('owner-a',s).submitted.description,'Original task');
+ assert.equal(readPendingCreate('owner-a',s).requestId,request.requestId);assert.match(request.requestId,/^[0-9a-f-]{36}$/i);
+ clearNewOrderDraft(s);s.setItem(CREATE_PENDING_KEY,JSON.stringify({schemaVersion:1,ownerId:'owner-a',requestId:'legacy-local-only'}));
+ assert.equal(readPendingCreate('owner-a',s).protocol,'LOCAL_ONLY');assert.equal(readPendingCreate('owner-a',s).submitted,undefined);
+});
+
+test('exact keyed recovery uses only dedicated endpoint and identical saved body after failure, never legacy fallback',async()=>{
+ const lib=await import('../.test-build/lib/new-order-draft.js');assert.equal(typeof lib.sendCurrentOrder,'function');
+ const s=storage();const p={categoryId:'21891e0b-ef13-47bc-a616-25fdf57d0d29',description:'Task',address:'Street',district:'District',lat:51,lng:71,photoPaths:[]};const request=beginPendingCreate('owner',s,p);const calls=[];
+ const api=async(path,options)=>{calls.push([path,JSON.parse(options.body)]);if(calls.length===1)throw Error('404 old server');return{id:'actual-order',creationProcessing:true};};
+ await assert.rejects(lib.sendCurrentOrder(request,api),/404/);assert.equal(calls.length,1);assert.deepEqual(await lib.sendCurrentOrder(readPendingCreate('owner',s),api),{id:'actual-order',creationProcessing:true});assert.deepEqual(calls[0],calls[1]);assert.equal(calls[0][0],'/orders/idempotent');assert.deepEqual(calls[0][1],{...p,clientRequestId:request.requestId});
+ await assert.rejects(lib.sendCurrentOrder({ownerId:'owner',requestId:'old-local',persistent:true,protocol:'LOCAL_ONLY'},api),/not recoverable/);assert.equal(calls.length,2);
+});
+test('invalid keyed snapshots do not allocate intents; damaged keyed records remain conservatively locked as local-only',()=>{
+ const s=storage();const p={categoryId:'21891e0b-ef13-47bc-a616-25fdf57d0d29',description:'Task',address:'Street',district:'District',lat:51,lng:71,photoPaths:['uploads/not-a-server-reference.jpg']};assert.equal(beginPendingCreate('owner',s,p),null);assert.equal(s.getItem(CREATE_PENDING_KEY),null);
+ s.setItem(CREATE_PENDING_KEY,JSON.stringify({schemaVersion:2,ownerId:'owner',requestId:'21891e0b-ef13-47bc-a616-25fdf57d0d29',protocol:'SERVER_KEYED',submitted:p}));assert.equal(readPendingCreate('owner',s).protocol,'LOCAL_ONLY');assert.equal(beginPendingCreate('owner',s),null);
+});
+test('recognizable same-owner damaged-key markers remain locked without allocating a replacement identity',()=>{
+ const s=storage();for(const requestId of [undefined,'','x'.repeat(101),42]){
+  const raw=JSON.stringify({schemaVersion:2,ownerId:'owner-a',protocol:'SERVER_KEYED',requestId});s.setItem(CREATE_PENDING_KEY,raw);
+  const pending=readPendingCreate('owner-a',s);assert.ok(pending);assert.equal(pending.protocol,'LOCAL_ONLY');assert.equal(pending.submitted,undefined);assert.equal(beginPendingCreate('owner-a',s),null);assert.equal(s.getItem(CREATE_PENDING_KEY),raw);
+ }
+});

@@ -8,7 +8,7 @@ import { useCommercialMode } from '@/lib/commercial-mode';
 import { categoryMeta } from '@/lib/categoryMeta';
 import MapView from '@/components/MapView';
 import {useAuth} from '@/lib/auth';
-import {useNewOrderDraft} from '@/components/useNewOrderDraft';
+import {useNewOrderDraft,useCurrentOrderCreation} from '@/components/useNewOrderDraft';
 import {NewOrderCreationStatus} from '@/components/NewOrderCreationStatus';
 import type {NewOrderDraft} from '@/lib/new-order-draft';
 
@@ -43,7 +43,6 @@ function NewOrderForm({ownerId}:{ownerId:string}) {
   const { paymentsEnabled,commercialMode } = useCommercialMode();
   const direct=commercialMode==='DIRECT_PAYMENT';
   const {t:copy}=useLocale();
-  const submitLock=useRef(false);
   const router = useRouter();
   const {draft,ready,set,applyInitialLocation,requestLocation,beginCreate,finishCreate,pending,completedOrderId}=useNewOrderDraft(ownerId);
   const {step,categoryId,description,photoPaths,geo,addressText,district,entrance,floor,apartment,addressComment}=draft;
@@ -63,7 +62,8 @@ function NewOrderForm({ownerId}:{ownerId:string}) {
 
   const [preview, setPreview] = useState<Preview | null>(null);
   const [error, setError] = useState('');
-  const [submitting, setSubmitting] = useState(false);
+  const creation=useCurrentOrderCreation({beginCreate,finishCreate,pending,api,invalidMessage:copy('createSubmissionInvalid'),onConfirmed:id=>router.push(`/order/${encodeURIComponent(id)}`)});
+  const submitting=creation.busy;
 
   useEffect(() => {
     if (!ready||pending||completedOrderId) return;
@@ -111,41 +111,9 @@ function NewOrderForm({ownerId}:{ownerId:string}) {
     }
   }
 
-  async function submit() {
-    if(submitLock.current||!navigator.onLine)return;
-    const request=beginCreate();if(!request)return;
-    submitLock.current=true;
-    setError('');
-    setSubmitting(true);
-    try {
-      const order = await api('/orders', {
-        method: 'POST',
-        body: JSON.stringify({
-          categoryId,
-          description,
-          address: addressText,
-          district,
-          entrance: entrance || undefined,
-          floor: floor || undefined,
-          apartment: apartment || undefined,
-          addressComment: addressComment || undefined,
-          photoPaths,
-          lat: geo.lat,
-          lng: geo.lng,
-        }),
-      });
-      if(!finishCreate(request,order.id))return;
-      router.push(`/order/${order.id}`);
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setSubmitting(false);submitLock.current=false;
-    }
-  }
-
   if(!ready)return <div className="p-6 text-ink-soft">{t('common.loading')}</div>;
 
-  if(pending||completedOrderId)return <NewOrderCreationStatus pending={!!pending} persistent={pending?.persistent??true} submitting={submitting} completedOrderId={completedOrderId} error={error}/>;
+  if(pending||completedOrderId)return <NewOrderCreationStatus pending={!!pending} persistent={pending?.persistent??true} submitting={submitting} completedOrderId={completedOrderId} error={creation.error||error} onRecover={creation.canRecover?creation.recover:undefined} online={creation.online} recovering={creation.recovering}/>;
 
   const progress = (
     <div className="flex gap-1.5">
@@ -249,7 +217,7 @@ function NewOrderForm({ownerId}:{ownerId:string}) {
             </label>
           )}
         </div>
-        {error && <p className="text-sm font-semibold text-danger">{error}</p>}
+        {(creation.error||error) && <p role="alert" className="text-sm font-semibold text-danger">{creation.error||error}</p>}
         <div className="mt-auto" />
         <button
           type="button"
@@ -387,12 +355,12 @@ function NewOrderForm({ownerId}:{ownerId:string}) {
             ? t('newOrder.step4CancelNote')
             : 'Отмена до начала работ не вызывает списаний со стороны платформы. Договорённости по фактическим расходам обсуждаются напрямую с мастером.'}
         </p>
-        {error && <p className="text-sm font-semibold text-danger">{error}</p>}
+        {(creation.error||error) && <p role="alert" className="text-sm font-semibold text-danger">{creation.error||error}</p>}
         <div className="mt-auto" />
         <button
           type="button"
-          onClick={submit}
-          disabled={submitting || !preview?.available}
+          onClick={creation.submit}
+          disabled={submitting || !creation.online || !preview?.available}
           className="rounded-pill bg-primary p-4 text-[15.5px] font-extrabold text-white disabled:opacity-40"
         >
           {direct?copy('findMaster'):paymentsEnabled ? t('newOrder.step4Submit', { price: preview?.calloutPrice ?? '' }) : 'Найти мастера бесплатно'}

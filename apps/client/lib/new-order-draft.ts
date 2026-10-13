@@ -82,7 +82,27 @@ export function createDraftSession(ownerId:string,storage=getDraftStorage()) {
 }
 export const CREATE_PENDING_KEY='mq.new-order.pending.v1';
 export const DRAFT_CREATED_EVENT='mq:new-order-created';
-export interface PendingCreate {ownerId:string;requestId:string;persistent:boolean;}
+export interface CurrentOrderSubmission {
+ categoryId:string;description:string;address:string;district:string;lat:number;lng:number;photoPaths:string[];
+ entrance?:string;floor?:string;apartment?:string;addressComment?:string;
+}
+export interface PendingCreate {ownerId:string;requestId:string;persistent:boolean;protocol:'LOCAL_ONLY'|'SERVER_KEYED';submitted?:CurrentOrderSubmission;}
+const storedPhoto=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.(jpg|png)$/i;
+const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+/** Only the submitted API fields are durable; prices, auth and previews never are. */
+function submission(value:unknown):CurrentOrderSubmission|null {
+ if(!value||typeof value!=='object')return null;
+ const p=value as CurrentOrderSubmission;
+ if(!uuid.test(p.categoryId)||typeof p.description!=='string'||!p.description||p.description.length>2000||typeof p.address!=='string'||!p.address||p.address.length>500||typeof p.district!=='string'||!p.district||p.district.length>200)return null;
+ if(!Number.isFinite(p.lat)||Math.abs(p.lat)>90||!Number.isFinite(p.lng)||Math.abs(p.lng)>180)return null;
+ if(!Array.isArray(p.photoPaths)||p.photoPaths.length>5||new Set(p.photoPaths).size!==p.photoPaths.length||p.photoPaths.some(path=>typeof path!=='string'||!storedPhoto.test(path)))return null;
+ const result:CurrentOrderSubmission={categoryId:p.categoryId,description:p.description,address:p.address,district:p.district,lat:p.lat,lng:p.lng,photoPaths:[...p.photoPaths]};
+ for(const key of ['entrance','floor','apartment','addressComment'] as const){const v=p[key];if(v!==undefined){if(typeof v!=='string'||v.length>(key==='addressComment'?500:50))return null;result[key]=v;}}
+ return result;
+}
+export function currentOrderSubmission(draft:NewOrderDraft):CurrentOrderSubmission|null {
+ return submission({categoryId:draft.categoryId,description:draft.description,address:draft.addressText,district:draft.district,lat:draft.geo.lat,lng:draft.geo.lng,photoPaths:draft.photoPaths,entrance:draft.entrance||undefined,floor:draft.floor||undefined,apartment:draft.apartment||undefined,addressComment:draft.addressComment||undefined});
+}
 // One browser-window record survives same-document route remounts, never SSR requests.
 const volatilePendingKey=Symbol.for('mq.new-order.pending');
 function volatilePending():PendingCreate|null {
@@ -98,7 +118,13 @@ export function readPendingCreate(ownerId:string,storage=getDraftStorage()):Pend
     const raw=storage?.getItem(CREATE_PENDING_KEY);
     if(raw){
       const record=JSON.parse(raw);
-      if(record.schemaVersion===1&&record.ownerId===ownerId&&ownerId&&typeof record.requestId==='string'&&record.requestId.length>0&&record.requestId.length<=100)return {ownerId,requestId:record.requestId,persistent:true};
+      if([1,2].includes(record.schemaVersion)&&record.ownerId===ownerId&&ownerId){
+        // Recognizable damaged markers still represent an unknown outcome, never a new intent.
+        const keyValid=typeof record.requestId==='string'&&record.requestId.length>0&&record.requestId.length<=100;
+        if(!keyValid)return {ownerId,requestId:'',persistent:true,protocol:'LOCAL_ONLY'};
+        const submitted=record.schemaVersion===2&&record.protocol==='SERVER_KEYED'&&uuid.test(record.requestId)?submission(record.submitted):null;
+        return submitted?{ownerId,requestId:record.requestId,persistent:true,protocol:'SERVER_KEYED',submitted}:{ownerId,requestId:record.requestId,persistent:true,protocol:'LOCAL_ONLY'};
+      }
       storage?.removeItem(CREATE_PENDING_KEY);
     }
   }catch{try{storage?.removeItem(CREATE_PENDING_KEY);}catch{/* Optional storage. */}}
@@ -107,12 +133,30 @@ export function readPendingCreate(ownerId:string,storage=getDraftStorage()):Pend
   if(pending)setVolatilePending(null);
   return null;
 }
-export function beginPendingCreate(ownerId:string,storage=getDraftStorage()):PendingCreate|null {
+export function beginPendingCreate(ownerId:string,storage=getDraftStorage(),value?:CurrentOrderSubmission):PendingCreate|null {
   if(!ownerId||readPendingCreate(ownerId,storage))return null;
-  const request={ownerId,requestId:globalThis.crypto.randomUUID(),persistent:false};
-  try{if(storage){storage.setItem(CREATE_PENDING_KEY,JSON.stringify({schemaVersion:1,ownerId,requestId:request.requestId}));request.persistent=true;}}catch{/* Same-document fallback only; reload recovery cannot be promised. */}
+  const submitted=value===undefined?undefined:submission(value);if(value!==undefined&&!submitted)return null;
+  const request:PendingCreate={ownerId,requestId:globalThis.crypto.randomUUID(),persistent:false,protocol:submitted?'SERVER_KEYED':'LOCAL_ONLY',...(submitted?{submitted}:{})};
+  try{if(storage){storage.setItem(CREATE_PENDING_KEY,JSON.stringify({schemaVersion:2,ownerId,requestId:request.requestId,protocol:request.protocol,submitted:request.submitted}));request.persistent=true;}}catch{/* Same-document fallback only; reload recovery cannot be promised. */}
   if(!request.persistent)setVolatilePending(request);
   return request;
+}
+export function canRecoverCreate(request:PendingCreate|null):boolean {
+ return !!request&&request.protocol==='SERVER_KEYED'&&uuid.test(request.requestId)&&!!submission(request.submitted);
+}
+/** Read-only ownership check: an old action must not erase a different account's marker. */
+export function ownsPendingCreate(request:PendingCreate,storage=getDraftStorage()):boolean {
+ let stored:PendingCreate|null=null;
+ try{const raw=storage?.getItem(CREATE_PENDING_KEY);stored=raw?JSON.parse(raw):null;}catch{/* Optional storage. */}
+ const memory=volatilePending();
+ return [stored,memory].some(p=>p?.ownerId===request.ownerId&&p?.requestId===request.requestId);
+}
+export async function sendCurrentOrder(request:PendingCreate,api:(path:string,options:{method:string;body:string})=>Promise<{id:string;creationProcessing?:boolean}>) {
+ if(!canRecoverCreate(request))throw new Error('Submission is not recoverable with a server key');
+ // Both the initial attempt and deliberate recovery share the original submitted snapshot.
+ const order=await api('/orders/idempotent',{method:'POST',body:JSON.stringify({...submission(request.submitted),clientRequestId:request.requestId})});
+ if(typeof order?.id!=='string'||!order.id)throw new Error('The server did not confirm an order identity');
+ return order;
 }
 /** A confirmed response resolves only its exact local marker. Similar orders are not evidence. */
 export function resolvePendingCreate(request:PendingCreate,orderId:string,storage=getDraftStorage()):boolean {
