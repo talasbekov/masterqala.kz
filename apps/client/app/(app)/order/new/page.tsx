@@ -6,7 +6,11 @@ import { useTranslation } from 'react-i18next';
 import { api, apiUpload } from '@/lib/api';
 import { useCommercialMode } from '@/lib/commercial-mode';
 import { categoryMeta } from '@/lib/categoryMeta';
-import MapView, { type LatLng } from '@/components/MapView';
+import MapView from '@/components/MapView';
+import {useAuth} from '@/lib/auth';
+import {useNewOrderDraft} from '@/components/useNewOrderDraft';
+import {NewOrderCreationStatus} from '@/components/NewOrderCreationStatus';
+import type {NewOrderDraft} from '@/lib/new-order-draft';
 
 interface Category {
   id: string;
@@ -29,52 +33,59 @@ interface Preview {
   serviceFee?: number;
 }
 
-const ASTANA_CENTER: LatLng = { lat: 51.1605, lng: 71.4704 };
-
 export default function NewOrderPage() {
+  const {user}=useAuth();
+  return user?<NewOrderForm key={user.id} ownerId={user.id}/>:null;
+}
+
+function NewOrderForm({ownerId}:{ownerId:string}) {
   const { t } = useTranslation();
   const { paymentsEnabled,commercialMode } = useCommercialMode();
   const direct=commercialMode==='DIRECT_PAYMENT';
   const {t:copy}=useLocale();
   const submitLock=useRef(false);
   const router = useRouter();
-  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
+  const {draft,ready,set,applyInitialLocation,requestLocation,beginCreate,finishCreate,pending,completedOrderId}=useNewOrderDraft(ownerId);
+  const {step,categoryId,description,photoPaths,geo,addressText,district,entrance,floor,apartment,addressComment}=draft;
+  function field<K extends keyof NewOrderDraft>(key:K) {
+    return (value:NewOrderDraft[K]|((previous:NewOrderDraft[K])=>NewOrderDraft[K]))=>set(key,value);
+  }
+  const setStep=field('step'),setCategoryId=field('categoryId'),setDescription=field('description'),setPhotoPaths=field('photoPaths');
+  const setGeo=field('geo'),setAddressText=field('addressText'),setDistrict=field('district'),setEntrance=field('entrance');
+  const setFloor=field('floor'),setApartment=field('apartment'),setAddressComment=field('addressComment');
+  const translation=useRef(t);translation.current=t;
 
   const [categories, setCategories] = useState<Category[]>([]);
-  const [categoryId, setCategoryId] = useState('');
 
-  const [description, setDescription] = useState('');
-  const [photoPaths, setPhotoPaths] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
 
   const [savedAddresses, setSavedAddresses] = useState<Address[]>([]);
-  const [geo, setGeo] = useState<LatLng>(ASTANA_CENTER);
-  const [addressText, setAddressText] = useState('');
-  const [district, setDistrict] = useState('');
-  const [entrance, setEntrance] = useState('');
-  const [floor, setFloor] = useState('');
-  const [apartment, setApartment] = useState('');
-  const [addressComment, setAddressComment] = useState('');
 
   const [preview, setPreview] = useState<Preview | null>(null);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    api('/categories').then(setCategories).catch((e) => setError((e as Error).message));
-    api('/addresses').then(setSavedAddresses).catch(() => {});
+    if (!ready||pending||completedOrderId) return;
+    let cancelled=false;
+    api('/categories').then(value=>{if(!cancelled)setCategories(value);}).catch((e)=>{if(!cancelled)setError((e as Error).message);});
+    api('/addresses').then(value=>{if(!cancelled)setSavedAddresses(value);}).catch(()=>{});
     navigator.geolocation?.getCurrentPosition(
-      (pos) => setGeo({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-      () => setError(t('newOrder.geoError')),
+      (pos) => {if(!cancelled)applyInitialLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });},
+      () => {if(!cancelled)setError(translation.current('newOrder.geoError'));},
     );
-  }, [t]);
+    return()=>{cancelled=true;};
+  }, [ready,applyInitialLocation,pending,completedOrderId]);
 
   useEffect(() => {
-    if (step !== 4 || !categoryId) return;
+    if (!ready || pending || completedOrderId || step !== 4 || !categoryId) return;
+    let cancelled=false;
+    setPreview(null);
     api('/orders/preview', { method: 'POST', body: JSON.stringify({ categoryId, lat: geo.lat, lng: geo.lng }) })
-      .then(setPreview)
-      .catch((e) => setError((e as Error).message));
-  }, [step, categoryId, geo]);
+      .then(value=>{if(!cancelled)setPreview(value);})
+      .catch((e)=>{if(!cancelled)setError((e as Error).message);});
+    return()=>{cancelled=true;};
+  }, [ready,step,categoryId,geo,pending,completedOrderId]);
 
   function selectAddress(a: Address) {
     setAddressText(a.address);
@@ -102,6 +113,7 @@ export default function NewOrderPage() {
 
   async function submit() {
     if(submitLock.current||!navigator.onLine)return;
+    const request=beginCreate();if(!request)return;
     submitLock.current=true;
     setError('');
     setSubmitting(true);
@@ -122,6 +134,7 @@ export default function NewOrderPage() {
           lng: geo.lng,
         }),
       });
+      if(!finishCreate(request,order.id))return;
       router.push(`/order/${order.id}`);
     } catch (e) {
       setError((e as Error).message);
@@ -129,6 +142,10 @@ export default function NewOrderPage() {
       setSubmitting(false);submitLock.current=false;
     }
   }
+
+  if(!ready)return <div className="p-6 text-ink-soft">{t('common.loading')}</div>;
+
+  if(pending||completedOrderId)return <NewOrderCreationStatus pending={!!pending} persistent={pending?.persistent??true} submitting={submitting} completedOrderId={completedOrderId} error={error}/>;
 
   const progress = (
     <div className="flex gap-1.5">
@@ -306,11 +323,10 @@ export default function NewOrderPage() {
         />
         <button
           type="button"
-          onClick={() =>
-            navigator.geolocation?.getCurrentPosition((pos) =>
-              setGeo({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-            )
-          }
+          onClick={() => {
+            const apply=requestLocation();
+            navigator.geolocation?.getCurrentPosition((pos)=>apply({lat:pos.coords.latitude,lng:pos.coords.longitude}));
+          }}
           className="rounded-pill border-[1.5px] border-border p-2.5 text-xs font-extrabold text-ink-soft"
         >
           ◎ {t('newOrder.step3MyLocation')}
