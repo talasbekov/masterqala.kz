@@ -80,6 +80,9 @@ jobs:
       - name: Test Vite client recovery
         run: pnpm --filter web run test
 
+      - name: Test master login interactions
+        run: pnpm --filter master run test
+
       - name: Apply database migrations
         run: pnpm --filter api exec prisma migrate deploy
 

@@ -55,3 +55,4 @@ export {usePhoneLogin} from './usePhoneLogin';
 export {useClientHome} from './hooks/useClientHome';
 export type {ClientHomeOrder,ClientHomeCategory} from './hooks/useClientHome';
 export {ClientHomeView} from './ClientHomeView';
+export {phoneLoginText} from './phone-login-copy';

@@ -28,3 +28,5 @@ brain/.obsidian/
 apps/client/.test-build/
 
 apps/web/.test-build/
+
+apps/master/.test-build/

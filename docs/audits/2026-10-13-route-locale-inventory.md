@@ -1,6 +1,6 @@
 # Fixed 55-route × locale remaining checklist
 
-Published baseline:8b5cfd4e400adc42930ee6c73e0365c084fa7d09; exact-head CI38381826551 is green. Local home batch strengthens current-owner/socket reads and truthful localized guidance in both clients. Buckets:16 dependency-gated,4 unimplemented service contracts,20 other unimplemented parity/locales,15 scoped implementations. Source/static inventory, not rendered acceptance. Verified means only the named scoped implementation/tests, never whole-route/Figma readiness. Every route still requires permitted native geometry/live evidence.
+Published baseline:bef4a3a88a5278354fbb9685e469b71069410b5b; exact-head CI38383879913 is green. Local master login reuses reviewed phone/OTP presentation/lifetime guards and canonical locale copy. Buckets:16 dependency-gated,4 unimplemented service contracts,19 other unimplemented parity/locales,16 scoped implementations. Source/static inventory, not rendered acceptance. Verified means only the named scoped implementation/tests, never whole-route/Figma readiness. Every route still requires permitted native geometry/live evidence.
 
 Dictionary leaves: Next client RU257/KK115/EN115; common,newOrder,profile21,addresses24,navigation complete, auth24/25 (splashTagline missing),11 other sections fallback. Vite RU251/KK114/EN114; visible auth24 (unused splashTagline missing in KK/EN),common/newOrder/profile21/addresses24 and four visible tabs complete; unused legacy home dictionaries remain incomplete; rendered home now uses complete shared three-language resources. Home, owned orders, availability and direct-order dictionaries are separate shared three-language resources.
 
@@ -32,7 +32,7 @@ Dictionary leaves: Next client RU257/KK115/EN115; common,newOrder,profile21,addr
 | Unimplemented parity/locales | master `/become-master` | Mostly hardcoded RU; selected shared labels only | Native rendered/live acceptance unverified (global) |
 | Unimplemented parity/locales | master `/disputes` | Mostly hardcoded RU; selected shared labels only | Native rendered/live acceptance unverified (global) |
 | Unimplemented parity/locales | master `/disputes/[id]` | Mostly hardcoded RU; selected shared labels only | Native rendered/live acceptance unverified (global) |
-| Unimplemented parity/locales | master `/login` | Mostly hardcoded RU; selected shared labels only | Native rendered/live acceptance unverified (global) |
+| Verified scoped implementation | master `/login` | Shared phone/OTP form/hook, exact reviewed auth24 RU/KK/EN driven by canonical LocaleProvider; actual mounted route tests | Native SMS/autofill/AppRouter/geometry, entry assets and master onboarding remain unverified/incomplete |
 | Unimplemented parity/locales | operator `/` | Hardcoded RU; no full KK/EN resource path mapped | Native rendered/live acceptance unverified (global) |
 | Unimplemented parity/locales | operator `/disputes` | Hardcoded RU; no full KK/EN resource path mapped | Native rendered/live acceptance unverified (global) |
 | Unimplemented parity/locales | operator `/journal` | Hardcoded RU; no full KK/EN resource path mapped | Native rendered/live acceptance unverified (global) |
@@ -67,3 +67,5 @@ Owned-orders batch now implements active/history, authoritative versioned direct
 The four support/notification routes now have scoped localized availability views, but their service contracts remain unimplemented and are not counted as completed routes. Support no longer presents an unverified free-call contact or inert FAQ. Notifications no longer asserts an empty inbox without a feed API. Native rendering, original assets and actual service intake/events remain pending.
 
 Home routes now use neutral task/address guidance without invented ETA, free callout, document verification or protected-payment/24-hour support promises. Existing category navigation opens the generic new-order form; it does not preselect or alter a draft. Independent read failures preserve available current-owner results with explicit stale notices. Original service photos/icons, search, category-specific draft seeding and public master directory remain separate requirements. This is not complete home/Figma parity.
+
+Master login now reuses common phone/OTP controls and request/phone/OTP/lifetime guards with canonical language; no i18next state or new dependency. Existing server roles/auth storage and fixed master home destination remain unchanged. Actual context-adapter/fixture tests do not establish live SMS, native rendering or onboarding/role assignment.
