@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, type ReactNode } from 'react';
+import {clearNewOrderDraft} from '@masterqala/ui';
 import { resetSocket } from './socket';
 
 export interface AuthUser {
@@ -28,6 +29,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(u);
   };
   const logout = () => {
+    clearNewOrderDraft();
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     resetSocket();

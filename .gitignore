@@ -26,3 +26,5 @@ brain/.obsidian/
 
 # Component test bundles
 apps/client/.test-build/
+
+apps/web/.test-build/

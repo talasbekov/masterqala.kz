@@ -63,6 +63,9 @@ jobs:
       - name: Test client interactions
         run: pnpm --filter client run test
 
+      - name: Test Vite client recovery
+        run: pnpm --filter web run test
+
       - name: Apply database migrations
         run: pnpm --filter api exec prisma migrate deploy
 

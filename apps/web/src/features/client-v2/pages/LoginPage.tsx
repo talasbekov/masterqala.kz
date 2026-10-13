@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import {useSearchParams,useNavigate} from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import {safeReturnPath} from '@masterqala/ui';
 import { api } from '../../../api';
 import { useAuth } from '../../../auth';
 
@@ -16,6 +17,7 @@ export default function LoginPage() {
   const { t } = useTranslation();
   const { login } = useAuth();
   const navigate = useNavigate();
+  const [searchParams]=useSearchParams();
   const [step, setStep] = useState<Step>('splash');
   const [phone, setPhone] = useState('');
   const [code, setCode] = useState('');
@@ -61,7 +63,7 @@ export default function LoginPage() {
         body: JSON.stringify({ phone: normalizedPhone, code }),
       });
       login(res.accessToken, res.user);
-      navigate('/');
+      navigate(safeReturnPath(searchParams.get('returnTo')),{replace:true});
     } catch (e) {
       setError((e as Error).message);
     } finally {
