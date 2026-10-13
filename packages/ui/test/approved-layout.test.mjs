@@ -172,3 +172,18 @@ test('rejected read-only refresh shows actual error and allows explicit retry wi
  try{await act(async()=>document.querySelector('footer [data-action="refresh-status"]').click());assert.equal(document.querySelector('[role="alert"]').textContent,'Actual refresh failure');assert.equal(document.querySelector('footer [data-action="refresh-status"]').disabled,false);await act(async()=>document.querySelector('footer [data-action="refresh-status"]').click());assert.equal(reads,2);assert.equal(document.querySelector('[role="alert"]'),null);assert.equal(app.calls.length,0);}
  finally{await app.cleanup()}
 });
+test('closed client keeps real quote/payment uncertainty and offers Home/Orders with contact preserved in content',async()=>{
+ for(const language of ['ru','kk','en'])for(const reviewed of [false,true]){
+  let homes=0;const order={...approvedOrder,status:'CLOSED',workComment:'Actual accepted scope',master:{name:'Actual specialist',phone:'+77015551234'},review:reviewed?{rating:5,comment:'Actual review'}:null};const app=await stateView(DirectClientOrderView,language,{order,onHome:()=>homes++});
+  try{const quote=document.querySelector('[data-closed-quote]');assert.ok(quote,'closed quote required');assert.ok(quote.textContent.includes(order.workComment));assert.ok(quote.textContent.replace(/[^0-9]/g,'').includes('14000'));const payment=document.querySelector('[data-closed-payment]');assert.ok(payment);assert.match(payment.textContent,language==='ru'?/Если ещё не оплатили/:language==='kk'?/төлемеген/:/If you haven.t paid/i);assert.ok(document.querySelector('main [data-action="call-closed-master"]').classList.contains('min-h-[56px]'));
+   const home=document.querySelector('footer [data-action="go-home"]'),orders=document.querySelector('footer [data-action="open-orders"]');assert.ok(home);assert.ok(orders);assert.ok(home.classList.contains('min-h-[56px]'));await act(async()=>{home.click();orders.click()});assert.equal(homes,1);assert.equal(app.back(),1);assert.equal(app.calls.length,0);assert.equal(!!document.querySelector('textarea'),!reviewed);assert.ok(document.querySelector('header > button:last-child').getAttribute('aria-label'));
+   await app.render({order:{...order,status:'IN_PROGRESS'}});assert.equal(document.querySelector('[data-closed-quote]'),null);assert.equal(document.querySelector('[data-closed-payment]'),null);assert.equal(document.querySelector('footer [data-action="go-home"]'),null);
+  }finally{await app.cleanup()}
+ }
+});
+test('closed unknown prices remain unavailable, missing contact stays absent and optional review retains mutation guards',async()=>{
+ const app=await stateView(DirectClientOrderView,'en',{order:{...approvedOrder,status:'CLOSED',workPrice:null,quoteTotal:null,workComment:' ',description:'Actual accepted request',master:null},onHome(){}});
+ try{const quote=document.querySelector('[data-closed-quote]');assert.ok(quote);assert.ok(quote.textContent.includes('Actual accepted request'));assert.match(quote.textContent,/Total—/);assert.match(document.querySelector('[data-closed-payment]').textContent,/—/);assert.equal(document.querySelector('[data-action="call-closed-master"]'),null);await act(async()=>document.querySelector('button[aria-label="5"]').click());
+  for(const guard of [{busy:true},{online:false},{fresh:false}]){await app.render(guard);const submit=document.querySelector('[data-action="submit-review"]');assert.equal(submit.disabled,true);await act(async()=>submit.click());assert.equal(app.calls.length,0)}await app.render();await act(async()=>document.querySelector('[data-action="submit-review"]').click());assert.deepEqual(app.calls,[['review',{rating:5,comment:undefined}]]);
+ }finally{await app.cleanup()}
+});

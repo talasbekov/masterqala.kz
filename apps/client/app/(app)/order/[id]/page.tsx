@@ -47,7 +47,7 @@ export default function OrderPage() {
   }
 
   if(order.lifecycleVersion>=2) return <DirectClientOrderView order={order} busy={busy} error={error} online={online} fresh={fresh}
-    onBack={()=>router.push('/orders')} onHelp={()=>router.push('/support')}
+    onHome={()=>router.push('/')} onBack={()=>router.push('/orders')} onHelp={()=>router.push('/support')}
     onCancelPreview={()=>api(`/orders/${id}/cancellation-preview`)}
     map={<MapView mode="tracking" center={order.lat!=null&&order.lng!=null?{lat:order.lat,lng:order.lng}:{lat:51.1605,lng:71.4704}} height="100%" className="h-full rounded-none"/>}
     onAction={(action,body)=>mutate(()=>api(`/orders/${id}/${action}`,{method:'POST',body:JSON.stringify(body??{})}))}/>;
