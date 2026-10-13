@@ -56,3 +56,6 @@ export {useClientHome} from './hooks/useClientHome';
 export type {ClientHomeOrder,ClientHomeCategory} from './hooks/useClientHome';
 export {ClientHomeView} from './ClientHomeView';
 export {phoneLoginText} from './phone-login-copy';
+export {useCategoryBrowser} from './hooks/useCategoryBrowser';
+export type {BrowseCategory} from './hooks/useCategoryBrowser';
+export {CategoryBrowserView} from './CategoryBrowserView';
