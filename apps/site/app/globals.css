@@ -1,10 +1,21 @@
 @import "tailwindcss";
 @import "@masterqala/ui/tokens.css";
+@import "@masterqala/ui/locale.css";
 @source "../app";
 @source "../components";
+@source "../../../packages/ui/src";
 
 body {
   background: var(--color-background);
   color: var(--color-ink);
   font-family: var(--font-sans);
 }
+
+.mq-site-primary { display:inline-flex; min-height:52px; align-items:center; justify-content:center; border-radius:12px; padding:12px 24px; background:var(--color-accent); color:var(--color-primary); font-weight:600; text-align:center; }
+.mq-site-primary:focus-visible { outline:2px solid var(--color-primary); outline-offset:3px; }
+.mq-site-info { max-width:960px; margin:0 auto; padding:48px 24px; min-width:0; overflow-wrap:anywhere; }
+.mq-site-info h1 { font-size:32px; line-height:1.25; font-weight:600; }
+.mq-site-info h2 { font-size:20px; line-height:1.4; font-weight:600; }
+.mq-site-info p, .mq-site-info summary { font-size:16px; line-height:24px; }
+.mq-site-card { margin-top:24px; border-radius:16px; padding:24px; background:var(--color-surface); }
+@media(max-width:767px) { .mq-site-primary { min-height:56px; } .mq-site-info { padding:32px 24px; } }

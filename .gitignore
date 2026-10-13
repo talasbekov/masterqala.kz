@@ -32,3 +32,5 @@ apps/web/.test-build/
 apps/master/.test-build/
 
 apps/operator/.test-build/
+
+apps/site/.test-build/

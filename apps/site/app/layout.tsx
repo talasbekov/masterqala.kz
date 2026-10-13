@@ -1,21 +1,7 @@
-import type { Metadata } from 'next';
-import { Header } from '@/components/Header';
-import { Footer } from '@/components/Footer';
-import './globals.css';
-
-export const metadata: Metadata = {
-  title: 'MasterQala',
-  description: 'Мастер на дом — быстро и по понятной цене',
-};
-
-export default function RootLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <html lang="ru">
-      <body className="flex min-h-screen flex-col">
-        <Header />
-        <div className="flex-1">{children}</div>
-        <Footer />
-      </body>
-    </html>
-  );
+import {cookies} from 'next/headers';import type {Metadata} from 'next';import type {Locale} from '@masterqala/ui';
+import {SiteShell} from '../components/SiteShell';import {getAppUrl,getContactEmail,getContactPhone} from '../lib/env';import './globals.css';
+export const metadata:Metadata={title:'MasterQala',description:'MasterQala'};
+export default async function RootLayout({children}:{children:React.ReactNode}) {
+ const value=(await cookies()).get('mq_locale')?.value,language:Locale=value==='kk'||value==='en'?value:'ru';
+ return <html lang={language}><body className="flex min-h-screen flex-col"><SiteShell initialLanguage={language} appUrl={getAppUrl()} phone={getContactPhone()} email={getContactEmail()}>{children}</SiteShell></body></html>;
 }

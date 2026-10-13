@@ -1,0 +1,1 @@
+export async function resolve(specifier,context,nextResolve){if(specifier==='next/headers')return {url:new URL('./headers-fixture.mjs',import.meta.url).href,shortCircuit:true};return nextResolve(['next/link','next/navigation'].includes(specifier)?specifier+'.js':specifier,context)}
