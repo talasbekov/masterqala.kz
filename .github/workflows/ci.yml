@@ -31,6 +31,20 @@ jobs:
           --health-timeout 5s
           --health-retries 10
 
+      postgres_queue:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_USER: masterqala
+          POSTGRES_PASSWORD: masterqala
+          POSTGRES_DB: masterqala_urgent_queue_ci
+        ports:
+          - 5434:5432
+        options: >-
+          --health-cmd "pg_isready -U masterqala -d masterqala_urgent_queue_ci"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
     env:
       NODE_ENV: test
       DATABASE_URL: postgresql://masterqala:masterqala@localhost:5433/masterqala_test
@@ -87,6 +101,31 @@ jobs:
         with:
           name: api-e2e-log
           path: api-e2e.log
+          if-no-files-found: ignore
+          retention-days: 3
+
+      - name: Apply isolated queue-test database migrations
+        env:
+          DATABASE_URL: postgresql://masterqala:masterqala@localhost:5434/masterqala_urgent_queue_ci
+        run: pnpm --filter api exec prisma migrate deploy
+
+      - name: Test real urgent queue expiry and restart
+        env:
+          DATABASE_URL: postgresql://masterqala:masterqala@localhost:5434/masterqala_urgent_queue_ci
+          ALLOW_ISOLATED_QUEUE_TESTS: "1"
+          PGBOSS_DISABLED: "0"
+          COMMERCIAL_MODE: DIRECT_PAYMENT
+        shell: bash
+        run: |
+          set -o pipefail
+          pnpm --filter api run test:queue:e2e 2>&1 | tee api-queue-e2e.log
+
+      - name: Upload isolated queue-test log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-queue-e2e-log
+          path: api-queue-e2e.log
           if-no-files-found: ignore
           retention-days: 3
 
