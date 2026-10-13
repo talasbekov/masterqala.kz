@@ -1,5 +1,7 @@
 # Remaining MasterQala delivery plan
 
+Current published verification: b868e97bd16d9a389d6f83e7a999d506c6178a3b, exact CI38350274407 GREEN:56shared/66Next/19Vite,201API units/265normalPostGIS E2E,4real isolated application queue cases+13safety/observer tests, both database migrations and all builds. PR37 was read-only rechecked at05:39UTC and remains4060ba9. Earlier pending/unexecuted paragraphs below are historical checkpoint snapshots; the specified queue scenarios and Vite pin/common/newOrder localization are now verified by that exact CI. Native rendered/live journey and broader remaining localization are still open. The nine-state presentation batch is a separate local reviewed increment awaiting its own published-head CI.
+
 ## Verified checkpoints
 
 2026-10-13: PR37 remains4060ba904675a599ec975c7f0d58a4096b1f6f4e. PR38 published Vite recovery14a9935ef078471c868584a41055fdb940d5b222 exactly equals reviewed local3e560025 treefc976e23. Exact CI38347293744 passed15Vite/55shared/66Next,201unit/42suites,265PostGIS/62suites,migrations and all app builds. Original worker termination is not established by unchanged Git head.
@@ -41,3 +43,7 @@ Dedicated application queue proof is a separate test-only local batch: real30s e
 Actual queue CI update: a09f42e/run38348707530 ran all four isolated cases; three passed and expiry failed only after successful causal/job assertions on a test observer data:null TypeError. No runtime defect established. Test-only predicate correction adds two observed RED→GREEN regressions and needs corrected exact-head CI; previous green app builds remain14a9935e.
 
 Local bounded Vite pin/current-order-locale batch: reviewed pure pin algorithm is shared without behavior changes, Next thin reexport and actual Vite Leaflet synchronization/cleanup tests. Onlycommon/newOrder dictionaries and four pilot strings are integrated; remaining14Vite sections still fall back toRU, actual APIcategory names/errors unchanged. Native geometry/tiles and full localization are not claimed. Corrected queue7f5bbb46 CI38349535641 has passed its real application queue step, full builds were still running when this audit was written.
+
+## Fixed urgent presentation batch (2026-10-13)
+
+High-fidelity nine-row matrix is recorded in2026-10-13-urgent-state-screen-matrix.md: client discovery/arrival/no-master/working and master consent-wait/working/acceptance-wait. Shared state-specific actual-data presentation is locally implemented incrementally, retaining current API policies/guards and canonical three-language provider. Original search illustration, exact mobile client travel source, master specialty/experience/ETA and unsupported planned/edit/in-work-revision/comment contracts remain explicit gaps. This batch does not reduce native geometry/live two-role acceptance or the55-route project denominator to a complete result. Matching, exact create recovery and the four specified real queue scenarios have verified green CI; general postcommit payment/outbox recovery remains separate.

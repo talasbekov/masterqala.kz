@@ -38,7 +38,7 @@ test('desktop consent-change notice is approved-only and localized without rende
   const app=await stateView(DirectClientOrderView,language);
   try{const notice=document.querySelector('[data-approved-notice]');assert.ok(notice,'approved desktop notice required');assert.ok(notice.classList.contains('lg:w-[330px]'));assert.ok(notice.querySelector('h2').classList.contains('text-xl'));assert.ok(notice.querySelector('p').classList.contains('leading-6'));assert.ok(notice.querySelector('p').textContent.startsWith({ru:'Если',kk:'Жұмыс',en:'If'}[language]));assert.equal(app.calls.length,0);
    await act(async()=>document.querySelector('header button').click());assert.equal(app.back(),1);assert.equal(app.calls.length,0);
-   for(const status of ['AWAITING_PRICE_CONFIRM','IN_PROGRESS','DONE']){await app.render({order:{...approvedOrder,status}});assert.equal(document.querySelector('[data-approved-notice]'),null);assert.ok(document.querySelector('main').parentElement.parentElement.classList.contains('md:max-w-[400px]'));}
+   for(const status of ['AWAITING_PRICE_CONFIRM','IN_PROGRESS','DONE']){await app.render({order:{...approvedOrder,status}});assert.equal(document.querySelector('[data-approved-notice]'),null);if(status==='IN_PROGRESS')assert.ok(document.querySelector('[data-client-cost-notice]'));else assert.ok(document.querySelector('main').parentElement.parentElement.classList.contains('md:max-w-[400px]'));}
   }finally{await app.cleanup()}
  }
 });
