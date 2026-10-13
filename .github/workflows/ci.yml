@@ -57,8 +57,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build shared packages
-        run: pnpm --filter @masterqala/ui build
+      - name: Build and test shared UI
+        run: pnpm --filter @masterqala/ui run test
+
+      - name: Test client interactions
+        run: pnpm --filter client run test
 
       - name: Apply database migrations
         run: pnpm --filter api exec prisma migrate deploy

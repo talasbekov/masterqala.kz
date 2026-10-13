@@ -1,5 +1,7 @@
 @import "tailwindcss";
 @import "@masterqala/ui/tokens.css";
+@import "@masterqala/ui/controls.css";
+@import "@masterqala/ui/locale.css";
 @source "../app";
 @source "../components";
 @source "../lib";
@@ -11,3 +13,104 @@ body {
 }
 
 @source "../../../packages/ui/src";
+
+.mq-login-content { width: 100%; max-width: 1328px; margin: 40px auto 0; padding: 32px 24px; font-family: Inter, Arial, sans-serif; }
+.mq-login-content h1 { margin: 0 0 24px; color: #123b52; font: 600 32px/1.4 Inter, Arial, sans-serif; }
+.mq-login-content > p { margin: 0 0 24px; color: #666; font: 400 16px/1.5 Inter, Arial, sans-serif; }
+.mq-login-form { display: flex; flex-direction: column; align-items: stretch; gap: 16px; width: min(832px, 100%); padding: 24px; border-radius: 16px; background: white; }
+.mq-login-form h2 { margin: 0; color: #123b52; font: 600 20px/1.4 Inter, Arial, sans-serif; }
+.mq-login-form p { margin: 0; color: #666; font: 400 16px/1.5 Inter, Arial, sans-serif; }
+.mq-login-actions { display: flex; flex-direction: column; gap: 8px; }
+.mq-login-account-note, .mq-login-country { display: none; }
+.mq-login-form .mq-login-terms { font-size: 12px; }
+@media (max-width: 767px) {
+  .mq-login-content { margin: 0; padding: 24px; background: white; }
+  .mq-login-content h1 { font-weight: 500; font-size: 28px; line-height: 34px; }
+  .mq-login-content > p { font-size: 14px; line-height: 21px; }
+  .mq-login-form { padding: 0; gap: 24px; }
+  .mq-login-form h2 { font-size: 16px; }
+  .mq-login-form p { font-size: 14px; line-height: 21px; }
+  .mq-login-account-note { display: flex; flex-direction: column; gap: 12px; padding: 16px; border-radius: 16px; background: #f4f3ef; }
+  .mq-login-account-note h3 { margin: 0; color: #123b52; font: 600 14px/1.3 Inter, Arial, sans-serif; }
+  .mq-login-form .mq-login-country { display: block; }
+  .mq-login-actions > button { min-height: 56px; }
+}
+.mq-login-title-mobile { display: none; }
+@media (min-width: 768px) {
+  .mq-login-form[data-step='phone'] .mq-field { order: 1; }
+  .mq-login-form[data-step='phone'] .mq-login-actions { order: 2; }
+  .mq-login-form[data-step='phone'] .mq-login-explainer { order: 3; }
+  .mq-login-form[data-step='phone'] .mq-login-terms { order: 4; }
+}
+@media (max-width: 767px) {
+  .mq-auth-main { padding-bottom: 0; display: flex; flex-direction: column; }
+  .mq-login-content { flex: 1; display: flex; flex-direction: column; }
+  .mq-login-content > p, .mq-login-title-web, .mq-login-form h2 { display: none; }
+  .mq-login-title-mobile { display: inline; }
+  .mq-login-form { flex: 1; }
+  .mq-login-form .mq-login-explainer { order: -1; }
+  .mq-login-actions { margin-top: auto; padding-top: 12px; padding-bottom: env(safe-area-inset-bottom, 0px); }
+}
+.mq-login-sms-mobile { display: none; }
+@media (max-width: 767px) {
+  .mq-login-sms-web { display: none; }
+  .mq-login-sms-mobile { display: block; }
+  .mq-code[data-error='true'] .mq-code-editor:focus-within { outline: 2px solid #123b52; outline-offset: 2px; }
+}
+
+
+/* Auth route owns its viewport; direct-order shells remain unchanged. */
+.mq-auth-shell { min-height: 100dvh; display: flex; flex-direction: column; }
+.mq-auth-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+
+.mq-address-editor { display: flex; flex-direction: column; gap: 16px; min-width: 0; width: min(420px, 100%); padding: 24px; border-radius: 16px; background: white; font-family: Inter, Arial, sans-serif; }
+.mq-address-editor h2 { margin: 0; color: #123b52; font: 600 20px/1.4 Inter, Arial, sans-serif; }
+.mq-address-details { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.mq-address-default { display: flex; align-items: center; gap: 8px; color: #202020; font: 400 14px/1.5 Inter, Arial, sans-serif; min-height: 44px; }
+.mq-address-error { margin: 0; color: #a62626; font: 400 14px/1.4 Inter, Arial, sans-serif; }
+@media (max-width: 767px) {
+  .mq-address-editor { padding: 24px; gap: 24px; }
+  .mq-address-details { grid-template-columns: minmax(0, 1fr); gap: 24px; }
+}
+
+/* Image-free desktop header 93:1599; mobile fallback retains routes without sidebar width. */
+
+.mq-profile-page { display: flex; flex-direction: column; gap: 24px; max-width: 1328px; margin: 40px auto 0; padding: 32px 24px; font-family: Inter, Arial, sans-serif; }
+.mq-profile-page h1 { margin: 0; color: #123b52; font: 600 32px/1.4 Inter, Arial, sans-serif; }
+.mq-profile-subtitle { margin: 0; color: #666; font: 400 16px/1.5 Inter, Arial, sans-serif; }
+.mq-profile-columns { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 24px; align-items: start; }
+.mq-profile-personal { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.mq-profile-form { display: flex; flex-direction: column; gap: 16px; min-width: 0; padding: 24px; border-radius: 16px; background: white; }
+.mq-profile-form h2 { margin: 0; color: #123b52; font: 600 20px/1.4 Inter, Arial, sans-serif; }
+.mq-profile-error { margin: 0; color: #a62626; font: 400 14px/1.4 Inter, Arial, sans-serif; }
+.mq-profile-language { text-align: left; cursor: pointer; }
+.mq-profile-language-value { font: 400 16px/1.5 Inter, Arial, sans-serif; }
+@media (max-width: 767px) {
+  .mq-profile-page { margin-top: 0; padding: 24px; }
+  .mq-profile-page h1 { font-weight: 500; font-size: 28px; line-height: 34px; }
+  .mq-profile-columns { grid-template-columns: minmax(0, 1fr); }
+  .mq-profile-form { padding: 0; background: transparent; gap: 24px; }
+  .mq-profile-language { min-height: 52px; align-items: center; justify-content: center; }
+  .mq-profile-language .mq-field-label { display: none; }
+  .mq-profile-language-value { color: #123b52; font-weight: 600; }
+}
+
+/* Image-free desktop header 93:1599; mobile fallback retains routes without sidebar width. */
+.mq-client-shell { display: flex; flex-direction: column; min-height: 100dvh; width: 100%; min-width: 0; background: #f4f3ef; }
+.mq-client-header { display: flex; align-items: center; justify-content: space-between; gap: 32px; padding: 24px 32px; background: white; font-family: Inter, Arial, sans-serif; }
+.mq-client-brand { flex: 0 1 280px; color: #123b52; font: 600 24px/1.4 Inter, Arial, sans-serif; text-decoration: none; }
+.mq-client-desktop-nav { display: flex; align-items: center; gap: 32px; flex: 1 1 760px; max-width: 760px; min-width: 0; }
+.mq-client-desktop-nav a { flex: 1 1 190px; min-height: 44px; display: flex; align-items: center; color: #123b52; font: 600 16px/1.4 Inter, Arial, sans-serif; text-decoration: none; }
+.mq-client-header a:focus-visible, .mq-client-mobile-nav a:focus-visible, .mq-client-locale:focus-visible { outline: 2px solid #123b52; outline-offset: 4px; }
+.mq-client-locale { min-height: 44px; flex-shrink: 0; padding: 0 8px; color: #666; font: 400 14px/1.5 Inter, Arial, sans-serif; cursor: pointer; }
+.mq-client-main { flex: 1; min-width: 0; width: 100%; }
+.mq-client-mobile-nav { display: none; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; background: white; padding-bottom: env(safe-area-inset-bottom, 0px); }
+.mq-client-mobile-nav a { display: flex; align-items: center; justify-content: center; min-width: 0; min-height: 64px; padding: 8px 4px; overflow-wrap: anywhere; text-align: center; color: #666; font: 600 12px/16px Inter, Arial, sans-serif; text-decoration: none; border-radius: 12px; }
+.mq-client-mobile-nav a[aria-current='page'] { background: #f4f3ef; color: #123b52; }
+@media (max-width: 767px) {
+  .mq-client-header { padding: 8px 16px; gap: 12px; min-height: 56px; }
+  .mq-client-brand { flex: 1; font-size: 16px; }
+  .mq-client-desktop-nav { display: none; }
+  .mq-client-mobile-nav { display: grid; position: fixed; left: 0; right: 0; bottom: 0; z-index: 10; }
+  .mq-client-main { padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px)); }
+}

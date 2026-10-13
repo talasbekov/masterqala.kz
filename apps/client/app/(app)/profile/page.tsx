@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
+import { ProfileForm } from '@/components/ProfileForm';
+import { LanguageControl } from '@/components/LanguageControl';
 
 interface Me {
   name: string | null;
@@ -19,18 +21,11 @@ const PROFILE_ITEMS = [
   { icon: '🛟', key: 'support', to: '/support' },
 ] as const;
 
-const LANGS = [
-  { code: 'ru', label: 'Рус' },
-  { code: 'kk', label: 'Қаз' },
-  { code: 'en', label: 'Eng' },
-] as const;
-
 export default function ProfilePage() {
   const { t, i18n } = useTranslation();
   const router = useRouter();
   const { user, logout } = useAuth();
   const [me, setMe] = useState<Me | null>(null);
-  const [editing, setEditing] = useState(false);
   const [name, setName] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -50,7 +45,7 @@ export default function ProfilePage() {
     try {
       const updated = await api('/users/me', { method: 'PATCH', body: JSON.stringify({ name }) });
       setMe(updated);
-      setEditing(false);
+      setName(updated.name ?? '');
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -66,53 +61,16 @@ export default function ProfilePage() {
   const blocked = me?.masterProfile?.blockedUntil && new Date(me.masterProfile.blockedUntil) > new Date();
 
   return (
-    <div className="flex flex-col gap-4 px-8 py-6">
-      <div className="flex gap-8">
-        <div className="flex w-[380px] shrink-0 flex-col gap-3">
-          <div className="flex items-center gap-3">
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-primary text-lg font-extrabold text-white">
-              {(me?.name || user?.phone || '?').slice(0, 1).toUpperCase()}
-            </div>
-            <div className="min-w-0 flex-1">
-              {editing ? (
-                <div className="flex items-center gap-1.5">
-                  <input
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="min-w-0 flex-1 rounded-md border-[1.5px] border-border bg-surface px-2.5 py-1.5 text-sm font-extrabold text-ink outline-none"
-                    autoFocus
-                  />
-                  <button type="button" onClick={saveName} disabled={saving} className="shrink-0 text-sm font-extrabold text-primary">
-                    {t('profile.save')}
-                  </button>
-                </div>
-              ) : (
-                <button type="button" onClick={() => setEditing(true)} className="block text-left">
-                  <span className="text-lg font-extrabold text-ink">{me?.name || t('profile.noName')}</span>
-                  <span className="ml-1.5 text-xs font-bold text-primary">{t('profile.editName')}</span>
-                </button>
-              )}
-              <div className="text-xs font-semibold text-ink-soft">{me?.phone ?? user?.phone}</div>
-            </div>
-          </div>
-          <div className="flex gap-1.5">
-            {LANGS.map((l) => (
-              <button
-                key={l.code}
-                type="button"
-                onClick={() => i18n.changeLanguage(l.code)}
-                className={`rounded-pill border-[1.5px] px-3.5 py-1.5 text-xs font-extrabold ${
-                  i18n.language === l.code ? 'border-primary bg-primary text-white' : 'border-border text-ink-soft'
-                }`}
-              >
-                {l.label}
-              </button>
-            ))}
-          </div>
-          {error && <p className="text-sm font-semibold text-danger">{error}</p>}
+    <div className="mq-profile-page">
+      <h1>{t('profile.title')}</h1>
+      <p className="mq-profile-subtitle">{t('profile.subtitle')}</p>
+      <div className="mq-profile-columns">
+        <div className="mq-profile-personal">
+          <ProfileForm name={name} phone={me?.phone ?? user?.phone ?? ''} loading={!me && !error} saving={saving}
+            error={error} onName={setName} onSave={saveName} languageControl={<LanguageControl variant="profile" />} />
           {blocked && me?.masterProfile?.blockedUntil && (
             <div className="rounded-md bg-danger-bg p-3 text-xs font-semibold text-danger-ink">
-              {t('profile.blockedUntil', { date: new Date(me.masterProfile.blockedUntil).toLocaleDateString('ru-RU') })}
+              {t('profile.blockedUntil', { date: new Date(me.masterProfile.blockedUntil).toLocaleDateString(i18n.language === 'kk' ? 'kk-KZ' : i18n.language === 'en' ? 'en-GB' : 'ru-RU') })}
             </div>
           )}
         </div>

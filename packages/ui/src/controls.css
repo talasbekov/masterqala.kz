@@ -1,0 +1,66 @@
+/* MQ field218:1365 and OTP161:1610; fonts reuse canonical tokens.css. */
+.mq-field {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  box-sizing: border-box;
+  width: min(440px, 100%);
+  padding: 12px 16px;
+  border: 0 solid transparent;
+  border-radius: 12px;
+  background: #f4f3ef;
+  color: #202020;
+  font-family: Inter, Arial, sans-serif;
+}
+.mq-field--full { width: 100%; }
+.mq-field-label { font: 400 12px/1.4 Inter, Arial, sans-serif; color: #666; overflow-wrap: anywhere; }
+.mq-field-control {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: 24px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #202020;
+  font: 400 16px/1.5 Inter, Arial, sans-serif;
+  outline: none;
+}
+.mq-field-control::placeholder { color: #666; opacity: 1; }
+.mq-field-control:disabled { opacity: 1; }
+.mq-field:focus-within:not([data-error='true']) { outline: 2px solid #123b52; outline-offset: -2px; }
+.mq-field[data-error='true'] { border: 1px solid #a62626; }
+.mq-field[data-error='true']:focus-within { outline: 2px solid #123b52; outline-offset: 2px; }
+.mq-field[data-disabled='true'] { background: #e1e6e9; }
+.mq-field-help, .mq-field-error { margin: 0; font: 400 14px/1.4 Inter, Arial, sans-serif; overflow-wrap: anywhere; }
+.mq-field-help { color: #666; }
+.mq-field-error { color: #a62626; }
+.mq-field--mobile { background: white; border: 1px solid #d8e4e9; padding: 16px; }
+.mq-field--mobile .mq-field-label { font-weight: 600; line-height: 16px; }
+@media (max-width: 767px) {
+  .mq-field--responsive { background: white; border: 1px solid #d8e4e9; padding: 16px; }
+  .mq-field--responsive .mq-field-label { font-weight: 600; line-height: 16px; }
+}
+
+.mq-code { width: 100%; min-width: 0; font-family: Inter, Arial, sans-serif; }
+.mq-code-editor { position: relative; display: flex; flex-direction: column; gap: 8px; padding: 12px 16px; background: #f4f3ef; border-radius: 12px; }
+.mq-code-label { color: #666; font: 400 12px/1.4 Inter, Arial, sans-serif; }
+.mq-code-control { width: 100%; min-width: 0; border: 0; padding: 0; background: transparent; color: #202020; outline: none; font: 400 16px/1.5 Inter, Arial, sans-serif; letter-spacing: .25em; }
+.mq-code-editor:focus-within { outline: 2px solid #123b52; outline-offset: -2px; }
+.mq-code-digits { display: none; gap: 8px; width: 100%; }
+.mq-code-digit { display: flex; flex: 1 1 0; align-items: center; justify-content: center; min-width: 0; height: 56px; border: 1px solid #d8e4e9; border-radius: 12px; background: #f4f3ef; color: #666; font: 600 24px/1.4 Inter, Arial, sans-serif; }
+.mq-code-digit[data-filled='true'] { color: #123b52; }
+.mq-code[data-error='true'] .mq-code-editor { outline: 1px solid #a62626; }
+.mq-code-error { margin: 8px 0 0; color: #a62626; font: 400 14px/1.4 Inter, Arial, sans-serif; }
+.mq-code[data-disabled='true'] .mq-code-editor { opacity: .7; }
+@media (max-width: 767px) {
+  .mq-code-editor { padding: 0; background: transparent; }
+  .mq-code-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .mq-code-digits { display: flex; }
+  .mq-code-control { position: absolute; inset: 0; opacity: 0; }
+  .mq-code[data-error='true'] .mq-code-editor { outline: none; }
+  .mq-code[data-error='true'] .mq-code-digit { border-color: #dc2626; color: #dc2626; }
+}
+.mq-field-value { display: flex; align-items: center; gap: 8px; min-width: 0; font: 400 16px/1.5 Inter, Arial, sans-serif; }
+.mq-field-value > span { flex-shrink: 0; }

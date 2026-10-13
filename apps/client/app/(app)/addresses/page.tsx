@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { AddressDetails, AddressEditor } from '@/components/AddressEditor';
 import { api } from '@/lib/api';
 
 interface Address {
@@ -103,10 +104,10 @@ export default function AddressesPage() {
   }
 
   return (
-    <div className="flex flex-col gap-4 px-8 py-6">
+    <div className="flex flex-col gap-4 px-4 py-6 md:px-8">
       <span className="text-xl font-extrabold text-ink">{t('addresses.title')}</span>
-      <div className="flex gap-6">
-        <div className="flex w-[360px] shrink-0 flex-col gap-2">
+      <div className="flex flex-col gap-6 xl:flex-row">
+        <div className="flex w-full max-w-[360px] shrink-0 flex-col gap-2">
           {addresses.length === 0 && (
             <div className="rounded-lg border-[1.5px] border-dashed border-border bg-surface p-6 text-center text-sm font-semibold text-ink-soft">
               {t('addresses.empty')}
@@ -129,9 +130,7 @@ export default function AddressesPage() {
               </div>
               <div className="mt-0.5 text-xs text-ink-soft">
                 {a.address}
-                {a.entrance && ` · под. ${a.entrance}`}
-                {a.floor && `, эт. ${a.floor}`}
-                {a.apartment && `, кв. ${a.apartment}`}
+                <AddressDetails entrance={a.entrance} floor={a.floor} apartment={a.apartment} />
               </div>
             </button>
           ))}
@@ -143,75 +142,8 @@ export default function AddressesPage() {
             ＋ {t('addresses.addNew')}
           </button>
         </div>
-        <div className="flex w-[420px] flex-col gap-3 rounded-lg border border-border bg-surface p-5">
-          <span className="text-sm font-extrabold text-ink">
-            {editingId === 'new' ? t('addresses.addTitle') : t('addresses.editTitle')}
-          </span>
-          <input
-            value={form.label}
-            onChange={(e) => setForm({ ...form, label: e.target.value })}
-            placeholder={t('addresses.labelPlaceholder')}
-            className="rounded-md border-[1.5px] border-border bg-surface p-3 text-sm text-ink outline-none placeholder:text-muted"
-          />
-          <input
-            value={form.address}
-            onChange={(e) => setForm({ ...form, address: e.target.value })}
-            placeholder={t('addresses.addressPlaceholder')}
-            className="rounded-md border-[1.5px] border-border bg-surface p-3 text-sm text-ink outline-none placeholder:text-muted"
-          />
-          <div className="grid grid-cols-3 gap-2">
-            <input
-              value={form.entrance}
-              onChange={(e) => setForm({ ...form, entrance: e.target.value })}
-              placeholder={t('addresses.entrance')}
-              className="rounded-md border-[1.5px] border-border bg-surface p-2.5 text-center text-sm text-ink outline-none placeholder:text-muted"
-            />
-            <input
-              value={form.floor}
-              onChange={(e) => setForm({ ...form, floor: e.target.value })}
-              placeholder={t('addresses.floor')}
-              className="rounded-md border-[1.5px] border-border bg-surface p-2.5 text-center text-sm text-ink outline-none placeholder:text-muted"
-            />
-            <input
-              value={form.apartment}
-              onChange={(e) => setForm({ ...form, apartment: e.target.value })}
-              placeholder={t('addresses.apartment')}
-              className="rounded-md border-[1.5px] border-border bg-surface p-2.5 text-center text-sm text-ink outline-none placeholder:text-muted"
-            />
-          </div>
-          <input
-            value={form.comment}
-            onChange={(e) => setForm({ ...form, comment: e.target.value })}
-            placeholder={t('addresses.commentPlaceholder')}
-            className="rounded-md border-[1.5px] border-border bg-surface p-3 text-sm text-ink outline-none placeholder:text-muted"
-          />
-          <label className="flex items-center gap-2 text-sm font-semibold text-ink">
-            <input
-              type="checkbox"
-              checked={form.isDefault}
-              onChange={(e) => setForm({ ...form, isDefault: e.target.checked })}
-            />
-            {t('addresses.setDefault')}
-          </label>
-          {error && <p className="text-sm font-semibold text-danger">{error}</p>}
-          <button
-            type="button"
-            onClick={save}
-            disabled={submitting || !form.label || !form.address}
-            className="rounded-pill bg-primary p-3.5 text-sm font-extrabold text-white disabled:opacity-40"
-          >
-            {t('addresses.save')}
-          </button>
-          {editingId !== 'new' && editingId != null && (
-            <button
-              type="button"
-              onClick={() => remove(editingId)}
-              className="rounded-pill border-[1.5px] border-danger p-3 text-sm font-extrabold text-danger"
-            >
-              {t('addresses.delete')}
-            </button>
-          )}
-        </div>
+        <AddressEditor value={form} onChange={setForm} isNew={editingId === 'new'} submitting={submitting}
+          error={error} onSave={save} onDelete={editingId !== 'new' && editingId != null ? () => remove(editingId) : undefined} />
       </div>
     </div>
   );

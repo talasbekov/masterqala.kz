@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "next dev -p 4200",
     "build": "next build",
-    "start": "next start -p 4200"
+    "start": "next start -p 4200",
+    "test": "pnpm --filter @masterqala/ui exec tsup ../../apps/client/components/ClientNavigationView.tsx ../../apps/client/components/LocaleI18nBridge.tsx ../../apps/client/components/AddressEditor.tsx ../../apps/client/components/ProfileForm.tsx ../../apps/client/lib/i18n.ts ../../apps/client/components/LanguageDialogController.tsx ../../apps/client/components/LoginForm.tsx ../../apps/client/lib/auth-return.ts ../../apps/client/components/usePhoneLogin.ts --format esm --clean --out-dir ../../apps/client/.test-build --external @masterqala/ui --external i18next --external react-i18next --external react --external react-dom && node --test test/*.test.mjs"
   },
   "dependencies": {
     "@masterqala/ui": "workspace:*",
@@ -25,6 +26,7 @@
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "tailwindcss": "^4.3.2",
-    "typescript": "~6.0.2"
+    "typescript": "~6.0.2",
+    "jsdom": "26.1.0"
   }
 }

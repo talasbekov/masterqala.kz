@@ -23,3 +23,6 @@ ds-bundle/
 
 # Obsidian (второй мозг brain/) — служебное состояние редактора
 brain/.obsidian/
+
+# Component test bundles
+apps/client/.test-build/

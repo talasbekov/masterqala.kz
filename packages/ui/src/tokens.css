@@ -120,6 +120,7 @@
   --color-on-fill: #38596A;
 
   /* Семантика */
+  --color-approved: #047857; /* Figma142:1581 approved badge */
   --color-success: #059669;
   --color-success-bg: #E5F3EE;
   --color-success-ink: #065F46;
