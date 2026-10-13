@@ -1,283 +1,37 @@
 'use client';
-import { useEffect, useState } from 'react';
-import {
-  fetchApplications,
-  fetchApplication,
-  decideApplication,
-  documentIsViewable,
-  DOCUMENT_TYPE_LABELS,
-  MASTER_STATUS_LABELS,
-  type ApplicationListItem,
-  type ApplicationDetail,
-  type MasterStatus,
-  type DecisionType,
-} from '@/lib/verification';
-import { Lightbox } from '@/components/Lightbox';
-import { useOperatorMetrics } from '@/lib/operatorMetrics';
-
-const STATUS_FILTERS: { value: MasterStatus | 'ALL'; label: string }[] = [
-  { value: 'ALL', label: 'все статусы' },
-  { value: 'PENDING_REVIEW', label: 'на проверке' },
-  { value: 'NEEDS_INFO', label: 'нужны данные' },
-  { value: 'ACTIVE', label: 'активен' },
-  { value: 'REJECTED', label: 'отклонён' },
-];
-
-function formatWaiting(createdAt: string): string {
-  const hours = Math.floor((Date.now() - new Date(createdAt).getTime()) / 3_600_000);
-  return hours < 24 ? `ждёт ${hours} ч` : `ждёт ${Math.floor(hours / 24)} дн`;
+import {useEffect,useRef,useState} from 'react';
+import {Button,useLocale} from '@masterqala/ui';
+import {useAuth} from '../../../lib/auth';
+import {useOperatorMetrics} from '../../../lib/operatorMetrics';
+import {useVerificationReads,useVerificationDecision} from '../../../lib/operator-verification-controller';
+import {documentIsViewable,type MasterStatus,type DecisionType} from '../../../lib/verification';
+import {verificationText,verificationStatus,verificationDecision,verificationSecurity,maskedIin,type VerificationKey} from '../../../lib/operator-verification-copy';
+import {operatorDate} from '../../../lib/operator-read-copy';
+import {VerificationDocument} from '../../../components/VerificationDocument';
+const statuses:MasterStatus[]=['PENDING_REVIEW','NEEDS_INFO','ACTIVE','REJECTED'];
+function OwnedVerification({ownerId}:{ownerId:string|null}){
+ const {language}=useLocale(),t=(key:VerificationKey)=>verificationText(language,key);
+ const [filter,setFilter]=useState<MasterStatus|'ALL'>('ALL'),[profileId,setProfileId]=useState<string|null>(null),[openDoc,setOpenDoc]=useState<{id:string;generation:number}|null>(null);
+ const reads=useVerificationReads({ownerId,profileId}),current=useRef({profileId,reads});current.current={profileId,reads};const {refetch}=useOperatorMetrics();
+ const decision=useVerificationDecision({ownerId,profileId,detail:reads.detail,onReconciled:target=>{if(current.current.profileId===target)void current.current.reads.detail.retry();void current.current.reads.list.retry();refetch();}});
+ const detail=reads.detail.data;
+ const selectedDoc=detail?.documents.find(doc=>doc.id===openDoc?.id);
+ useEffect(()=>{if(openDoc&&(!reads.detail.fresh||reads.detail.readGeneration!==openDoc.generation||!selectedDoc||!documentIsViewable(selectedDoc)))setOpenDoc(null);},[openDoc,reads.detail.fresh,reads.detail.readGeneration,selectedDoc]);
+ function choose(id:string|null){setOpenDoc(null);setProfileId(id);}
+ function refreshDetail(){setOpenDoc(null);void reads.detail.retry();}
+ const filtered=reads.list.data?.filter(row=>filter==='ALL'||row.status===filter)??[];
+ const field=(label:string,value:string)=><div className="rounded-xl bg-fill-soft px-4 py-3"><p className="text-xs text-ink-soft">{label}</p><p className="mt-2 break-words">{value}</p></div>;
+ return <section className="flex min-w-0 flex-col gap-6 px-6 py-6 text-base leading-6 md:px-10 md:py-8"><header className="flex flex-wrap items-start justify-between gap-4"><h1 className="text-2xl font-semibold md:text-[32px]">{t('title')}</h1><Button data-application-list-refresh variant="secondary" disabled={reads.list.loading} onClick={()=>{void reads.list.retry();}}>{t('refresh')}</Button></header>
+ <div><label htmlFor="application-status" className="block text-sm text-ink-soft">{t('status')}</label><select id="application-status" name="applicationStatus" value={filter} className="mt-2 min-h-12 rounded-xl bg-surface p-3" onChange={event=>{setFilter(event.target.value as MasterStatus|'ALL');choose(null);}}><option value="ALL">{t('all')}</option>{statuses.map(status=><option key={status} value={status}>{verificationStatus(language,status)}</option>)}</select></div>
+ {reads.list.loading&&<p role="status">{t('loading')}</p>}{reads.list.error&&<p role="alert">{t('error')}</p>}{reads.list.data&&!reads.list.fresh&&<p data-application-list-stale>{t('stale')}</p>}{reads.list.fresh&&!reads.list.loading&&!filtered.length&&<p data-application-empty>{t('empty')}</p>}
+ <div className="flex min-w-0 flex-col gap-6 xl:flex-row"><div className="min-w-0 flex-1">{!!filtered.length&&<div className="overflow-x-auto rounded-2xl bg-surface"><table className="w-full text-left text-sm"><thead><tr>{(['name','category','received','status'] as const).map(key=><th key={key} scope="col" className="p-4 font-normal text-ink-soft">{t(key)}</th>)}</tr></thead><tbody>{filtered.map(row=><tr key={row.id} className={row.id===profileId?'bg-fill-soft':''}><td className="p-4"><button data-application-select={row.id} type="button" aria-pressed={row.id===profileId} className="min-h-11 break-words font-semibold underline focus-visible:outline-2" onClick={()=>{if(reads.list.isVerifiedCurrent())choose(row.id);}}>{row.fullName}</button></td><td className="break-words p-4">{row.categories.map(category=>category.category.name).join(', ')||'—'}</td><td className="p-4">{operatorDate(language,row.createdAt)}</td><td className="p-4">{verificationStatus(language,row.status)}</td></tr>)}</tbody></table></div>}
+ {detail&&<article className="mt-6 flex flex-col gap-4 rounded-2xl bg-surface p-6"><h2 className="text-xl font-semibold">{t('history')}</h2>{!detail.decisions.length?<p>{t('noDecisions')}</p>:detail.decisions.map((record,i)=><div key={i} className="break-words"><p>{verificationDecision(language,record.decision)} · {operatorDate(language,record.createdAt)}</p><p>{record.operator.name??record.operator.phone}{record.comment?`: ${record.comment}`:''}</p></div>)}</article>}
+ </div><aside className="flex w-full flex-col gap-4 rounded-2xl bg-surface p-6 xl:w-[320px] xl:shrink-0">{!profileId?<p>{t('select')}</p>:<><div className="flex flex-wrap gap-3"><Button data-application-close variant="secondary" onClick={()=>choose(null)}>{t('close')}</Button><Button data-application-detail-refresh variant="secondary" disabled={reads.detail.loading} onClick={refreshDetail}>{t('refresh')}</Button></div>{reads.detail.loading&&<p role="status">{t('loading')}</p>}{reads.detail.error&&<p role="alert">{t('error')}</p>}{detail&&!reads.detail.fresh&&<p>{t('stale')}</p>}{decision.outcome&&<div data-decision-unknown role="status" className="rounded-xl bg-fill-soft p-4"><p>{t(decision.outcome.pending?'sending':decision.outcome.checking?'checking':'unknown')}</p>{decision.outcome.error&&<p role="alert">{t('error')}</p>}<Button data-decision-reconcile variant="secondary" disabled={decision.outcome.pending||decision.outcome.checking} onClick={()=>{void decision.reconcile();}}>{t('reconcile')}</Button><p className="mt-3 text-sm">{t('outcomeHelp')}</p></div>}
+ {detail&&<><h2 className="break-words text-xl font-semibold">{detail.fullName}</h2><p>{verificationStatus(language,detail.status)}</p>{field(t('phone'),detail.user.phone)}{field(t('iin'),maskedIin(detail.iin))}{field(t('experience'),String(detail.experienceYears))}{field(t('district'),detail.district)}{field(t('category'),detail.categories.map(category=>category.category.name).join(', ')||'—')}<h3 className="font-semibold">{t('documents')}</h3>{!detail.documents.length&&<p>{t('noDocuments')}</p>}{detail.documents.map(doc=><div key={doc.id} className="rounded-xl bg-fill-soft p-4"><p className="text-sm text-ink-soft">{t(doc.type==='ID_CARD'?'idCard':'qualification')}</p><p className="mt-2 break-words">{doc.originalName}</p><p className="mt-2 break-words text-xs">{t('scan')}: {verificationSecurity(language,doc.scanStatus)} · {t('cdr')}: {verificationSecurity(language,doc.cdrStatus)}</p><Button data-verification-document={doc.id} variant="secondary" disabled={!reads.detail.fresh||reads.detail.loading||!documentIsViewable(doc)} onClick={()=>{if(reads.detail.isVerifiedCurrent()&&documentIsViewable(doc)){decision.back();setOpenDoc({id:doc.id,generation:reads.detail.readGeneration});}}}>{t('open')}</Button></div>)}
+ {detail.rejectionReason&&<p className="break-words">{detail.rejectionReason}</p>}{detail.status==='PENDING_REVIEW'&&<><div className="mq-field mq-field--responsive mq-field--full"><label className="mq-field-label" htmlFor="decision-comment">{t('comment')}</label><textarea id="decision-comment" name="decisionComment" aria-describedby="decision-comment-help" className="mq-field-control min-h-24" value={decision.comment} onChange={event=>decision.setComment(event.target.value)} disabled={!!decision.outcome?.pending||!!decision.outcome?.checking}/><p id="decision-comment-help" className="mq-field-help">{t('commentHelp')}</p></div><p className="text-sm text-ink-soft">{t('security')}</p>{decision.stage?<div className="flex flex-col gap-4"><h3 className="font-semibold">{t('confirmTitle')}</h3><p>{verificationDecision(language,decision.stage.decision)}</p><p>{t('confirmNote')}</p><Button data-decision-submit disabled={!decision.canSubmit} onClick={()=>{void decision.submit();}}>{t('confirm')}</Button><Button data-decision-back variant="secondary" onClick={decision.back}>{t('back')}</Button></div>:<div className="flex flex-col gap-3">{(['APPROVE','REQUEST_INFO','REJECT'] as DecisionType[]).map(value=><Button key={value} data-decision-choose={value} variant={value==='APPROVE'?'primary':'secondary'} disabled={!decision.canChoose} onClick={()=>decision.chooseDecision(value)}>{verificationDecision(language,value)}</Button>)}</div>}</>}
+ </>}
+ </>}</aside></div>
+ {openDoc&&selectedDoc&&profileId&&ownerId&&reads.detail.fresh&&<VerificationDocument key={`${profileId}:${openDoc.id}:${openDoc.generation}`} path={`/admin/applications/${encodeURIComponent(profileId)}/documents/${encodeURIComponent(openDoc.id)}`} scope={`${ownerId}:${profileId}:${openDoc.id}:${openDoc.generation}`} title={selectedDoc.originalName} isCurrent={reads.detail.isVerifiedCurrent} onClose={()=>setOpenDoc(null)}/>}
+ </section>;
 }
-
-export default function VerificationPage() {
-  const { refetch: refetchMetrics } = useOperatorMetrics();
-  const [applications, setApplications] = useState<ApplicationListItem[]>([]);
-  const [statusFilter, setStatusFilter] = useState<MasterStatus | 'ALL'>('ALL');
-  const [listLoading, setListLoading] = useState(true);
-  const [listError, setListError] = useState('');
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [detail, setDetail] = useState<ApplicationDetail | null>(null);
-  const [detailLoading, setDetailLoading] = useState(false);
-  const [comment, setComment] = useState('');
-  const [deciding, setDeciding] = useState(false);
-  const [decideError, setDecideError] = useState('');
-  const [openDoc, setOpenDoc] = useState<{ id: string; title: string } | null>(null);
-
-  async function loadList() {
-    try {
-      const rows = await fetchApplications();
-      setApplications(rows);
-      setListError('');
-    } catch (e) {
-      setListError((e as Error).message);
-    } finally {
-      setListLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    loadList();
-  }, []);
-
-  useEffect(() => {
-    if (!selectedId) {
-      setDetail(null);
-      return;
-    }
-    let cancelled = false;
-    setDetailLoading(true);
-    fetchApplication(selectedId)
-      .then((data) => {
-        if (cancelled) return;
-        setDetail(data);
-        setComment('');
-        setDecideError('');
-      })
-      .catch((e) => {
-        if (!cancelled) setListError((e as Error).message);
-      })
-      .finally(() => {
-        if (!cancelled) setDetailLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [selectedId]);
-
-  const filtered = applications.filter((a) => statusFilter === 'ALL' || a.status === statusFilter);
-
-  async function submitDecision(decision: DecisionType) {
-    if (!selectedId) return;
-    if (decision !== 'APPROVE' && !comment.trim()) return;
-    setDeciding(true);
-    setDecideError('');
-    try {
-      await decideApplication(selectedId, decision, comment.trim() || undefined);
-      const [updated] = await Promise.all([fetchApplication(selectedId), loadList()]);
-      setDetail(updated);
-      setComment('');
-      refetchMetrics();
-    } catch (e) {
-      setDecideError((e as Error).message);
-    } finally {
-      setDeciding(false);
-    }
-  }
-
-  const needComment = !comment.trim();
-
-  return (
-    <div className="flex flex-col gap-4 p-8">
-      <div className="flex items-center gap-3">
-        <div className="text-2xl font-extrabold text-ink">Верификация</div>
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value as MasterStatus | 'ALL')}
-          className="rounded-md border-[1.5px] border-border bg-surface px-3 py-1.5 text-sm"
-        >
-          {STATUS_FILTERS.map((s) => (
-            <option key={s.value} value={s.value}>
-              {s.label}
-            </option>
-          ))}
-        </select>
-      </div>
-      {listError && <div className="text-sm text-danger">{listError}</div>}
-
-      <div className="flex gap-4">
-        <div className="flex w-[300px] shrink-0 flex-col gap-2">
-          {listLoading && <div className="text-sm text-ink-soft">Загрузка…</div>}
-          {!listLoading && filtered.length === 0 && <div className="text-sm text-ink-soft">Пусто</div>}
-          {filtered.map((a) => (
-            <button
-              key={a.id}
-              type="button"
-              onClick={() => setSelectedId(a.id)}
-              className={`rounded-lg border-2 bg-surface p-3 text-left ${
-                selectedId === a.id ? 'border-primary' : 'border-border'
-              }`}
-            >
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-sm font-extrabold text-ink">{a.fullName}</span>
-                <span className="rounded-pill bg-fill-soft px-2 py-0.5 text-[10px] font-extrabold text-primary">
-                  {MASTER_STATUS_LABELS[a.status]}
-                </span>
-              </div>
-              <div className="mt-1 text-xs font-semibold text-ink-soft">
-                {a.categories.map((c) => c.category.name).join(', ')} · {formatWaiting(a.createdAt)}
-              </div>
-            </button>
-          ))}
-        </div>
-
-        <div className="flex-1 rounded-lg border border-border bg-surface p-5">
-          {!selectedId && <div className="text-sm text-ink-soft">Выберите анкету слева</div>}
-          {selectedId && detailLoading && <div className="text-sm text-ink-soft">Загрузка…</div>}
-          {selectedId && !detailLoading && detail && (
-            <div className="flex flex-col gap-3">
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-lg font-extrabold text-ink">
-                  {detail.fullName} · ИИН {detail.iin}
-                </span>
-                <span className="rounded-pill bg-fill-soft px-3 py-1 text-xs font-extrabold text-primary">
-                  {MASTER_STATUS_LABELS[detail.status]}
-                </span>
-              </div>
-
-              <div className="grid grid-cols-4 gap-2.5">
-                <div className="rounded-md bg-fill-soft p-2.5">
-                  <div className="text-[10px] font-bold text-ink-soft">Опыт</div>
-                  <div className="text-sm font-extrabold text-ink">{detail.experienceYears} лет</div>
-                </div>
-                <div className="rounded-md bg-fill-soft p-2.5">
-                  <div className="text-[10px] font-bold text-ink-soft">Категории</div>
-                  <div className="text-sm font-extrabold text-ink">
-                    {detail.categories.map((c) => c.category.name).join(', ')}
-                  </div>
-                </div>
-                <div className="rounded-md bg-fill-soft p-2.5">
-                  <div className="text-[10px] font-bold text-ink-soft">Геозона</div>
-                  <div className="text-sm font-extrabold text-ink">{detail.district}</div>
-                </div>
-                <div className="rounded-md bg-fill-soft p-2.5">
-                  <div className="text-[10px] font-bold text-ink-soft">Телефон</div>
-                  <div className="text-sm font-extrabold text-ink">
-                    +7 ··· {detail.user.phone.replace(/\D/g, '').slice(-4)}
-                  </div>
-                </div>
-              </div>
-
-              <div className="text-sm font-extrabold text-ink">Документы</div>
-              <div className="flex flex-wrap gap-2.5">
-                {detail.documents.map((doc) => {
-                  const viewable = documentIsViewable(doc);
-                  return (
-                    <button
-                      key={doc.id}
-                      type="button"
-                      disabled={!viewable}
-                      onClick={() =>
-                        setOpenDoc({
-                          id: doc.id,
-                          title: DOCUMENT_TYPE_LABELS[doc.type],
-                        })
-                      }
-                      className="flex w-[170px] flex-col gap-1 rounded-md border border-border bg-fill-faint p-2.5 text-left disabled:opacity-50"
-                    >
-                      <span className="text-xs font-extrabold text-ink">{DOCUMENT_TYPE_LABELS[doc.type]}</span>
-                      <span className="text-[11px] text-ink-soft">
-                        {viewable ? 'открыть ⤢' : `проверка: ${doc.scanStatus.toLowerCase()}`}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-
-              {detail.status !== 'PENDING_REVIEW' ? (
-                <div className="rounded-md bg-fill-soft p-3 text-sm font-bold text-ink">
-                  {detail.status === 'ACTIVE' && '✓ Мастер одобрен и активирован.'}
-                  {detail.status === 'NEEDS_INFO' && '📎 Запрошены дополнительные данные.'}
-                  {detail.status === 'REJECTED' && `✕ Заявка отклонена. ${detail.rejectionReason ?? ''}`}
-                  {detail.decisions[0] && (
-                    <div className="mt-1 text-xs font-semibold text-ink-soft">
-                      {detail.decisions[0].operator.name ?? detail.decisions[0].operator.phone}
-                      {detail.decisions[0].comment && `: ${detail.decisions[0].comment}`}
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <>
-                  <textarea
-                    value={comment}
-                    onChange={(e) => setComment(e.target.value)}
-                    placeholder="Комментарий решения — обязателен при отказе или запросе данных"
-                    className="min-h-16 rounded-md border-[1.5px] border-border bg-fill-faint p-3 text-sm"
-                  />
-                  {decideError && <div className="text-sm text-danger">{decideError}</div>}
-                  <div className="flex items-center gap-2.5">
-                    <button
-                      type="button"
-                      disabled={deciding}
-                      onClick={() => submitDecision('APPROVE')}
-                      className="rounded-pill bg-success px-4 py-2 text-sm font-extrabold text-white disabled:opacity-40"
-                    >
-                      Одобрить
-                    </button>
-                    <button
-                      type="button"
-                      disabled={deciding || needComment}
-                      onClick={() => submitDecision('REQUEST_INFO')}
-                      className="rounded-pill border-[1.5px] border-primary px-4 py-2 text-sm font-extrabold text-primary disabled:opacity-40"
-                    >
-                      Запросить данные
-                    </button>
-                    <button
-                      type="button"
-                      disabled={deciding || needComment}
-                      onClick={() => submitDecision('REJECT')}
-                      className="rounded-pill border-[1.5px] border-danger px-4 py-2 text-sm font-extrabold text-danger disabled:opacity-40"
-                    >
-                      Отклонить
-                    </button>
-                    {needComment && (
-                      <span className="text-xs font-bold text-warning-ink">
-                        для отказа/запроса нужен комментарий
-                      </span>
-                    )}
-                  </div>
-                </>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {openDoc && selectedId && (
-        <Lightbox
-          path={`/admin/applications/${selectedId}/documents/${openDoc.id}`}
-          title={openDoc.title}
-          onClose={() => setOpenDoc(null)}
-        />
-      )}
-    </div>
-  );
-}
+export default function VerificationPage(){const {user}=useAuth();const ownerId=user?.role==='OPERATOR'?user.id:null;return <OwnedVerification key={ownerId??'signed-out'} ownerId={ownerId}/>;}

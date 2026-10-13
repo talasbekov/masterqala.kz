@@ -1,6 +1,6 @@
 # Remaining MasterQala delivery plan
 
-Current published verification:99aae61b510112692e7c7f2a9276917949b07e55, exact CI38409361884 GREEN:152 UI/127 Next/81 Vite/80 master/43 operator,201 API units/265 PostGIS,4 real queue cases+13 safety/observer tests, both migrations/all builds. PR37 remains4060ba9. Operator login/overview/masters/journal is reviewed/published. Existing /orders read/action safety and localization is the current bounded local batch pending final review. Fixed inventory:28 previously scoped routes+1 local orders surface pending final review,6 other parity/locales,4 service contracts and16 dependencies=55. None has native/live acceptance. Earlier paragraphs are historical snapshots.
+Current published verification:fb0f269245efdd4a5462f873b714e4a9080fde25, exact CI38412450400 GREEN:152 UI/127 Next/81 Vite/80 master/58 operator,201 API units/265 PostGIS,4 real queue cases+13 safety/observer tests, both migrations/all builds. PR37 remains4060ba9. Existing operator orders is reviewed/published. Verification read/decision/document safety and localization is the current bounded local batch pending final review. Fixed inventory:29 previously scoped routes+1 local verification surface pending final review,5 other parity/locales,4 service contracts and16 dependencies=55. None has native/live acceptance. Earlier paragraphs are historical snapshots.
 
 ## Verified checkpoints
 
