@@ -18,7 +18,7 @@ export function DirectClientOrderView({order,busy,error,online,fresh,onAction,on
   const canCancel=['CREATED','SEARCHING','NO_MASTERS','ACCEPTED','MASTER_ON_WAY','INSPECTION','AWAITING_PRICE_CONFIRM','PRICE_APPROVED'].includes(order.status);
   async function requestCancel(){if(fetching||disabled)return;setFetching(true);setPreviewError('');try{setPreview(await onCancelPreview());setHelpOpen(false);}catch(e){setPreviewError((e as Error).message);}finally{setFetching(false);}}
   const primary = quote?<Button disabled={disabled} loading={busy} onClick={()=>void onAction('confirm-price',{quoteVersion:order.quoteVersion})}>{t('approve',{amount:formatMoney(order.quoteTotal??0)})}</Button>:
-    order.status==='DONE'?<Button disabled={disabled} loading={busy} onClick={()=>void onAction('confirm-completion')}>{t('accept')}</Button>:
+    order.status==='DONE'?<Button data-action="accept-work" className="min-h-[56px] md:min-h-[52px]" disabled={disabled} loading={busy} onClick={()=>void onAction('confirm-completion')}>{t('accept')}</Button>:
     order.status==='NO_MASTERS'?<Button disabled={disabled} loading={busy} onClick={()=>void onAction('retry-search')}>{t('retry')}</Button>:
     order.master?.phone?<a className={`flex min-h-14 items-center justify-center rounded-md bg-primary px-4 py-3 text-center font-semibold text-white ${approved?'md:min-h-[52px]':''}`} href={`tel:${order.master.phone}`}>{t('call')}</a>:null;
   return <div className="relative flex min-h-screen flex-col bg-surface md:min-h-screen md:bg-fill-soft">
@@ -35,7 +35,7 @@ export function DirectClientOrderView({order,busy,error,online,fresh,onAction,on
         <h1 className="break-words text-[28px] font-medium leading-[34px] text-primary md:text-xl md:font-semibold">{t(titles[order.status]??'order')}</h1>
         {approved&&<p className="text-sm leading-[21px] text-ink-soft">{t('approvedNote')}</p>}
         {order.status==='INSPECTION'&&<p className="text-sm leading-[21px] text-ink-soft">{t('inspectionNote')}</p>}
-        {order.status==='DONE'&&<p className="text-sm leading-[21px] text-ink-soft">{t('doneNote')}</p>}
+        {order.status==='DONE'&&<><p className="text-sm leading-[21px] text-ink-soft">{t('doneNote')}</p><p data-acceptance-guidance className="text-sm leading-[21px] text-ink-soft">{t('acceptanceGuidance')}</p><div data-acceptance-quote><QuoteCard order={{...order,workComment:order.workComment?.trim()?order.workComment:order.description}}/></div><p data-acceptance-payment className="text-sm leading-[21px] text-ink-soft">{t('quoteNote')}</p></>}
         {closed&&<p className="text-sm leading-[21px] text-ink-soft">{t('closedNote')}</p>}
         {closed&&(order.review?<p role="status">{t('reviewThanks')}</p>:<section className="flex flex-col gap-3 rounded-lg bg-fill-soft p-4"><h2 className="font-semibold text-primary">{t('rating')}</h2><div className="flex" role="group" aria-label={t('rating')}>{[1,2,3,4,5].map(value=><button key={value} aria-label={String(value)} aria-pressed={rating===value} disabled={disabled} onClick={()=>setRating(value)} className={`h-12 w-12 text-[28px] ${value<=rating?'text-primary':'text-muted'}`}>★</button>)}</div><textarea aria-label={t('review')} placeholder={t('review')} maxLength={1000} value={reviewComment} onChange={event=>setReviewComment(event.target.value)} className="rounded-md border border-border bg-surface p-3"/><Button disabled={disabled||rating===0} loading={busy} onClick={()=>void onAction('review',{rating,comment:reviewComment||undefined})}>{t('sendReview')}</Button></section>)}
         {quote&&<QuoteCard order={order}/>}
@@ -46,10 +46,10 @@ export function DirectClientOrderView({order,busy,error,online,fresh,onAction,on
         {online&&!fresh&&<p role="status" className="text-sm text-ink-soft">{t('reconciling')}</p>}
         {!online&&<p role="status" className="rounded-md bg-warning-bg p-3 text-sm text-warning-ink">{t('offline')}</p>}
         {(error||previewError)&&<p role="alert" className="text-sm text-danger">{error||previewError}</p>}
-        <div className="hidden flex-col gap-2 md:flex">{primary}<Button variant="secondary" onClick={()=>setHelpOpen(true)}>{t('help')}</Button></div>
+        <div className="hidden flex-col gap-2 md:flex">{primary}<Button data-action={order.status==='DONE'?'report-problem':undefined} variant="secondary" onClick={order.status==='DONE'?onHelp:()=>setHelpOpen(true)}>{t(order.status==='DONE'?'problem':'help')}</Button></div>
       </main>
       {approved&&<ApprovedClientDesktopCards order={order} primary={primary} onHelp={()=>setHelpOpen(true)} online={online} fresh={fresh} error={error||previewError}/>}
-      <footer className="sticky bottom-0 z-10 flex flex-col gap-2 bg-surface px-6 pb-[max(16px,env(safe-area-inset-bottom))] pt-3 md:hidden">{primary}<Button variant="secondary" className="min-h-[56px]" onClick={()=>setHelpOpen(true)}>{t('help')}</Button></footer>
+      <footer className="sticky bottom-0 z-10 flex flex-col gap-2 bg-surface px-6 pb-[max(16px,env(safe-area-inset-bottom))] pt-3 md:hidden">{primary}<Button data-action={order.status==='DONE'?'report-problem':undefined} variant="secondary" className="min-h-[56px]" onClick={order.status==='DONE'?onHelp:()=>setHelpOpen(true)}>{t(order.status==='DONE'?'problem':'help')}</Button></footer>
     </div>
       {approved&&<aside data-approved-notice className="hidden w-full max-w-[400px] rounded-lg bg-surface p-6 md:block lg:ml-auto lg:w-[330px] lg:shrink-0"><h2 className="text-xl font-semibold leading-[1.4] text-primary">{t('approved')}</h2><p className="mt-4 text-base leading-6 text-ink-soft">{t('approvedChangeNote')}</p></aside>}
     </div>

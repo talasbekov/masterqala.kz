@@ -8,10 +8,11 @@ export interface DirectOrder {
 }
 export function QuoteCard({order}:{order:Pick<DirectOrder,'id'|'workPrice'|'materialsPrice'|'calloutPrice'|'quoteTotal'|'workComment'>}) {
   const{t,formatMoney}=useLocale();
+  const money=(value:number|null)=>value==null?'—':formatMoney(value);
   return <section className="flex flex-col gap-3 rounded-lg bg-fill-soft p-4 md:bg-surface md:p-6">
     {order.workComment&&<h2 className="break-words text-xl font-semibold text-primary">{order.workComment}</h2>}
     <p className="text-xs text-ink-soft">{t('orderNumber',{id:order.id.slice(0,8)})}</p>
-    {(['work','materials','callout'] as const).map((key,index)=><div key={key} className="flex items-center justify-between gap-3 text-sm"><span className="text-ink-soft">{t(key)}</span><span className="shrink-0 font-semibold text-primary">{formatMoney([order.workPrice??0,order.materialsPrice,order.calloutPrice][index])}</span></div>)}
-    <div className="flex justify-between gap-3 border-t border-border pt-3 font-semibold text-primary"><span>{t('total')}</span><span className="text-xl">{formatMoney(order.quoteTotal??0)}</span></div>
+    {(['work','materials','callout'] as const).map((key,index)=><div key={key} className="flex items-center justify-between gap-3 text-sm"><span className="text-ink-soft">{t(key)}</span><span className="shrink-0 font-semibold text-primary">{money([order.workPrice,order.materialsPrice,order.calloutPrice][index])}</span></div>)}
+    <div className="flex justify-between gap-3 border-t border-border pt-3 font-semibold text-primary"><span>{t('total')}</span><span className="text-xl">{money(order.quoteTotal)}</span></div>
   </section>;
 }

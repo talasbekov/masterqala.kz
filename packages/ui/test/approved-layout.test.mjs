@@ -119,3 +119,17 @@ test('approved mobile master uses localized real targets without fabricating mis
   }finally{await app.cleanup()}
  }
 });
+test('client DONE shows actual agreed quote before explicit acceptance and exposes problem support without accepting',async()=>{
+ for(const language of ['ru','kk','en']){
+  const order={...approvedOrder,status:'DONE',description:'Leaking pipe',workComment:'Replace pipe and valve',workPrice:4567,materialsPrice:891,calloutPrice:222,quoteTotal:5680};const app=await stateView(DirectClientOrderView,language,{order});
+  try{const quote=document.querySelector('[data-acceptance-quote]');assert.ok(quote,'agreed quote required at acceptance');assert.ok(quote.textContent.includes(order.workComment));assert.ok(quote.textContent.replace(/[^0-9]/g,'').includes('5680'));assert.ok(document.querySelector('[data-acceptance-guidance]'));const payment=document.querySelector('[data-acceptance-payment]');assert.ok(payment);assert.doesNotMatch(payment.textContent,/paid|оплачено|төленді/i);assert.equal(app.calls.length,0);
+   const problem=document.querySelector('footer [data-action="report-problem"]');assert.ok(problem);assert.ok(problem.classList.contains('min-h-[56px]'));await act(async()=>problem.click());assert.equal(app.help(),1);assert.equal(app.calls.length,0);for(const guard of [{busy:true},{online:false},{fresh:false}]){await app.render(guard);const accept=document.querySelector('footer [data-action="accept-work"]');assert.equal(accept.disabled,true);await act(async()=>accept.click());assert.equal(app.calls.length,0);}
+   await app.render();await act(async()=>document.querySelector('footer [data-action="accept-work"]').click());assert.deepEqual(app.calls,[['confirm-completion']]);await app.render({order:{...order,status:'IN_PROGRESS'}});assert.equal(document.querySelector('[data-acceptance-quote]'),null);assert.equal(document.querySelector('[data-acceptance-guidance]'),null);assert.equal(document.querySelector('footer [data-action="report-problem"]'),null);
+  }finally{await app.cleanup()}
+ }
+});
+test('DONE agreed quote preserves unknown amounts as unavailable and real zero as zero',async()=>{
+ const app=await stateView(DirectClientOrderView,'en',{order:{...approvedOrder,status:'DONE',workPrice:null,quoteTotal:null}});
+ try{const quote=document.querySelector('[data-acceptance-quote]');assert.ok(quote);assert.match(quote.textContent,/Work—/);assert.match(quote.textContent,/Total—/);await app.render({order:{...approvedOrder,status:'DONE',workPrice:0,quoteTotal:0}});const realZero=document.querySelector('[data-acceptance-quote]');assert.match(realZero.textContent,/Work0/);assert.match(realZero.textContent,/Total0/);assert.equal(app.calls.length,0);}
+ finally{await app.cleanup()}
+});
