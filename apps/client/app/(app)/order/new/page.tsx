@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import {useLocale} from '@masterqala/ui';
+import {TextField,useLocale} from '@masterqala/ui';
 import { useRouter } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
 import { api, apiUpload } from '@/lib/api';
@@ -9,6 +9,8 @@ import { categoryMeta } from '@/lib/categoryMeta';
 import MapView from '@/components/MapView';
 import {useAuth} from '@/lib/auth';
 import {useNewOrderDraft,useCurrentOrderCreation} from '@/components/useNewOrderDraft';
+import {NewOrderLayout} from '@/components/NewOrderLayout';
+import Link from 'next/link';
 import {NewOrderCreationStatus} from '@/components/NewOrderCreationStatus';
 import type {NewOrderDraft} from '@/lib/new-order-draft';
 
@@ -52,6 +54,7 @@ function NewOrderForm({ownerId}:{ownerId:string}) {
   const setStep=field('step'),setCategoryId=field('categoryId'),setDescription=field('description'),setPhotoPaths=field('photoPaths');
   const setGeo=field('geo'),setAddressText=field('addressText'),setDistrict=field('district'),setEntrance=field('entrance');
   const setFloor=field('floor'),setApartment=field('apartment'),setAddressComment=field('addressComment');
+  const photoInput=useRef<HTMLInputElement>(null);
   const translation=useRef(t);translation.current=t;
 
   const [categories, setCategories] = useState<Category[]>([]);
@@ -116,7 +119,7 @@ function NewOrderForm({ownerId}:{ownerId:string}) {
   if(pending||completedOrderId)return <NewOrderCreationStatus pending={!!pending} persistent={pending?.persistent??true} submitting={submitting} completedOrderId={completedOrderId} error={creation.error||error} onRecover={creation.canRecover?creation.recover:undefined} online={creation.online} recovering={creation.recovering}/>;
 
   const progress = (
-    <div className="flex gap-1.5">
+    <div role="progressbar" aria-label={t('common.stepOf', { n: step, total: 4 })} aria-valuemin={1} aria-valuemax={4} aria-valuenow={step} className="flex gap-1.5">
       {[1, 2, 3, 4].map((s) => (
         <div key={s} className={`h-1.5 flex-1 rounded-full ${s <= step ? 'bg-primary' : 'bg-border'}`} />
       ))}
@@ -136,12 +139,10 @@ function NewOrderForm({ownerId}:{ownerId:string}) {
   };
 
   const header = (
-    <div className="flex items-center gap-2.5">
-      <button type="button" onClick={goBack} className="text-xl text-primary">
-        ←
-      </button>
-      <span className="flex-1 text-lg font-extrabold text-ink">{stepTitles[step]}</span>
-      <span className="text-xs font-bold text-ink-soft">{t('common.stepOf', { n: step, total: 4 })}</span>
+    <div>
+      <button type="button" onClick={goBack} aria-label={copy('back')} className="mq-new-order-icon-action text-xl">←</button>
+      <h1 id="new-order-heading">{stepTitles[step]}</h1>
+      <Link href="/support" aria-label={copy('help')} className="mq-new-order-icon-action">?</Link>
     </div>
   );
 
@@ -182,7 +183,7 @@ function NewOrderForm({ownerId}:{ownerId:string}) {
           type="button"
           onClick={() => setStep(2)}
           disabled={!categoryId}
-          className="rounded-pill bg-primary p-4 text-[15px] font-extrabold text-white disabled:opacity-40"
+          className="mq-new-order-primary rounded-pill bg-primary p-4 text-[15px] font-extrabold text-white disabled:opacity-40"
         >
           {t('common.next')}
         </button>
@@ -191,12 +192,11 @@ function NewOrderForm({ownerId}:{ownerId:string}) {
   } else if (step === 2) {
     stepContent = (
       <>
-        <textarea
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          placeholder={t('newOrder.step2Placeholder')}
-          className="min-h-28 rounded-md border-[1.5px] border-border bg-surface p-3.5 text-sm text-ink outline-none placeholder:text-muted"
-        />
+        <h2 className="mq-new-order-task-title">{t('newOrder.step2Title')}</h2>
+        <div className="mq-new-order-description">
+          <label htmlFor="new-order-description">{t('newOrder.step2Title')}</label>
+          <textarea id="new-order-description" value={description} onChange={(e)=>setDescription(e.target.value)} maxLength={2000} placeholder={t('newOrder.step2Placeholder')}/>
+        </div>
         <div className="text-sm font-extrabold text-ink">
           {t('newOrder.step2PhotosLabel')} <span className="text-xs font-semibold text-ink-soft">{t('newOrder.step2PhotosHint')}</span>
         </div>
@@ -205,16 +205,10 @@ function NewOrderForm({ownerId}:{ownerId:string}) {
             <div key={p} className="h-18 w-18 rounded-md bg-fill" />
           ))}
           {photoPaths.length < 5 && (
-            <label className="flex h-18 w-18 cursor-pointer items-center justify-center rounded-md border-[1.5px] border-dashed border-primary text-2xl text-primary">
-              ＋
-              <input
-                type="file"
-                accept="image/jpeg,image/png"
-                className="hidden"
-                disabled={uploading}
-                onChange={(e) => e.target.files?.[0] && addPhoto(e.target.files[0])}
-              />
-            </label>
+            <div>
+              <button type="button" aria-label={t('newOrder.step2PhotosLabel')} disabled={uploading} onClick={()=>photoInput.current?.click()} className="flex h-18 w-18 items-center justify-center rounded-md border-[1.5px] border-dashed border-primary text-2xl text-primary disabled:opacity-40"><span aria-hidden="true">＋</span></button>
+              <input ref={photoInput} type="file" accept="image/jpeg,image/png" className="sr-only" tabIndex={-1} aria-label={t('newOrder.step2PhotosLabel')} disabled={uploading} onChange={(e)=>e.target.files?.[0]&&addPhoto(e.target.files[0])}/>
+            </div>
           )}
         </div>
         {(creation.error||error) && <p role="alert" className="text-sm font-semibold text-danger">{creation.error||error}</p>}
@@ -222,7 +216,7 @@ function NewOrderForm({ownerId}:{ownerId:string}) {
         <button
           type="button"
           onClick={() => setStep(3)}
-          className="rounded-pill bg-primary p-4 text-[15px] font-extrabold text-white"
+          className="mq-new-order-primary rounded-pill bg-primary p-4 text-[15px] font-extrabold text-white"
         >
           {t('newOrder.step2Next')}
         </button>
@@ -231,12 +225,7 @@ function NewOrderForm({ownerId}:{ownerId:string}) {
   } else if (step === 3) {
     stepContent = (
       <>
-        <input
-          value={addressText}
-          onChange={(e) => setAddressText(e.target.value)}
-          placeholder={t('newOrder.step3Title')}
-          className="rounded-md border-[1.5px] border-primary bg-surface p-3 text-sm font-bold text-ink outline-none"
-        />
+        <TextField label={t('newOrder.step3Title')} variant="responsive" fullWidth value={addressText} maxLength={500} onChange={(e)=>setAddressText(e.target.value)}/>
         {savedAddresses.length > 0 && (
           <div className="flex flex-wrap gap-1.5">
             {savedAddresses.map((a) => (
@@ -251,44 +240,13 @@ function NewOrderForm({ownerId}:{ownerId:string}) {
             ))}
           </div>
         )}
-        <div className="grid grid-cols-3 gap-2">
-          <div className="rounded-md border-[1.5px] border-border bg-surface p-2.5">
-            <div className="text-[10px] font-bold text-ink-soft">{t('newOrder.step3Entrance')}</div>
-            <input
-              value={entrance}
-              onChange={(e) => setEntrance(e.target.value)}
-              className="w-full bg-transparent text-sm font-extrabold text-ink outline-none"
-            />
-          </div>
-          <div className="rounded-md border-[1.5px] border-border bg-surface p-2.5">
-            <div className="text-[10px] font-bold text-ink-soft">{t('newOrder.step3Floor')}</div>
-            <input
-              value={floor}
-              onChange={(e) => setFloor(e.target.value)}
-              className="w-full bg-transparent text-sm font-extrabold text-ink outline-none"
-            />
-          </div>
-          <div className="rounded-md border-[1.5px] border-border bg-surface p-2.5">
-            <div className="text-[10px] font-bold text-ink-soft">{t('newOrder.step3Apartment')}</div>
-            <input
-              value={apartment}
-              onChange={(e) => setApartment(e.target.value)}
-              className="w-full bg-transparent text-sm font-extrabold text-ink outline-none"
-            />
-          </div>
+        <div className="mq-new-order-address-details">
+          <TextField label={t('newOrder.step3Entrance')} variant="responsive" fullWidth value={entrance} maxLength={50} onChange={(e)=>setEntrance(e.target.value)}/>
+          <TextField label={t('newOrder.step3Floor')} variant="responsive" fullWidth value={floor} maxLength={50} onChange={(e)=>setFloor(e.target.value)}/>
+          <TextField label={t('newOrder.step3Apartment')} variant="responsive" fullWidth value={apartment} maxLength={50} onChange={(e)=>setApartment(e.target.value)}/>
         </div>
-        <input
-          value={district}
-          onChange={(e) => setDistrict(e.target.value)}
-          placeholder={t('newOrder.step3District')}
-          className="rounded-md border-[1.5px] border-border bg-surface p-3 text-sm text-ink outline-none placeholder:text-muted"
-        />
-        <input
-          value={addressComment}
-          onChange={(e) => setAddressComment(e.target.value)}
-          placeholder={t('newOrder.step3Comment')}
-          className="rounded-md border-[1.5px] border-border bg-surface p-3 text-sm text-ink outline-none placeholder:text-muted"
-        />
+        <TextField label={t('newOrder.step3District')} variant="responsive" fullWidth value={district} maxLength={200} onChange={(e)=>setDistrict(e.target.value)}/>
+        <TextField label={t('newOrder.step3Comment')} variant="responsive" fullWidth value={addressComment} maxLength={500} onChange={(e)=>setAddressComment(e.target.value)}/>
         <button
           type="button"
           onClick={() => {
@@ -304,7 +262,7 @@ function NewOrderForm({ownerId}:{ownerId:string}) {
           type="button"
           onClick={() => setStep(4)}
           disabled={!addressText || !district}
-          className="rounded-pill bg-primary p-4 text-[15px] font-extrabold text-white disabled:opacity-40"
+          className="mq-new-order-primary rounded-pill bg-primary p-4 text-[15px] font-extrabold text-white disabled:opacity-40"
         >
           {t('newOrder.step3Next')}
         </button>
@@ -361,7 +319,7 @@ function NewOrderForm({ownerId}:{ownerId:string}) {
           type="button"
           onClick={creation.submit}
           disabled={submitting || !creation.online || !preview?.available}
-          className="rounded-pill bg-primary p-4 text-[15.5px] font-extrabold text-white disabled:opacity-40"
+          className="mq-new-order-primary rounded-pill bg-primary p-4 text-[15.5px] font-extrabold text-white disabled:opacity-40"
         >
           {direct?copy('findMaster'):paymentsEnabled ? t('newOrder.step4Submit', { price: preview?.calloutPrice ?? '' }) : 'Найти мастера бесплатно'}
         </button>
@@ -369,22 +327,8 @@ function NewOrderForm({ownerId}:{ownerId:string}) {
     );
   }
 
-  return (
-    <div className="mx-auto flex h-screen max-w-6xl flex-col gap-4 px-8 py-6">
-      {header}
-      {progress}
-      <div className="flex flex-1 gap-6 overflow-hidden">
-        <div className="flex w-[560px] shrink-0 flex-col gap-3 overflow-y-auto pb-2">{stepContent}</div>
-        <div className="flex-1 overflow-hidden rounded-lg">
-          <MapView
-            mode="pin"
-            center={geo}
-            onCenterChange={step === 3 ? setGeo : undefined}
-            height={undefined}
-            className="h-full"
-          />
-        </div>
-      </div>
-    </div>
-  );
+  return <NewOrderLayout step={step} header={header} progress={progress} mapLabel={t('newOrder.step3Title')}
+    map={<MapView mode="pin" center={geo} onCenterChange={step===3?setGeo:undefined} height="100%" className="h-full"/>}>
+    {stepContent}
+  </NewOrderLayout>;
 }
