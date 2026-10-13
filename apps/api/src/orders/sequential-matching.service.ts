@@ -40,10 +40,10 @@ export class SequentialMatchingService implements OnModuleInit {
       if(!order || order.status!=='SEARCHING' || order.dispatchMode!=='SEQUENTIAL' || (attempt!==undefined && order.searchAttempt!==attempt)) return null;
       const now=new Date();
       const pending=await tx.orderOffer.findFirst({where:{orderId,attempt:order.searchAttempt,outcome:'PENDING',sequential:true}});
-      if(pending?.expiresAt && pending.expiresAt>now) return {order,offer:pending,expired:null};
+      if(pending?.expiresAt && pending.expiresAt>now) return {order,offer:pending,expired:null,deferred:false};
       if(pending) await tx.orderOffer.update({where:{id:pending.id},data:{outcome:'EXPIRED',respondedAt:now}});
       // User row lock also serializes accept/manual assignment of DIFFERENT orders.
-      const candidates=await tx.$queryRaw<{id:string;meters:number}[]>`
+      const eligibleQuery=Prisma.sql`
         SELECT u.id,ST_Distance(mp.location,o.location) AS meters
         FROM "User" u JOIN "MasterPresence" mp ON mp."masterUserId"=u.id
         JOIN "MasterProfile" pr ON pr."userId"=u.id
@@ -56,16 +56,21 @@ export class SequentialMatchingService implements OnModuleInit {
           AND NOT EXISTS(SELECT 1 FROM "PlannedOrder" busy WHERE busy."masterId"=u.id AND busy.status='IN_PROGRESS')
           AND NOT EXISTS(SELECT 1 FROM "OrderOffer" offered WHERE offered."orderId"=${orderId} AND offered."masterUserId"=u.id AND (offered.attempt=${order.searchAttempt} OR offered.outcome='ACCEPTED'))
           AND NOT EXISTS(SELECT 1 FROM "OrderOffer" other WHERE other."masterUserId"=u.id AND other.outcome='PENDING' AND other.sequential=true AND other."expiresAt">now())
-        ORDER BY meters ASC,u.id ASC LIMIT 1 FOR UPDATE OF u SKIP LOCKED`;
+        ORDER BY meters ASC,u.id ASC LIMIT 1`;
+      const candidates=await tx.$queryRaw<{id:string;meters:number}[]>(Prisma.sql`${eligibleQuery} FOR UPDATE OF u SKIP LOCKED`);
       if(!candidates.length) {
+        // SKIP LOCKED is temporary contention, not proof that eligibility is exhausted.
+        // Reuse every predicate/ordering without waiting for the skipped row lock.
+        const eligible=await tx.$queryRaw<{id:string;meters:number}[]>(eligibleQuery);
+        if(eligible.length)return {order,offer:null,expired:pending,deferred:true};
         await tx.order.update({where:{id:orderId},data:{status:'NO_MASTERS'}});
-        return {order,offer:null,expired:pending};
+        return {order,offer:null,expired:pending,deferred:false};
       }
       const candidate=candidates[0];
       const sentAt=new Date();
       const offer=await tx.orderOffer.create({data:{orderId,masterUserId:candidate.id,attempt:order.searchAttempt,
         wave:1,sequential:true,distanceKm:Math.round(candidate.meters/1000*10)/10,sentAt,expiresAt:new Date(sentAt.getTime()+30000)}});
-      return {order,offer,expired:pending};
+      return {order,offer,expired:pending,deferred:false};
     });
     if(!result) return;
     if(result.expired) this.gateway.emitToUser(result.expired.masterUserId,'offer:closed',{orderId,offerId:result.expired.id,reason:'Время на принятие истекло'});
@@ -76,6 +81,6 @@ export class SequentialMatchingService implements OnModuleInit {
         compensation:0,freePilot:false,distanceKm:offer.distanceKm,deadline:offer.expiresAt!.toISOString(),wave:1});
       await this.queue.send(JOBS.SEQUENTIAL_TIMEOUT,{orderId,attempt:offer.attempt,offerId:offer.id},Math.max(0,(offer.expiresAt!.getTime()-Date.now())/1000));
     }
-    this.gateway.emitToUser(result.order.clientId,'order:status',{orderId,status:result.offer?'SEARCHING':'NO_MASTERS'});
+    this.gateway.emitToUser(result.order.clientId,'order:status',{orderId,status:result.offer||result.deferred?'SEARCHING':'NO_MASTERS'});
   }
 }
