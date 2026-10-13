@@ -3,13 +3,13 @@ import {useLocale,WrenchIcon,UserIcon,ListIcon} from '@masterqala/ui';
 import {useCommercialMode} from '@/lib/commercial-mode';
 import { useEffect, useState } from 'react';
 import { NavLink } from './NavLink';
-import { useMasterPresence } from '@/lib/masterPresence';
+import {MasterAvailabilityControl} from './MasterAvailabilityControl';
+import {masterSurfaceText} from '../lib/masterSurfaceCopy';
 import { fetchMyDisputes } from '@/lib/disputes';
 
 export function Sidebar() {
-  const{t}=useLocale();
+  const{t,language}=useLocale();
   const {leadCreditsEnabled,payoutsEnabled}=useCommercialMode();
-  const { online, connected, geoDenied, goOnline, goOffline } = useMasterPresence();
   const [openDisputes, setOpenDisputes] = useState(0);
 
   useEffect(() => {
@@ -37,26 +37,13 @@ export function Sidebar() {
         {t('disputes')}
       </NavLink>
       <div className="mt-auto space-y-2 border-t border-border pt-3">
-        <div className="rounded-md bg-fill-soft px-3 py-2 text-xs">
-          <div className="font-extrabold text-ink">{online ? t('online') : t('off')}</div>
-          <div className="text-ink-soft">{connected ? t('connected') : t('disconnected')}</div>
-          {geoDenied && <div className="mt-1 text-danger">{t('geoDenied')}</div>}
-        </div>
-        <button
-          type="button"
-          onClick={online ? goOffline : goOnline}
-          className={`w-full rounded-pill px-3 py-2 text-xs font-extrabold text-white ${
-            online ? 'bg-ink-soft' : 'bg-primary'
-          }`}
-        >
-          {online ? t('goOffline') : t('goOnline')}
-        </button>
+        <MasterAvailabilityControl compact/>
         <a
           href="https://client.masterqala.kz"
           className="flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-bold text-ink-soft hover:bg-fill-faint"
         >
           <span className="text-lg">↗</span>
-          Личный кабинет клиента
+          {masterSurfaceText(language,'clientAccount')}
         </a>
       </div>
     </aside>

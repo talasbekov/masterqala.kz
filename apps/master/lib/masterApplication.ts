@@ -1,4 +1,4 @@
-import { api, apiUpload } from './api';
+import { api, apiUpload, ApiError } from './api';
 
 export interface Category {
   id: string;
@@ -10,6 +10,9 @@ export interface ApplicationDocument {
   id: string;
   type: string;
   originalName: string;
+  scanStatus?: 'PENDING_SCAN'|'SCANNING'|'CLEAN'|'INFECTED'|'SCAN_FAILED';
+  scannedAt?:string|null;
+  cdrStatus?:'NOT_REQUIRED'|'PENDING'|'SANITIZED'|'BYPASSED'|'CDR_FAILED';
 }
 
 export type ApplicationStatus = 'PENDING_REVIEW' | 'NEEDS_INFO' | 'ACTIVE' | 'REJECTED';
@@ -47,8 +50,9 @@ export async function fetchCategories(): Promise<Category[]> {
 export async function fetchApplication(): Promise<Application | null> {
   try {
     return await api('/masters/application');
-  } catch {
-    return null;
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) return null;
+    throw error;
   }
 }
 
@@ -67,9 +71,9 @@ export async function submitApplication(values: ApplicationFormValues): Promise<
   });
 }
 
-export async function uploadApplicationDocument(type: string, file: File): Promise<unknown> {
+export async function uploadApplicationDocument(type: string, file: File,options:{signal?:AbortSignal}={}): Promise<unknown> {
   const fd = new FormData();
   fd.append('type', type);
   fd.append('file', file);
-  return apiUpload('/masters/application/documents', fd);
+  return apiUpload('/masters/application/documents', fd,options);
 }

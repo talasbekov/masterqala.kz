@@ -1,183 +1,40 @@
 'use client';
-import { useEffect, useState } from 'react';
-import {
-  APPLICATION_STATUS_RU,
-  DOCUMENT_TYPES,
-  fetchApplication,
-  fetchCategories,
-  submitApplication,
-  uploadApplicationDocument,
-  type Application,
-  type Category,
-} from '@/lib/masterApplication';
-
+import { Button, TextField, useLocale } from '@masterqala/ui';
+import Link from 'next/link';
+import { useAuth } from '@/lib/auth';
+import { useMasterApplicationController } from '@/lib/useMasterApplicationController';
+import { masterSurfaceText } from '@/lib/masterSurfaceCopy';
+import type { ApplicationDocument } from '@/lib/masterApplication';
 export default function BecomeMasterPage() {
-  const [app, setApp] = useState<Application | null>(null);
-  const [loaded, setLoaded] = useState(false);
-  const [editing, setEditing] = useState(false);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [form, setForm] = useState({ fullName: '', iin: '', district: '', experienceYears: 0 });
-  const [selectedCats, setSelectedCats] = useState<string[]>([]);
-  const [error, setError] = useState('');
-
-  async function load() {
-    const cats = await fetchCategories();
-    setCategories(cats);
-    const a = await fetchApplication();
-    setApp(a);
-    if (a) {
-      setForm({ fullName: a.fullName, iin: a.iin, district: a.district, experienceYears: a.experienceYears });
-      setSelectedCats(a.categories.map((c) => c.category.id));
-    }
-    setLoaded(true);
-  }
-
-  useEffect(() => {
-    load();
-  }, []);
-
-  async function submit() {
-    setError('');
-    try {
-      await submitApplication({ ...form, experienceYears: Number(form.experienceYears), categoryIds: selectedCats });
-      setEditing(false);
-      await load();
-    } catch (e) {
-      setError((e as Error).message);
-    }
-  }
-
-  async function upload(type: string, file: File) {
-    setError('');
-    try {
-      await uploadApplicationDocument(type, file);
-      await load();
-    } catch (e) {
-      setError((e as Error).message);
-    }
-  }
-
-  if (!loaded) return <p className="p-8 text-ink-soft">Загрузка…</p>;
-
-  const showForm = editing || !app;
-  const canUpload = app && (app.status === 'PENDING_REVIEW' || app.status === 'NEEDS_INFO');
-  const canResubmit = app && (app.status === 'NEEDS_INFO' || app.status === 'REJECTED');
-
-  return (
-    <div className="mx-auto max-w-[560px] space-y-4 p-4 md:p-8">
-      <h1 className="text-xl font-extrabold text-ink">Анкета мастера</h1>
-
-      {app?.blockedUntil && new Date(app.blockedUntil) > new Date() && (
-        <div className="rounded-lg bg-danger-bg p-4">
-          <div className="text-sm font-extrabold text-danger-ink">
-            ⛔ Доступ к новым заявкам ограничен до{' '}
-            {new Date(app.blockedUntil).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}
-          </div>
-          <p className="mt-1 text-xs leading-relaxed text-danger-ink">
-            Причина: 3 отмены заказов за 30 дней. Текущий активный заказ можно завершить. Вопросы — в поддержку.
-          </p>
-        </div>
-      )}
-
-      {app && !editing && (
-        <div className="space-y-2 rounded-lg border border-border bg-surface p-4">
-          <p className="font-extrabold text-ink">Статус: {APPLICATION_STATUS_RU[app.status]}</p>
-          {app.status === 'REJECTED' && app.rejectionReason && (
-            <p className="text-sm text-danger">Причина: {app.rejectionReason}</p>
-          )}
-          {app.status === 'NEEDS_INFO' && app.latestDecisionComment && (
-            <p className="text-sm text-ink-soft">Что нужно дополнить: {app.latestDecisionComment}</p>
-          )}
-          {canResubmit && (
-            <button
-              className="rounded-pill bg-primary px-4 py-2 text-sm font-extrabold text-white"
-              onClick={() => setEditing(true)}
-            >
-              Подать заново
-            </button>
-          )}
-        </div>
-      )}
-
-      {showForm && (
-        <div className="space-y-3 rounded-lg border border-border bg-surface p-5">
-          <input
-            className="w-full rounded-md border-[1.5px] border-border bg-surface p-3 text-sm text-ink outline-none placeholder:text-muted"
-            placeholder="ФИО полностью"
-            value={form.fullName}
-            onChange={(e) => setForm({ ...form, fullName: e.target.value })}
-          />
-          <input
-            className="w-full rounded-md border-[1.5px] border-border bg-surface p-3 text-sm text-ink outline-none placeholder:text-muted"
-            placeholder="ИИН (12 цифр)"
-            value={form.iin}
-            onChange={(e) => setForm({ ...form, iin: e.target.value })}
-          />
-          <input
-            className="w-full rounded-md border-[1.5px] border-border bg-surface p-3 text-sm text-ink outline-none placeholder:text-muted"
-            placeholder="Район"
-            value={form.district}
-            onChange={(e) => setForm({ ...form, district: e.target.value })}
-          />
-          <input
-            className="w-full rounded-md border-[1.5px] border-border bg-surface p-3 text-sm text-ink outline-none placeholder:text-muted"
-            type="number"
-            placeholder="Опыт, лет"
-            value={form.experienceYears}
-            onChange={(e) => setForm({ ...form, experienceYears: Number(e.target.value) })}
-          />
-          <fieldset className="space-y-1">
-            <legend className="text-sm font-extrabold text-ink">Категории</legend>
-            {categories.map((c) => (
-              <label key={c.id} className="flex items-center gap-2 text-sm text-ink">
-                <input
-                  type="checkbox"
-                  checked={selectedCats.includes(c.id)}
-                  onChange={(e) =>
-                    setSelectedCats(
-                      e.target.checked ? [...selectedCats, c.id] : selectedCats.filter((id) => id !== c.id),
-                    )
-                  }
-                />
-                {c.name}
-              </label>
-            ))}
-          </fieldset>
-          <button
-            className="w-full rounded-pill bg-primary p-3.5 text-sm font-extrabold text-white"
-            onClick={submit}
-          >
-            Отправить на проверку
-          </button>
-        </div>
-      )}
-
-      {canUpload && (
-        <div className="space-y-3 rounded-lg border border-border bg-surface p-5">
-          <h2 className="text-sm font-extrabold text-ink">Документы</h2>
-          {DOCUMENT_TYPES.map((dt) => (
-            <div key={dt.value}>
-              <label className="block text-sm text-ink-soft">{dt.label}</label>
-              <input
-                type="file"
-                accept="image/jpeg,image/png,application/pdf"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  e.target.value = '';
-                  if (file) upload(dt.value, file);
-                }}
-              />
-              <ul className="text-sm text-ink-soft">
-                {app!.documents.filter((d) => d.type === dt.value).map((d) => (
-                  <li key={d.id}>✓ {d.originalName}</li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {error && <p className="text-sm text-danger">{error}</p>}
-    </div>
-  );
+    const { user } = useAuth(), { language } = useLocale();
+    return user ? <ApplicationSession key={user.id} ownerId={user.id}/> : <div className="mq-master-dashboard"><p role="status">{masterSurfaceText(language, 'loading')}</p></div>;
+}
+function ApplicationSession({ ownerId }: {
+    ownerId: string;
+}) {
+    const { language } = useLocale(), controller = useMasterApplicationController({ ownerId });
+    const copy = (key: Parameters<typeof masterSurfaceText>[1]) => masterSurfaceText(language, key);
+    const { application, categories, form, categoryIds, showForm, canEdit, canUpload, canSubmit, busy, error, files } = controller;
+    const app = application.data;
+    const security = (document: ApplicationDocument) => ({ PENDING_SCAN: 'securityPending', SCANNING: 'securityScanning', CLEAN: 'securityClean', INFECTED: 'securityInfected', SCAN_FAILED: 'securityFailed' } as const)[document.scanStatus!] ?? 'securityUnknown';
+    const cdr = (document: ApplicationDocument) => ({ NOT_REQUIRED: 'cdrNotRequired', PENDING: 'cdrPending', SANITIZED: 'cdrSanitized', BYPASSED: 'cdrBypassed', CDR_FAILED: 'cdrFailed' } as const)[document.cdrStatus!] ?? 'cdrUnknown';
+    const readError = application.error || categories.error;
+    const date = app?.blockedUntil ? Date.parse(app.blockedUntil) : NaN;
+    const editable = !app || app.status === 'NEEDS_INFO' || app.status === 'REJECTED';
+    return <div className="mq-master-dashboard mq-master-application"><header><Link href="/">{copy('backWork')}</Link><h1>{copy('application')}</h1><Button variant="secondary" data-refresh-application disabled={!!busy || application.loading || categories.loading} onClick={controller.refresh}>{copy('refreshApplication')}</Button></header>
+  {readError && <div role="alert" className="mq-master-read-warning"><p>{app || showForm ? copy('stale') : null}</p><p>{readError}</p></div>}
+  {error && <p role="alert" className="mq-master-read-warning">{error}</p>}
+  {application.loading && !app && !showForm ? <p role="status">{copy('loading')}</p> : null}
+  {Number.isFinite(date) && date > Date.now() && <p>{copy('blocked')} {new Intl.DateTimeFormat(language, { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(date))}</p>}
+  {app && <section className="mq-master-card"><h2>{copy(app.status)}</h2><dl><div><dt>{copy('fullName')}</dt><dd>{app.fullName}</dd></div><div><dt>{copy('district')}</dt><dd>{app.district || copy('unavailable')}</dd></div><div><dt>{copy('experienceYears')}</dt><dd>{app.experienceYears}</dd></div><div><dt>{copy('specialty')}</dt><dd>{app.categories.length ? app.categories.map(item => item.category.name).join(', ') : copy('unavailable')}</dd></div></dl>{app.status === 'ACTIVE' && <p>{copy('readOnlyActive')}</p>}{app.status === 'NEEDS_INFO' && app.latestDecisionComment && <p>{copy('additional')}: {app.latestDecisionComment}</p>}{app.status === 'REJECTED' && app.rejectionReason && <p>{copy('decision')}: {app.rejectionReason}</p>}{canEdit && !controller.editing && <Button variant="accent" data-edit-application disabled={!!busy} onClick={controller.edit}>{copy('editApplication')}</Button>}</section>}
+  {showForm && <form className="mq-master-card" onSubmit={event => { event.preventDefault(); void controller.submit(); }}><fieldset className="mq-master-application__fields" disabled={!!busy || !editable || !application.fresh}>
+   <TextField label={copy('fullName')} name="fullName" value={form.fullName} variant="responsive" fullWidth required minLength={5} maxLength={150} autoComplete="name" onChange={event => controller.changeField('fullName', event.target.value)}/>
+   <TextField label={copy('iin')} helper={copy('iinHelp')} name="iin" value={form.iin} variant="responsive" fullWidth required inputMode="numeric" pattern="[0-9]{12}" minLength={12} maxLength={12} autoComplete="off" onChange={event => controller.changeField('iin', event.target.value)}/>
+   <TextField label={copy('district')} name="district" value={form.district} variant="responsive" fullWidth required minLength={2} maxLength={100} onChange={event => controller.changeField('district', event.target.value)}/>
+   <TextField label={copy('experienceYears')} name="experienceYears" type="number" value={form.experienceYears} variant="responsive" fullWidth required min={0} max={60} step={1} onChange={event => controller.changeField('experienceYears', Number(event.target.value))}/>
+   <fieldset className="mq-master-application__categories"><legend>{copy('categories')}</legend>{categories.data?.map(category => <label key={category.id}><input type="checkbox" checked={categoryIds.includes(category.id)} onChange={event => controller.changeCategory(category.id, event.target.checked)}/>{category.name}</label>)}</fieldset>
+  </fieldset><p className="mq-master-muted">{copy('submitFlowNote')}</p>{!application.fresh && <p>{copy('staleForm')}</p>}{editable && <Button type="submit" variant="accent" className="mq-master-action" loading={busy === 'submit'} loadingLabel={copy('saving')} disabled={!canSubmit}>{copy('sendReview')}</Button>}{controller.editing && <Button variant="secondary" data-cancel-application disabled={!!busy} onClick={controller.cancel}>{copy('cancelEdit')}</Button>}</form>}
+  {app && <section className="mq-master-card"><h2>{copy('documents')}</h2><p className="mq-master-muted">{copy('uploadHelp')}</p>{(['ID_CARD', 'QUALIFICATION'] as const).map(type => <div key={type} className="mq-master-application__document"><h3>{copy(type)}</h3>{app.documents.filter(document => document.type === type).map(document => <div key={document.id}><p>{document.originalName}</p><p>{copy(security(document))}</p><p>{copy(cdr(document))}</p></div>)}{canUpload && <><label htmlFor={`master-document-${type}`}>{copy(type)}</label><input id={`master-document-${type}`} type="file" accept="image/jpeg,image/png,application/pdf" disabled={!!busy} onChange={event => { const file = event.target.files?.[0]; event.target.value = ''; if (file)
+        void controller.uploadFile(type, file); }}/></>}{busy === 'upload:' + type && <p role="status">{copy('uploading')}</p>}{files[type] && busy !== 'upload:' + type && <div><p>{files[type].name}</p><p className="mq-master-muted">{copy('retryUploadWarning')}</p><Button variant="secondary" disabled={!!busy || !canUpload} onClick={() => void controller.uploadFile(type, files[type]!)}>{copy('retryUpload')}</Button></div>}</div>)}</section>}
+ </div>;
 }
