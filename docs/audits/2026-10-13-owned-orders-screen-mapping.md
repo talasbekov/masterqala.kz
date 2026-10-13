@@ -27,3 +27,7 @@ Mounted tests use the real route components and AuthProvider. Vite navigation us
 Residual visual scope: desktop All/Planned filters, planned CTA and original side-card placement, original card/navigation icons and Vite desktop shell remain incomplete. No newly invented illustration/icon or ETA was added. KK wording still needs native-language review. Existing Vite large-chunk build warning remains; this batch adds no chunk-policy change.
 
 Final local batch checks: 81 shared, 69 Next-client and 22 Vite tests; UI/client/master TypeScript; client/Vite/master production builds passed on Node 22.12.0 / pnpm 9.15.0. Exact-head CI is pending publication and is not implied by local checks.
+
+### Source-token CTA correction
+
+Follow-up source review found new-request CTA bg-primary and text-ink both resolve to #123B52, leaving no label contrast. The source153:2241 uses accent #FFE34A, primary brand text,12px radius and56px minimum height. The corrective delta restores those canonical tokens/classes and adds all-three-locale DOM regressions. This is source-token evidence, not a native screenshot.

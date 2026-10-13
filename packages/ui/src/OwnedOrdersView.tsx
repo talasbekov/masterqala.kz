@@ -39,6 +39,6 @@ export function OwnedOrdersView({items,loading,error,incomplete,onRetry,renderLi
         })}
       </ul>
     </div>}
-    <div className="flex flex-col gap-4 md:max-w-[400px]">{(items.some(item => item.kind === 'urgent' && (item.lifecycleVersion ?? 0) >= 2 && item.commercialMode === 'DIRECT_PAYMENT') || (!items.length && !incomplete)) && <p className="text-sm leading-[21px] text-ink-soft">{t('costControlNote')}</p>}{renderLink({href:'/order/new',children:t('newOrder'),className:'inline-flex min-h-14 items-center justify-center rounded-full bg-primary px-6 text-base font-semibold text-ink focus-visible:outline-2 focus-visible:outline-ink'})}</div>
+    <div className="flex flex-col gap-4 md:max-w-[400px]">{(items.some(item => item.kind === 'urgent' && (item.lifecycleVersion ?? 0) >= 2 && item.commercialMode === 'DIRECT_PAYMENT') || (!items.length && !incomplete)) && <p className="text-sm leading-[21px] text-ink-soft">{t('costControlNote')}</p>}{renderLink({href:'/order/new',children:t('newOrder'),className:'inline-flex min-h-14 items-center justify-center rounded-md bg-accent px-4 py-3 text-base font-semibold text-primary focus-visible:outline-2 focus-visible:outline-ink'})}</div>
   </section>;
 }
