@@ -133,6 +133,26 @@ test('DONE agreed quote preserves unknown amounts as unavailable and real zero a
  try{const quote=document.querySelector('[data-acceptance-quote]');assert.ok(quote);assert.match(quote.textContent,/Work—/);assert.match(quote.textContent,/Total—/);await app.render({order:{...approvedOrder,status:'DONE',workPrice:0,quoteTotal:0}});const realZero=document.querySelector('[data-acceptance-quote]');assert.match(realZero.textContent,/Work0/);assert.match(realZero.textContent,/Total0/);assert.equal(app.calls.length,0);}
  finally{await app.cleanup()}
 });
+test('mobile quote consent explains actual scope and Discuss uses real master telephone without consenting',async()=>{
+ for(const language of ['ru','kk','en']){
+  const order={...approvedOrder,status:'AWAITING_PRICE_CONFIRM',workComment:'Replace pipe and valve',master:{name:'Actual specialist',phone:'+77015551234'}};const app=await stateView(DirectClientOrderView,language,{order});
+  try{const intro=document.querySelector('[data-quote-introduction]');assert.ok(intro,'actual proposed scope required');assert.ok(intro.textContent.includes(order.workComment));const discuss=document.querySelector('footer [data-action="discuss-quote"]');assert.equal(discuss.getAttribute('href'),'tel:+77015551234');assert.ok(discuss.classList.contains('min-h-[56px]'));assert.equal(app.calls.length,0);
+   for(const guard of [{busy:true},{online:false},{fresh:false}]){await app.render(guard);const approve=document.querySelector('footer [data-action="approve-quote"]');assert.equal(approve.disabled,true);await act(async()=>approve.click());assert.equal(app.calls.length,0)}await app.render();const approve=document.querySelector('footer [data-action="approve-quote"]');assert.ok(approve.classList.contains('min-h-[56px]'));await act(async()=>approve.click());assert.deepEqual(app.calls,[['confirm-price',{quoteVersion:3}]]);
+   await app.render({order:{...order,status:'PRICE_APPROVED'}});assert.equal(document.querySelector('[data-quote-introduction]'),null);assert.equal(document.querySelector('footer [data-action="discuss-quote"]'),null);
+  }finally{await app.cleanup()}
+ }
+});
+test('mobile quote discussion offers honest existing support when phone is unavailable and retains header Help',async()=>{
+ for(const language of ['ru','kk','en']){const app=await stateView(DirectClientOrderView,language,{order:{...approvedOrder,status:'AWAITING_PRICE_CONFIRM',workComment:' ',description:'Real request detail',master:null}});
+  try{assert.ok(document.querySelector('[data-quote-introduction]').textContent.includes('Real request detail'));const discuss=document.querySelector('footer [data-action="discuss-quote"]');assert.equal(discuss.tagName,'BUTTON');assert.equal(discuss.getAttribute('href'),null);assert.match(discuss.textContent,language==='ru'?/поддержк/:language==='kk'?/қолдау/:/support/i);await act(async()=>discuss.click());assert.equal(app.help(),1);assert.equal(app.calls.length,0);assert.ok(document.querySelector('header > button:last-child').getAttribute('aria-label'));}
+  finally{await app.cleanup()}
+ }
+});
+test('mobile consent does not invent an unavailable total or use a blank telephone',async()=>{
+ const app=await stateView(DirectClientOrderView,'en',{order:{...approvedOrder,status:'AWAITING_PRICE_CONFIRM',quoteTotal:null,master:{name:null,phone:'   '}}});
+ try{const approve=document.querySelector('footer [data-action="approve-quote"]');assert.equal(approve.disabled,true);assert.doesNotMatch(approve.textContent,/0/);await act(async()=>approve.click());assert.equal(app.calls.length,0);const discuss=document.querySelector('footer [data-action="discuss-quote"]');assert.equal(discuss.tagName,'BUTTON');assert.match(discuss.textContent,/support/i);}
+ finally{await app.cleanup()}
+});
 test('master waiting/DONE refresh is read-only, localized, stale-retryable and guarded against repeated clicks',async()=>{
  const {DirectMasterOrderView}=await import('../dist/index.js');
  for(const language of ['ru','kk','en'])for(const status of ['AWAITING_PRICE_CONFIRM','DONE']){
