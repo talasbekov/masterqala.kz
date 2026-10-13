@@ -1,0 +1,15 @@
+# Current-order pin synchronization and localization
+
+## Changes
+
+Confirmed cause: MapViewInner previously applied center only at mount, leaving a stale marker after saved-address/geolocation updates. The pin-only synchronizer now applies current center at unchanged zoom with nonanimated/reset view and guards programmatic move/resize events from user coordinate mutation. Real user movement reads the latest callback; equal centers do not feed callback loops. Native resize events and container ResizeObserver updates restore desired center safely. Cleanup disposes listeners/observer and ignores late resize work. Pending/completed new-order state renders the status view instead of a live map; existing frozen draft ownership remains unchanged. Tracking/pulse/payment/API behavior is not redesigned.
+
+KK/EN now cover the existing25RU newOrder keys, localized common progress/photo/loading copy, six real seeded category labels and four previously inline free-pilot strings. Unknown/custom categories retain their real API-provided names. Interpolation variables are identical across RU/KK/EN. Existing financial wording is translated without changing its policy or resolving outstanding callout-price/cancellation decisions.
+
+The preexisting paid-mode label claimed a fabricated Kaspi Gold account ending4821 although no payment-method contract/data is provided to this form. It now honestly states that payment-method details are unavailable in all three languages. Real commercial mode, fees, actions and server payloads remain unchanged. The form was checked for similarly hardcoded identities/amounts: category names come from actual seeded/API data, descriptions/address are actual draft input, amounts come from preview, and location is the existing service-area default. Example description remains an explicitly labeled placeholder, not fabricated user data.
+
+## Verification boundaries
+
+Tests run actual installed Leaflet against jsdom containers with controlled dimensions: programmatic saved-address center, same-coordinate updates, real move events/latest callback, resize/debounced resize, readonly callback absence and disposal. A mounted actual MapView test rerenders props/callbacks and verifies observer disconnect/late callback safety. Test-only CSS loader omits stylesheet loading; no real native geometry/tile rendering is established. Locale tests disable fallback and compare keys/interpolations plus fake-account/inline-copy regressions. Pinned Node22.12.0/pnpm9.15.0: client66/shared20 tests, client/master/shared TypeScript and client production build passed on this final source tree. No new dependency or backend migration is required.
+
+Still open: native Next/hydration/live Leaflet geometry/tiles, real browser/SMS/reload/two-role journey, full combined-form Figma parity/assets, remaining app localization and financial-policy ambiguity. Earlier responsive/source-only map tests are not native visual evidence. This is a separate local increment pending review/publication; latest published responsive head0ca480f exact CI passed run38335704830.

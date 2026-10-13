@@ -1,7 +1,8 @@
 'use client';
-import { useEffect, useRef } from 'react';
+import { useEffect, useLayoutEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import {createPinCenterSync} from '../lib/pin-center-sync';
 
 export interface LatLng {
   lat: number;
@@ -38,9 +39,9 @@ export default function MapViewInner({ mode, center, onCenterChange, masterPosit
   const masterMarkerRef = useRef<L.Marker | null>(null);
   const onCenterChangeRef = useRef(onCenterChange);
 
-  useEffect(() => {
-    onCenterChangeRef.current = onCenterChange;
-  }, [onCenterChange]);
+  const pinCenterRef=useRef<ReturnType<typeof createPinCenterSync>|null>(null);
+  onCenterChangeRef.current = onCenterChange;
+  useLayoutEffect(()=>{if(mode==='pin')pinCenterRef.current?.sync(center);},[mode,center.lat,center.lng,onCenterChange]);
 
   useEffect(() => {
     if (!containerRef.current || mode === 'pulse') return;
@@ -51,16 +52,18 @@ export default function MapViewInner({ mode, center, onCenterChange, masterPosit
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
     mapRef.current = map;
 
+    let observer:ResizeObserver|undefined;
     if (mode === 'pin') {
       const marker = L.marker([center.lat, center.lng], { icon: pinIcon }).addTo(map);
       map.on('move', () => {
         const c = map.getCenter();
         marker.setLatLng(c);
       });
-      map.on('moveend', () => {
-        const c = map.getCenter();
-        onCenterChangeRef.current?.({ lat: c.lat, lng: c.lng });
-      });
+      pinCenterRef.current=createPinCenterSync(map,center,()=>onCenterChangeRef.current);
+      if(typeof ResizeObserver!=='undefined'){
+        observer=new ResizeObserver(()=>pinCenterRef.current?.resize());
+        observer.observe(containerRef.current);
+      }
     }
 
     if (mode === 'tracking') {
@@ -68,6 +71,7 @@ export default function MapViewInner({ mode, center, onCenterChange, masterPosit
     }
 
     return () => {
+      observer?.disconnect();pinCenterRef.current?.dispose();pinCenterRef.current=null;
       map.remove();
       mapRef.current = null;
       masterMarkerRef.current = null;

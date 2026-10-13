@@ -90,6 +90,8 @@ function NewOrderForm({ownerId}:{ownerId:string}) {
     return()=>{cancelled=true;};
   }, [ready,step,categoryId,geo,pending,completedOrderId]);
 
+  function categoryName(category?:Category){return category?t(`newOrder.category_${category.slug}`,{defaultValue:category.name}):'';}
+
   function selectAddress(a: Address) {
     setAddressText(a.address);
     setEntrance(a.entrance ?? '');
@@ -166,7 +168,7 @@ function NewOrderForm({ownerId}:{ownerId:string}) {
                 }`}
               >
                 <div className="mb-1.5 text-xl">{meta.icon}</div>
-                <div className="text-sm font-extrabold text-ink">{c.name}</div>
+                <div className="text-sm font-extrabold text-ink">{categoryName(c)}</div>
               </button>
             );
           })}
@@ -274,7 +276,7 @@ function NewOrderForm({ownerId}:{ownerId:string}) {
         <div className="rounded-md bg-fill p-3.5">
           <div className="text-sm font-extrabold text-ink">
             {categoryMeta(categories.find((c) => c.id === categoryId)?.slug ?? '').icon}{' '}
-            {categories.find((c) => c.id === categoryId)?.name} · «{description.slice(0, 40)}» ·{' '}
+            {categoryName(categories.find((c) => c.id === categoryId))} · «{description.slice(0, 40)}» ·{' '}
             {t('common.photosCount', { n: photoPaths.length })}
           </div>
           <div className="mt-1 text-xs font-semibold text-on-fill">
@@ -299,19 +301,19 @@ function NewOrderForm({ownerId}:{ownerId:string}) {
             <div className="text-xs leading-relaxed text-on-fill">
               {paymentsEnabled
                 ? t('newOrder.step4Note')
-                : 'Выезд в бесплатном пилоте не оплачивается. Стоимость работ мастер назовёт после осмотра; вы подтвердите её и рассчитаетесь с мастером напрямую.'}
+                : t('newOrder.freePilotNote')}
             </div>
           </div>
         )}
         <div className="flex items-center justify-between rounded-md border border-border bg-surface p-3">
           <span className="text-sm font-extrabold text-ink">
-            {direct?copy('directPayment'):paymentsEnabled ? t('newOrder.step4PaymentMethod') : 'Бесплатный пилот · без привязки карты'}
+            {direct?copy('directPayment'):paymentsEnabled ? t('newOrder.step4PaymentMethod') : t('newOrder.freePilotPaymentLabel')}
           </span>
         </div>
         <p className="text-xs leading-relaxed text-ink-soft">
           {paymentsEnabled
             ? t('newOrder.step4CancelNote')
-            : 'Отмена до начала работ не вызывает списаний со стороны платформы. Договорённости по фактическим расходам обсуждаются напрямую с мастером.'}
+            : t('newOrder.freePilotCancelNote')}
         </p>
         {(creation.error||error) && <p role="alert" className="text-sm font-semibold text-danger">{creation.error||error}</p>}
         <div className="mt-auto" />
@@ -321,7 +323,7 @@ function NewOrderForm({ownerId}:{ownerId:string}) {
           disabled={submitting || !creation.online || !preview?.available}
           className="mq-new-order-primary rounded-pill bg-primary p-4 text-[15.5px] font-extrabold text-white disabled:opacity-40"
         >
-          {direct?copy('findMaster'):paymentsEnabled ? t('newOrder.step4Submit', { price: preview?.calloutPrice ?? '' }) : 'Найти мастера бесплатно'}
+          {direct?copy('findMaster'):paymentsEnabled ? t('newOrder.step4Submit', { price: preview?.calloutPrice ?? '' }) : t('newOrder.freePilotSubmit')}
         </button>
       </>
     );
