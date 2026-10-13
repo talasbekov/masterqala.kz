@@ -19,3 +19,5 @@ export {apiBlob} from "../lib/api";
 export {useOperatorDisputeReads,useOperatorResolution,financialChoices} from "../lib/operator-dispute-controller";
 
 export {default as Disputes} from '../app/(app)/disputes/page';
+export {useOperatorUserRead,useOperatorUserAction} from '../lib/operator-users-controller';
+export {default as Users} from '../app/(app)/users/page';
