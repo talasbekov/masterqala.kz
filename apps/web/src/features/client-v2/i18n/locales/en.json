@@ -42,5 +42,14 @@
     "category_locksmith": "Locks and doors",
     "category_handyman": "Minor repairs",
     "category_other": "Other services"
+  },
+  "tabs": {
+    "home": "Home",
+    "orders": "Orders",
+    "profile": "Profile",
+    "notifications": "Notifications"
+  },
+  "home": {
+    "urgentButton": "Request an urgent specialist"
   }
 }

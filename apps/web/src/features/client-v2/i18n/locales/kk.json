@@ -42,5 +42,14 @@
     "category_locksmith": "Құлыптар мен есіктер",
     "category_handyman": "Ұсақ жөндеу",
     "category_other": "Басқа қызметтер"
+  },
+  "tabs": {
+    "home": "Басты бет",
+    "orders": "Тапсырыстар",
+    "profile": "Профиль",
+    "notifications": "Хабарламалар"
+  },
+  "home": {
+    "urgentButton": "Шұғыл шебер шақыру"
   }
 }
