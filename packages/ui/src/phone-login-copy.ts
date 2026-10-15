@@ -1,5 +1,6 @@
 import type {Locale} from './locale-data';
 const ru = {
+  "networkError": "Не удалось связаться с сервером. Проверьте подключение к интернету и попробуйте ещё раз.",
   "phoneTitle": "Войдите по номеру телефона",
   "phoneSubtitle": "Отправим код подтверждения в SMS.",
   "phonePlaceholder": "707 123 45 67",
@@ -26,6 +27,7 @@ const ru = {
   "phonePanelTitle": "Вход по номеру телефона"
 };
 const kk:Record<keyof typeof ru,string> = {
+  "networkError": "Серверге қосылу мүмкін болмады. Интернет байланысын тексеріп, қайталап көріңіз.",
   "pageTitle": "MasterQala-ға кіру",
   "pageSubtitle": "Тапсырыс беруге және шебер болып жұмыс істеуге арналған бір аккаунт.",
   "phoneTitle": "Телефон нөмірі арқылы кіріңіз",
@@ -52,6 +54,7 @@ const kk:Record<keyof typeof ru,string> = {
   "phonePanelTitle": "Телефон нөмірімен кіру"
 };
 const en:Record<keyof typeof ru,string> = {
+  "networkError": "Unable to reach the server. Check your internet connection and try again.",
   "pageTitle": "Sign in to MasterQala",
   "pageSubtitle": "One account to book services and work as a master.",
   "phoneTitle": "Sign in with your phone number",

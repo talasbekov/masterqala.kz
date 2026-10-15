@@ -1,6 +1,8 @@
 'use client';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { LoginPendingAction } from './LoginForm';
+import { useLocale } from './Locale';
+import { phoneLoginText } from './phone-login-copy';
 export function usePhoneLogin<User>({ request, onAuthenticated, onSuccess, flowKey = 'login' }: {
   flowKey?: string; request: (path: string, options: RequestInit) => Promise<any>;
   onAuthenticated: (token: string, user: User) => void; onSuccess: () => void;
@@ -8,7 +10,11 @@ export function usePhoneLogin<User>({ request, onAuthenticated, onSuccess, flowK
   const [step, setStep] = useState<'phone' | 'sms'>('phone');
   const [phone, setPhone] = useState('');
   const [code, setCode] = useState('');
-  const [error, setError] = useState('');
+  const { language } = useLocale();
+  const [error, setError] = useState<unknown>('');
+  const networkFailure = error instanceof TypeError && /^(Failed to fetch|NetworkError when attempting to fetch resource\.|Load failed|fetch failed)$/i.test(error.message);
+  const errorMessage = networkFailure ? phoneLoginText(language, 'auth.networkError')
+    : error instanceof Error ? error.message : typeof error === 'string' ? error : '';
   const [pendingAction, setPendingAction] = useState<LoginPendingAction>(null);
   const [resendIn, setResendIn] = useState(30);
   const requestPending = useRef(false);
@@ -53,7 +59,7 @@ export function usePhoneLogin<User>({ request, onAuthenticated, onSuccess, flowK
       setResendIn(30);
       updateCode('');
       setStep('sms');
-    } catch (error) { if (validRequest(generation)) setError((error as Error).message); }
+    } catch (error) { if (validRequest(generation)) setError(error); }
     finally { if (validRequest(generation)) { requestPending.current = false; setPendingAction(null); } }
   }
   async function verify() {
@@ -67,7 +73,7 @@ export function usePhoneLogin<User>({ request, onAuthenticated, onSuccess, flowK
       if (!validRequest(generation)) return;
       onAuthenticated(response.accessToken, response.user);
       if (validRequest(generation)) onSuccess();
-    } catch (error) { if (validRequest(generation)) setError((error as Error).message); }
+    } catch (error) { if (validRequest(generation)) setError(error); }
     finally { if (validRequest(generation)) { requestPending.current = false; setPendingAction(null); } }
   }
   function changeNumber() {
@@ -87,6 +93,6 @@ export function usePhoneLogin<User>({ request, onAuthenticated, onSuccess, flowK
     setPhone(value);
   }
   function changeCode(value: string) { if (currentHandler() && !requestPending.current) updateCode(value); }
-  return { step, phone, code, error, pendingAction, resendIn, onPhone: changePhone, onCode: changeCode,
+  return { step, phone, code, error: errorMessage, pendingAction, resendIn, onPhone: changePhone, onCode: changeCode,
     onRequest: requestCode, onVerify: verify, onChangeNumber: changeNumber };
 }
