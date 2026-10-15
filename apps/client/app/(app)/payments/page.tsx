@@ -18,12 +18,12 @@ export default function PaymentsPage() {
       <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
         <div className="text-4xl">{paymentsEnabled ? '💳' : '🎁'}</div>
         <div className="text-base font-extrabold text-ink">
-          {paymentsEnabled ? t('payments.comingSoon') : 'Бесплатный пилот'}
+          {paymentsEnabled ? t('payments.comingSoon') : t('payments.pilotTitle')}
         </div>
         <p className="max-w-[280px] text-xs leading-relaxed text-ink-soft">
           {paymentsEnabled
             ? t('payments.note')
-            : 'Платформа не списывает оплату за выезд и сервисный сбор. Стоимость работ согласуется с мастером после осмотра, расчёт происходит напрямую.'}
+            : t('payments.pilotNote')}
         </p>
       </div>
     </div>

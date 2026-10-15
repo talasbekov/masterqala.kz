@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import {DirectClientOrderView,useOrderState,type DirectOrder} from '@masterqala/ui';
+import { useCallback } from 'react';
+import { useParams,useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../../api';
 import { getSocket } from '../../../socket';
@@ -18,10 +19,10 @@ export interface OrderMaster {
   rating: number | null;
   reviewCount: number;
 }
-export interface OrderDetail {
+export interface OrderDetail extends DirectOrder {
   id: string;
   status: string;
-  commercialMode: 'FREE_PILOT' | 'PAID_MOCK' | 'PAID_LIVE';
+  commercialMode: 'FREE_PILOT' | 'PAID_MOCK' | 'PAID_LIVE' | 'DIRECT_PAYMENT';
   freePilot?: boolean;
   wave: number;
   category: { name: string } | null;
@@ -39,39 +40,23 @@ export interface OrderDetail {
   review: { rating: number; comment: string | null } | null;
 }
 
+const readOrder=(id:string)=>api(`/orders/${id}`);
+
 const TRACK_STATUSES = ['ACCEPTED', 'MASTER_ON_WAY', 'INSPECTION'];
 
 export default function OrderPage() {
   const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
-  const [order, setOrder] = useState<OrderDetail | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-
-  const load = () => {
-    setError('');
-    return api(`/orders/${id}`)
-      .then(setOrder)
-      .catch((e) => setError((e as Error).message))
-      .finally(() => setLoading(false));
-  };
-
-  useEffect(() => {
-    load();
-    const socket = getSocket();
-    const onStatus = (p: { orderId: string }) => {
-      if (p.orderId === id) load();
-    };
-    socket.on('order:status', onStatus);
-    return () => {
-      socket.off('order:status', onStatus);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
-
+  const navigate=useNavigate();
+  const subscribe=useCallback((refresh:()=>void)=>{
+    const socket=getSocket();const changed=(payload:{orderId:string})=>{if(payload.orderId===id)refresh();};
+    socket.on('order:status',changed);socket.on('connect',refresh);
+    return()=>{socket.off('order:status',changed);socket.off('connect',refresh);};
+  },[id]);
+  const {order,loading,error,online,fresh,busy,load,mutate}=useOrderState<OrderDetail>({id:id??'',read:readOrder,subscribe});
   if (loading) return <div className="p-6 text-ink-soft">{t('common.loading')}</div>;
 
-  if (error || !order || !id) {
+  if (!order || !id) {
     return (
       <div className="flex flex-col gap-3 p-6">
         <p className="text-sm font-semibold text-danger">{error || t('orderDetail.notFound')}</p>
@@ -85,6 +70,11 @@ export default function OrderPage() {
       </div>
     );
   }
+
+  if(order.lifecycleVersion>=2) return <DirectClientOrderView order={order} busy={busy} error={error} online={online} fresh={fresh}
+    onBack={()=>navigate('/orders')} onHelp={()=>navigate('/support')}
+    onCancelPreview={()=>api(`/orders/${id}/cancellation-preview`)}
+    onAction={(action,body)=>mutate(()=>api(`/orders/${id}/${action}`,{method:'POST',body:JSON.stringify(body??{})}))}/>;
 
   const freePilot = order.commercialMode === 'FREE_PILOT' || order.freePilot === true;
 

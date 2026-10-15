@@ -31,6 +31,20 @@ jobs:
           --health-timeout 5s
           --health-retries 10
 
+      postgres_queue:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_USER: masterqala
+          POSTGRES_PASSWORD: masterqala
+          POSTGRES_DB: masterqala_urgent_queue_ci
+        ports:
+          - 5434:5432
+        options: >-
+          --health-cmd "pg_isready -U masterqala -d masterqala_urgent_queue_ci"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
     env:
       NODE_ENV: test
       DATABASE_URL: postgresql://masterqala:masterqala@localhost:5433/masterqala_test
@@ -57,8 +71,23 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build shared packages
-        run: pnpm --filter @masterqala/ui build
+      - name: Build and test shared UI
+        run: pnpm --filter @masterqala/ui run test
+
+      - name: Test client interactions
+        run: pnpm --filter client run test
+
+      - name: Test Vite client recovery
+        run: pnpm --filter web run test
+
+      - name: Test master login interactions
+        run: pnpm --filter master run test
+
+      - name: Test operator interactions
+        run: pnpm --filter operator run test
+
+      - name: Test public site interactions
+        run: pnpm --filter site run test
 
       - name: Apply database migrations
         run: pnpm --filter api exec prisma migrate deploy
@@ -67,7 +96,7 @@ jobs:
         run: pnpm --filter api build
 
       - name: Run API unit tests
-        run: pnpm --filter api test -- --runInBand
+        run: pnpm --filter api run test --runInBand
 
       - name: Run API e2e tests
         shell: bash
@@ -81,6 +110,31 @@ jobs:
         with:
           name: api-e2e-log
           path: api-e2e.log
+          if-no-files-found: ignore
+          retention-days: 3
+
+      - name: Apply isolated queue-test database migrations
+        env:
+          DATABASE_URL: postgresql://masterqala:masterqala@localhost:5434/masterqala_urgent_queue_ci
+        run: pnpm --filter api exec prisma migrate deploy
+
+      - name: Test real urgent queue expiry and restart
+        env:
+          DATABASE_URL: postgresql://masterqala:masterqala@localhost:5434/masterqala_urgent_queue_ci
+          ALLOW_ISOLATED_QUEUE_TESTS: "1"
+          PGBOSS_DISABLED: "0"
+          COMMERCIAL_MODE: DIRECT_PAYMENT
+        shell: bash
+        run: |
+          set -o pipefail
+          pnpm --filter api run test:queue:e2e 2>&1 | tee api-queue-e2e.log
+
+      - name: Upload isolated queue-test log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-queue-e2e-log
+          path: api-queue-e2e.log
           if-no-files-found: ignore
           retention-days: 3
 

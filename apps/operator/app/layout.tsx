@@ -1,3 +1,5 @@
+import { cookies } from 'next/headers';
+import type { Locale } from '@masterqala/ui';
 import type { Metadata } from 'next';
 import { Providers } from '@/components/Providers';
 import './globals.css';
@@ -7,11 +9,13 @@ export const metadata: Metadata = {
   description: 'Заявки, пользователи, мастера, споры и журнал действий оператора MasterQala',
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const value=(await cookies()).get('mq_locale')?.value;
+  const language:Locale=value==='kk'||value==='en'?value:'ru';
   return (
-    <html lang="ru">
+    <html lang={language}>
       <body>
-        <Providers>{children}</Providers>
+        <Providers initialLanguage={language}>{children}</Providers>
       </body>
     </html>
   );

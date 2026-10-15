@@ -1,3 +1,4 @@
+import type {DirectOrder} from '@masterqala/ui';
 export interface OrderMaster {
   id: string;
   name: string | null;
@@ -6,10 +7,10 @@ export interface OrderMaster {
   reviewCount: number;
 }
 
-export interface OrderDetail {
+export interface OrderDetail extends DirectOrder {
   id: string;
   status: string;
-  commercialMode: 'FREE_PILOT' | 'PAID_MOCK' | 'PAID_LIVE';
+  commercialMode: 'FREE_PILOT' | 'PAID_MOCK' | 'PAID_LIVE' | 'DIRECT_PAYMENT';
   freePilot?: boolean;
   wave: number;
   category: { name: string } | null;

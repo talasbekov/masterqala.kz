@@ -46,7 +46,7 @@ export default function DoneView({ order, orderId, onChanged }: { order: OrderDe
       <p className="text-xs leading-relaxed text-ink-soft">
         {paymentsEnabled
           ? t('orderDetail.doneNote')
-          : 'Проверьте результат и подтвердите выполнение. Оплата работ производится мастеру напрямую. При проблеме откройте спор.'}
+          : t('orderDetail.pilotDoneNote')}
       </p>
       {error && <p className="text-sm font-semibold text-danger">{error}</p>}
       <div className="mt-auto" />

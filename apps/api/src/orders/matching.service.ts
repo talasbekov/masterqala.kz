@@ -5,6 +5,7 @@ import { QueueService } from '../queue/queue.service';
 import { JOBS } from '../queue/queue.constants';
 import { RealtimeGateway } from '../realtime/realtime.gateway';
 import { PostgisRoutingService } from '../routing/postgis-routing.service';
+import { SequentialMatchingService } from './sequential-matching.service';
 import { OrdersService } from './orders.service';
 import { ACTIVE_MASTER_STATUSES, MAX_WAVE, WAVE_RADII_M, WAVE_TIMEOUTS_S } from './order.constants';
 
@@ -15,6 +16,7 @@ const ACTIVE_MASTER_STATUSES_SQL = Prisma.join(
 interface WaveJob {
   orderId: string;
   wave: number;
+  attempt?: number;
 }
 
 interface WaveTimeoutJob extends WaveJob {
@@ -33,6 +35,7 @@ export class MatchingService implements OnModuleInit {
     private readonly queue: QueueService,
     private readonly gateway: RealtimeGateway,
     private readonly orders: OrdersService,
+    private readonly sequential?: SequentialMatchingService,
   ) {}
 
   onModuleInit(): void {
@@ -40,9 +43,13 @@ export class MatchingService implements OnModuleInit {
     this.queue.register(JOBS.WAVE_TIMEOUT, (d: WaveTimeoutJob) => this.handleWaveTimeout(d));
   }
 
-  async handleWave({ orderId, wave }: WaveJob): Promise<void> {
+  async handleWave({ orderId, wave, attempt }: WaveJob): Promise<void> {
     const order = await this.prisma.order.findUnique({ where: { id: orderId }, include: { category: true } });
     if (!order || order.status !== 'SEARCHING') return;
+    if (order.dispatchMode === 'SEQUENTIAL') {
+      if (!this.sequential) throw new Error('Sequential dispatcher unavailable');
+      return this.sequential.dispatch(orderId, attempt);
+    }
 
     const candidates = await this.findCandidates(orderId, order.categoryId, order.clientId, order.searchAttempt, WAVE_RADII_M[wave - 1]);
     if (candidates.length === 0) {

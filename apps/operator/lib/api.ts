@@ -24,6 +24,7 @@ function authHeaders(): Record<string, string> {
 }
 
 export async function api(path: string, options: RequestInit = {}) {
+  if(options.signal?.aborted)throw new DOMException('Request cancelled','AbortError');
   const res = await fetch(`${API}${path}`, {
     ...options,
     headers: { 'Content-Type': 'application/json', ...authHeaders(), ...options.headers },
@@ -31,11 +32,13 @@ export async function api(path: string, options: RequestInit = {}) {
   return handle(res);
 }
 
-export async function apiBlob(path: string): Promise<{ blob: Blob; contentType: string | null }> {
-  const res = await fetch(`${API}${path}`, { headers: { ...authHeaders() } });
+export async function apiBlob(path: string, options: {signal?: AbortSignal} = {}): Promise<{ blob: Blob; contentType: string | null }> {
+  if(options.signal?.aborted)throw new DOMException('Request cancelled','AbortError');
+  const res = await fetch(`${API}${path}`, { signal: options.signal, headers: { ...authHeaders() } });
   if (!res.ok) {
     throw new Error(res.status === 404 ? 'Файл не найден' : `Ошибка ${res.status}`);
   }
   const blob = await res.blob();
+  if(options.signal?.aborted)throw new DOMException('Request cancelled','AbortError');
   return { blob, contentType: res.headers.get('Content-Type') };
 }

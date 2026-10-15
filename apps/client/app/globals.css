@@ -1,5 +1,9 @@
 @import "tailwindcss";
 @import "@masterqala/ui/tokens.css";
+@import "@masterqala/ui/controls.css";
+@import "@masterqala/ui/locale.css";
+@import "@masterqala/ui/account.css";
+@import "@masterqala/ui/login.css";
 @source "../app";
 @source "../components";
 @source "../lib";
@@ -8,4 +12,57 @@ body {
   background: var(--color-background);
   color: var(--color-ink);
   font-family: var(--font-sans);
+}
+
+@source "../../../packages/ui/src";
+
+/* Image-free desktop header 93:1599; mobile fallback retains routes without sidebar width. */
+
+/* Image-free desktop header 93:1599; mobile fallback retains routes without sidebar width. */
+.mq-client-shell { display: flex; flex-direction: column; min-height: 100dvh; width: 100%; min-width: 0; background: #f4f3ef; }
+.mq-client-header { display: flex; align-items: center; justify-content: space-between; gap: 32px; padding: 24px 32px; background: white; font-family: Inter, Arial, sans-serif; }
+.mq-client-brand { flex: 0 1 280px; color: #123b52; font: 600 24px/1.4 Inter, Arial, sans-serif; text-decoration: none; }
+.mq-client-desktop-nav { display: flex; align-items: center; gap: 32px; flex: 1 1 760px; max-width: 760px; min-width: 0; }
+.mq-client-desktop-nav a { flex: 1 1 190px; min-height: 44px; display: flex; align-items: center; color: #123b52; font: 600 16px/1.4 Inter, Arial, sans-serif; text-decoration: none; }
+.mq-client-header a:focus-visible, .mq-client-mobile-nav a:focus-visible, .mq-client-locale:focus-visible { outline: 2px solid #123b52; outline-offset: 4px; }
+.mq-client-locale { min-height: 44px; flex-shrink: 0; padding: 0 8px; color: #666; font: 400 14px/1.5 Inter, Arial, sans-serif; cursor: pointer; }
+.mq-client-main { flex: 1; min-width: 0; width: 100%; }
+.mq-client-mobile-nav { display: none; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; background: white; padding-bottom: env(safe-area-inset-bottom, 0px); }
+.mq-client-mobile-nav a { display: flex; align-items: center; justify-content: center; min-width: 0; min-height: 64px; padding: 8px 4px; overflow-wrap: anywhere; text-align: center; color: #666; font: 600 12px/16px Inter, Arial, sans-serif; text-decoration: none; border-radius: 12px; }
+.mq-client-mobile-nav a[aria-current='page'] { background: #f4f3ef; color: #123b52; }
+@media (max-width: 767px) {
+  .mq-client-header { padding: 8px 16px; gap: 12px; min-height: 56px; }
+  .mq-client-brand { flex: 1; font-size: 16px; }
+  .mq-client-desktop-nav { display: none; }
+  .mq-client-mobile-nav { display: grid; position: fixed; left: 0; right: 0; bottom: 0; z-index: 10; }
+  .mq-client-main { padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px)); }
+}
+
+/* Incremental four-step wizard: mobile118:1427 / desktop74:1333. */
+.mq-new-order-layout { min-height: 100dvh; min-width: 0; width: 100%; background: white; color: var(--color-ink); }
+.mq-new-order-header { display: flex; align-items: center; min-height: 56px; padding: 0 16px; }
+.mq-new-order-header > div { display: flex; align-items: center; gap: 12px; width: 100%; min-width: 0; }
+.mq-new-order-header h1 { flex: 1; min-width: 0; margin: 0; text-align: center; font: 600 16px/1.4 Inter, Arial, sans-serif; color: var(--color-primary); }
+.mq-new-order-icon-action { display: inline-flex; flex: 0 0 44px; width: 44px; min-height: 44px; align-items: center; justify-content: center; color: var(--color-primary); border-radius: 12px; }
+.mq-new-order-progress { padding: 12px 24px 0; }
+.mq-new-order-columns { display: flex; flex-direction: column; gap: 24px; min-width: 0; padding: 24px; padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px)); }
+.mq-new-order-card { display: flex; flex-direction: column; gap: 16px; min-width: 0; width: 100%; min-height: calc(100dvh - 132px); order: 1; overflow-wrap: anywhere; }
+.mq-new-order-map { order: 0; min-width: 0; height: 240px; border-radius: 16px; overflow: hidden; }
+.mq-new-order-primary { min-height: 56px; width: 100%; font: 600 16px/1.4 Inter, Arial, sans-serif; border-radius: 12px; }
+.mq-new-order-task-title { margin: 0; color: var(--color-primary); font: 500 28px/34px Inter, Arial, sans-serif; }
+.mq-new-order-description { display: flex; flex-direction: column; gap: 8px; padding: 16px; border: 1px solid var(--color-border); border-radius: 12px; }
+.mq-new-order-description label { font: 600 12px/16px Inter, Arial, sans-serif; color: var(--color-muted); }
+.mq-new-order-description textarea { min-width: 0; width: 100%; min-height: 112px; resize: vertical; font: 400 16px/1.5 Inter, Arial, sans-serif; outline: none; }
+.mq-new-order-description:focus-within { outline: 2px solid var(--color-primary); outline-offset: -2px; }
+.mq-new-order-address-details { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; min-width: 0; }
+@media (max-width: 359px) { .mq-new-order-address-details { grid-template-columns: minmax(0, 1fr); } }
+@media (min-width: 1024px) {
+ .mq-new-order-layout { padding: 16px; background: var(--color-fill-soft); }
+ .mq-new-order-header { padding: 0; }
+ .mq-new-order-header h1 { text-align: left; font-size: 26px; }
+ .mq-new-order-progress { padding: 12px 0 0; }
+ .mq-new-order-columns { display: grid; grid-template-columns: minmax(0, 400px) minmax(0, 1fr); gap: 24px; padding: 24px 0 0; align-items: start; }
+ .mq-new-order-card { min-height: calc(100dvh - 148px); padding: 24px; border-radius: 16px; background: white; }
+ .mq-new-order-map { order: 2; position: sticky; top: 16px; height: calc(100dvh - 148px); min-height: 480px; }
+ .mq-new-order-primary { min-height: 52px; }
 }

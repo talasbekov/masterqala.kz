@@ -1,0 +1,1 @@
+export async function resolve(specifier,context,next){if(specifier==='socket.io-client')return {url:'data:text/javascript,'+encodeURIComponent('export function io(){return globalThis.__homeSocket}'),shortCircuit:true};return next(specifier,context)}

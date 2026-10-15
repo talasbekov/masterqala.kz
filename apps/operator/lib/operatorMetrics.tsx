@@ -1,67 +1,18 @@
 'use client';
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
-import { fetchMetrics, type DashboardMetrics } from './metrics';
-import { useAuth } from './auth';
-
-const POLL_INTERVAL_MS = 30_000;
-
-interface OperatorMetricsCtx {
-  metrics: DashboardMetrics | null;
-  loading: boolean;
-  error: string | null;
-  refetch: () => void;
+import {createContext,useContext,useEffect,type ReactNode} from 'react';
+import {api} from './api';
+import {parseMetrics,type DashboardMetrics} from './metrics';
+import {useAuth} from './auth';
+import {useOperatorRead} from './useOperatorRead';
+const POLL_INTERVAL_MS=30_000;
+interface OperatorMetricsCtx {metrics:DashboardMetrics|null;loading:boolean;error:string|null;fresh:boolean;refetch:()=>void}
+const Ctx=createContext<OperatorMetricsCtx>({metrics:null,loading:true,error:null,fresh:false,refetch:()=>{}});
+async function readMetrics(path:string,signal:AbortSignal){return parseMetrics(await api(path,{signal}));}
+export function OperatorMetricsProvider({children}:{children:ReactNode}) {
+  const {user}=useAuth();
+  const ownerId=user?.role==='OPERATOR'?user.id:null;
+  const read=useOperatorRead({ownerId,path:'/admin/metrics',read:readMetrics});
+  useEffect(()=>{if(!ownerId)return;const interval=setInterval(()=>{if(!document.hidden)void read.retry();},POLL_INTERVAL_MS);return()=>clearInterval(interval);},[ownerId,read.retry]);
+  return <Ctx.Provider value={{metrics:read.data,loading:read.loading,error:read.error||null,fresh:read.fresh,refetch:read.retry}}>{children}</Ctx.Provider>;
 }
-
-const Ctx = createContext<OperatorMetricsCtx>({
-  metrics: null,
-  loading: true,
-  error: null,
-  refetch: () => {},
-});
-
-export function OperatorMetricsProvider({ children }: { children: ReactNode }) {
-  const { user } = useAuth();
-  const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [tick, setTick] = useState(0);
-
-  useEffect(() => {
-    if (!user || user.role !== 'OPERATOR') return;
-    let cancelled = false;
-    setLoading(true);
-    fetchMetrics()
-      .then((data) => {
-        if (!cancelled) {
-          setMetrics(data);
-          setError(null);
-        }
-      })
-      .catch((e) => {
-        if (!cancelled) setError((e as Error).message);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [user, tick]);
-
-  useEffect(() => {
-    if (!user || user.role !== 'OPERATOR') return;
-    const interval = setInterval(() => {
-      if (document.hidden) return;
-      setTick((t) => t + 1);
-    }, POLL_INTERVAL_MS);
-    return () => clearInterval(interval);
-  }, [user]);
-
-  const refetch = () => setTick((t) => t + 1);
-
-  return <Ctx.Provider value={{ metrics, loading, error, refetch }}>{children}</Ctx.Provider>;
-}
-
-export function useOperatorMetrics() {
-  return useContext(Ctx);
-}
+export const useOperatorMetrics=()=>useContext(Ctx);

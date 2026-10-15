@@ -1,3 +1,4 @@
+import { requireLegacyPlannedOrder } from './planned-lifecycle';
 import { ConflictException, ForbiddenException, Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
 import { Prisma, User } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
@@ -17,9 +18,10 @@ export class PlannedOrdersCommercialService {
   async placeBid(masterUserId: string, plannedOrderId: string, dto: PlaceBidDto) {
     const storedOrder = await this.prisma.plannedOrder.findUnique({
       where: { id: plannedOrderId },
-      select: { commercialMode: true },
+      select: { commercialMode: true, lifecycleModel: true },
     });
     if (!storedOrder) throw new NotFoundException('Заявка не найдена');
+    requireLegacyPlannedOrder(storedOrder);
     if (storedOrder.commercialMode !== 'FREE_PILOT') {
       return this.plannedOrders.placeBid(masterUserId, plannedOrderId, dto);
     }
@@ -30,6 +32,7 @@ export class PlannedOrdersCommercialService {
       await this.prisma.$transaction(async (tx) => {
         const order = await tx.plannedOrder.findUnique({ where: { id: plannedOrderId } });
         if (!order) throw new NotFoundException('Заявка не найдена');
+        requireLegacyPlannedOrder(order);
         if (order.status !== 'PUBLISHED') throw new ConflictException('Заявка уже не принимает ставки');
         clientId = order.clientId;
 
@@ -67,6 +70,7 @@ export class PlannedOrdersCommercialService {
 
   async cancel(user: User, plannedOrderId: string) {
     const order = await this.plannedOrders.findOrThrow(plannedOrderId);
+    requireLegacyPlannedOrder(order);
     if (order.commercialMode !== 'FREE_PILOT') {
       return this.plannedOrders.cancel(user, plannedOrderId);
     }

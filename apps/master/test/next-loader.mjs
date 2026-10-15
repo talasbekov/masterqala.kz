@@ -1,0 +1,1 @@
+export async function resolve(specifier,context,nextResolve){if(specifier==='socket.io-client')return {url:new URL('./socket-fixture.mjs',import.meta.url).href,shortCircuit:true};return nextResolve(['next/link','next/navigation','next/dynamic'].includes(specifier)?specifier+'.js':specifier,context)}

@@ -1,14 +1,3 @@
-import Link from 'next/link';
-import type { Category } from '@/lib/categories';
-
-export function CategoryTile({ category }: { category: Category }) {
-  return (
-    <Link
-      href={`/categories/${category.slug}`}
-      className="flex flex-col gap-2 rounded-md border border-border bg-surface p-6 shadow-card transition hover:border-primary"
-    >
-      <span className="text-lg font-semibold text-ink">{category.name}</span>
-      <span className="text-sm text-ink-soft">Смотреть →</span>
-    </Link>
-  );
-}
+'use client';
+import Link from 'next/link';import {useLocale} from '@masterqala/ui';import type {Category} from '../lib/categories';import {siteText} from '../lib/site-copy';
+export function CategoryTile({category}:{category:Category}) {const {language}=useLocale();return <Link href={`/categories/${category.slug}`} className="flex min-w-0 flex-col gap-2 break-words rounded-md border border-border bg-surface p-6 shadow-card transition hover:border-primary"><span className="text-lg font-semibold text-ink">{category.name}</span><span className="text-sm text-ink-soft">{siteText(language,'view')} →</span></Link>}

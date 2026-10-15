@@ -1,5 +1,6 @@
-import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom';
-import { AuthProvider, useAuth } from './auth';
+import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import { AuthProvider } from './auth';
+import {RequireAuth} from './RequireAuth';
 import Layout from './Layout';
 import LoginPage from './features/client-v2/pages/LoginPage';
 import AppShell from './features/client-v2/components/AppShell';
@@ -17,11 +18,6 @@ import PlannedComparePage from './features/client-v2/pages/PlannedComparePage';
 import AddressesPage from './features/client-v2/pages/AddressesPage';
 import SupportPage from './features/client-v2/pages/SupportPage';
 import PaymentsPage from './features/client-v2/pages/PaymentsPage';
-
-function RequireAuth() {
-  const { user } = useAuth();
-  return user ? <Outlet /> : <Navigate to="/login" replace />;
-}
 
 // apps/web — мобильный клиент (решение 2026-08-18, docs/STATUS.md). Экраны
 // мастера и админки задублированы для десктопа в apps/master/apps/operator

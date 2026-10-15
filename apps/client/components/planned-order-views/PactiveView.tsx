@@ -3,7 +3,6 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
 import { api } from '@/lib/api';
-import { PLANNED_STATUS_LABELS } from '@/lib/orderStatus';
 import type { PlannedOrderDetail } from '@/lib/plannedOrderTypes';
 
 export default function PactiveView({
@@ -15,7 +14,8 @@ export default function PactiveView({
   orderId: string;
   onChanged: () => void;
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const dateLocale = i18n.resolvedLanguage?.startsWith('kk') ? 'kk-KZ' : i18n.resolvedLanguage?.startsWith('en') ? 'en-GB' : 'ru-RU';
   const router = useRouter();
   const [remaining, setRemaining] = useState(0);
   const [error, setError] = useState('');
@@ -53,7 +53,7 @@ export default function PactiveView({
         </button>
         <span className="flex-1 truncate text-[17px] font-extrabold text-ink">{order.category?.name}</span>
         <span className="rounded-pill bg-fill-soft px-2.5 py-1 text-[11px] font-extrabold text-primary">
-          {PLANNED_STATUS_LABELS[order.status]}
+          {t(`plannedStatus.${order.status}`, { defaultValue: order.status })}
         </span>
       </div>
 
@@ -100,7 +100,7 @@ export default function PactiveView({
             </div>
             <div className="mt-1 flex justify-between text-[13px] font-bold">
               <span className="text-ink-soft">{t('plannedDetail.whenLabel')}</span>
-              <span className="text-ink">{new Date(order.slotStart).toLocaleString('ru-RU', { weekday: 'short', day: '2-digit', month: 'long', hour: '2-digit', minute: '2-digit' })}</span>
+              <span className="text-ink">{new Date(order.slotStart).toLocaleString(dateLocale, { weekday: 'short', day: '2-digit', month: 'long', hour: '2-digit', minute: '2-digit' })}</span>
             </div>
           </div>
         </>

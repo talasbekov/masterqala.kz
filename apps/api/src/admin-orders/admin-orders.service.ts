@@ -1,3 +1,5 @@
+import { requireLegacyPlannedOrder } from '../planned-orders/planned-lifecycle';
+import { storedQuoteTotal, versionedQuoteTotal } from '../orders/quote-amount';
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { OrderStatus, PlannedOrderStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
@@ -58,7 +60,7 @@ export class AdminOrdersService {
         : Promise.resolve([]),
       opts.type !== 'urgent' && !statusInvalidForPlanned
         ? this.prisma.plannedOrder.findMany({
-            where: { status: opts.status as PlannedOrderStatus | undefined, OR: searchFilter },
+            where: { lifecycleModel: 'LEGACY', status: opts.status as PlannedOrderStatus | undefined, OR: searchFilter },
             include: { client: true, master: true, category: true },
             orderBy: { createdAt: 'desc' },
             take: 100,
@@ -138,7 +140,7 @@ export class AdminOrdersService {
     if (!order) throw new NotFoundException('Заказ не найден');
 
     const timeline: TimelineEntry[] = [
-      { at: order.createdAt, event: `создана · выезд ${order.calloutPrice} ₸` },
+      { at: order.createdAt, event: order.lifecycleVersion>=2?'создана · стоимость согласуется после осмотра':`создана · выезд ${order.calloutPrice} ₸` },
       ...(order.acceptedAt ? [{ at: order.acceptedAt, event: `принял ${order.master?.name ?? order.master?.phone}` }] : []),
       ...(order.priceProposedAt ? [{ at: order.priceProposedAt, event: 'цена предложена клиенту' }] : []),
       ...(order.completedAt ? [{ at: order.completedAt, event: 'выполнено' }] : []),
@@ -159,6 +161,13 @@ export class AdminOrdersService {
       client: { name: order.client.name, phone: order.client.phone },
       master: order.master ? { name: order.master.name, phone: order.master.phone } : null,
       category: order.category.name,
+      lifecycleVersion:order.lifecycleVersion,
+      commercialMode:order.commercialMode,
+      cancellationAmount:order.cancellationAmount,
+      quoteVersion:order.quoteVersion,
+      consentedVersion:order.consentedVersion,
+      materialsPrice:order.materialsPrice,
+      quoteTotal:order.lifecycleVersion>=2?versionedQuoteTotal(order):storedQuoteTotal(order),
       calloutPrice: order.calloutPrice,
       serviceFee: order.serviceFee,
       workPrice: order.workPrice,
@@ -173,6 +182,7 @@ export class AdminOrdersService {
       include: { client: true, master: true, category: true, disputes: true },
     });
     if (!order) throw new NotFoundException('Заказ не найден');
+    requireLegacyPlannedOrder(order);
 
     const timeline: TimelineEntry[] = [
       { at: order.createdAt, event: 'создана' },

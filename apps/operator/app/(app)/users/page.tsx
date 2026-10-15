@@ -1,157 +1,21 @@
 'use client';
-import { useEffect, useState } from 'react';
-import { fetchUsers, blockUser, unblockUser, type OperatorUserRow } from '@/lib/users';
-
-export default function UsersPage() {
-  const [search, setSearch] = useState('');
-  const [rows, setRows] = useState<OperatorUserRow[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [blockTarget, setBlockTarget] = useState<OperatorUserRow | null>(null);
-  const [reason, setReason] = useState('');
-  const [submitting, setSubmitting] = useState(false);
-
-  async function load(currentSearch: string) {
-    try {
-      const data = await fetchUsers(currentSearch.trim() || undefined);
-      setRows(data);
-      setError('');
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    const timer = setTimeout(() => load(search), 400);
-    return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search]);
-
-  async function confirmBlock() {
-    if (!blockTarget || !reason.trim()) return;
-    setSubmitting(true);
-    try {
-      await blockUser(blockTarget.id, reason.trim());
-      setBlockTarget(null);
-      setReason('');
-      await load(search);
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  async function handleUnblock(id: string) {
-    try {
-      await unblockUser(id);
-      await load(search);
-    } catch (e) {
-      setError((e as Error).message);
-    }
-  }
-
-  return (
-    <div className="flex flex-col gap-4 p-8">
-      <div className="flex items-center gap-3">
-        <div className="text-2xl font-extrabold text-ink">Пользователи</div>
-        <input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Поиск по телефону/имени"
-          className="rounded-md border-[1.5px] border-border bg-surface px-3 py-1.5 text-sm"
-        />
-      </div>
-      {error && <div className="text-sm text-danger">{error}</div>}
-      <div className="rounded-lg border border-border bg-surface">
-        <div className="grid grid-cols-[1fr_170px_140px_100px_140px] gap-3 border-b border-fill-soft px-4 py-2 text-[11px] font-extrabold uppercase text-ink-soft">
-          <span>Пользователь</span>
-          <span>Телефон</span>
-          <span>Роль</span>
-          <span>Заказов</span>
-          <span></span>
-        </div>
-        {loading && <div className="p-4 text-sm text-ink-soft">Загрузка…</div>}
-        {!loading && rows.length === 0 && <div className="p-4 text-sm text-ink-soft">Ничего не найдено</div>}
-        {rows.map((row) => (
-          <div
-            key={row.id}
-            className="grid grid-cols-[1fr_170px_140px_100px_140px] items-center gap-3 border-b border-fill-soft px-4 py-2.5 text-sm font-bold"
-          >
-            <span>
-              {row.name ?? '—'}
-              {row.isBlocked && (
-                <span className="ml-2 rounded-pill bg-danger-bg px-2 py-0.5 text-[10px] font-extrabold text-danger">
-                  заблокирован
-                </span>
-              )}
-            </span>
-            <span className="text-ink-soft">{row.phone}</span>
-            <span>{row.role}</span>
-            <span>{row.orders}</span>
-            <span>
-              {row.isBlocked ? (
-                <button
-                  type="button"
-                  onClick={() => handleUnblock(row.id)}
-                  className="rounded-pill border-[1.5px] border-success px-3 py-1 text-xs font-extrabold text-success"
-                >
-                  Разблокировать
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setBlockTarget(row);
-                    setReason('');
-                  }}
-                  className="rounded-pill border-[1.5px] border-danger px-3 py-1 text-xs font-extrabold text-danger"
-                >
-                  Заблокировать
-                </button>
-              )}
-            </span>
-          </div>
-        ))}
-      </div>
-
-      {blockTarget && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-8"
-          onClick={() => setBlockTarget(null)}
-        >
-          <div className="w-full max-w-md rounded-lg bg-surface p-5" onClick={(e) => e.stopPropagation()}>
-            <div className="mb-3 text-base font-extrabold text-ink">
-              Заблокировать {blockTarget.name ?? blockTarget.phone}
-            </div>
-            <textarea
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              placeholder="Причина блокировки — обязательна"
-              className="mb-3 min-h-20 w-full rounded-md border-[1.5px] border-border bg-fill-faint p-3 text-sm"
-            />
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={confirmBlock}
-                disabled={!reason.trim() || submitting}
-                className="rounded-pill bg-danger px-4 py-2 text-sm font-extrabold text-white disabled:opacity-40"
-              >
-                Подтвердить
-              </button>
-              <button
-                type="button"
-                onClick={() => setBlockTarget(null)}
-                className="rounded-pill border-[1.5px] border-border px-4 py-2 text-sm font-extrabold text-ink-soft"
-              >
-                Отмена
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
+import {useState} from 'react';
+import {Button,Dialog,TextField,useLocale} from '@masterqala/ui';
+import {useAuth} from '@/lib/auth';
+import {useOperatorUserRead,useOperatorUserAction} from '@/lib/operator-users-controller';
+import {maskedUserPhone,userRole,userText} from '@/lib/operator-users-copy';
+export default function UsersPage(){const {user}=useAuth();return <Users key={user?.id??'anonymous'} ownerId={user?.id??null}/>;}
+function Users({ownerId}:{ownerId:string|null}){
+ const {language}=useLocale(),t=(key:Parameters<typeof userText>[1])=>userText(language,key);
+ const [search,setSearch]=useState(''),read=useOperatorUserRead({ownerId,search});
+ const action=useOperatorUserAction({ownerId,search,read,onReconciled:()=>void read.retry()});
+ const selected=action.selection,stage=action.stage;
+ return <div className="space-y-6 p-4 text-base leading-6 md:p-8"><h1 className="text-[32px] font-semibold leading-10">{t('title')}</h1><div className="max-w-xl"><TextField id="user-search" label={t('search')} value={search} onChange={event=>setSearch(event.target.value)} /></div><Button data-user-refresh variant="secondary" disabled={read.loading} onClick={()=>{action.back();void read.retry();}}>{t('refresh')}</Button>
+ {read.loading&&<p role="status">{t('loading')}</p>}{read.error&&<p data-user-read-error role="alert">{t('error')}</p>}{read.data&&!read.fresh&&<p data-user-stale role="status">{t('stale')}</p>}{read.fresh&&read.data?.length===0&&<p data-user-empty>{t('empty')}</p>}
+ <div className="overflow-x-auto rounded-2xl bg-white"><table className="w-full text-left"><thead className="bg-fill-soft"><tr>{(['name','phone','role','orders','status'] as const).map(key=><th key={key} scope="col" className="p-4 font-semibold">{t(key)}</th>)}<th scope="col" className="p-4"><span className="sr-only">{t('prepare')}</span></th></tr></thead><tbody>{read.data?.map(row=><tr key={row.id} className="border-b border-border"><td className="p-4 break-words">{row.name??'—'}</td><td className="p-4 whitespace-nowrap">{maskedUserPhone(row.phone)}</td><td className="p-4">{userRole(language,row.role)}</td><td className="p-4">{row.orders}</td><td className="p-4">{t(row.isBlocked?'blocked':'active')}</td><td className="p-4"><Button data-user-action variant="secondary" disabled={!read.fresh||action.busy||(!row.isBlocked&&!['клиент','клиент + мастер'].includes(row.role))} onClick={()=>action.select(row.id,row.isBlocked?'unblock':'block')}>{t(row.isBlocked?'unblock':'block')}</Button></td></tr>)}</tbody></table></div>
+ {selected&&<Dialog open title={t(selected.action==='block'?'block':'unblock')} onClose={action.close}><div className="max-h-[80dvh] space-y-4 overflow-y-auto"><h2 className="text-xl font-semibold">{t(selected.action==='block'?'block':'unblock')}</h2><p className="break-words">{selected.row.name??'—'} · {maskedUserPhone(selected.row.phone)} · {selected.row.id}</p><p>{t('restriction')}</p>{selected.action==='block'&&<><label htmlFor="block-reason" className="font-semibold">{t('reason')}</label><textarea id="block-reason" name="blockReason" aria-describedby="block-reason-help" value={action.reason} disabled={action.busy} onChange={event=>action.changeReason(event.target.value)} className="min-h-32 w-full rounded-xl border p-3"/><p id="block-reason-help">{t('reasonHelp')}</p></>}
+ {action.outcome&&<div data-user-unknown role="status"><p>{action.outcome.pending?t('sending'):action.outcome.checking?t('checking'):t('unknown')}</p><p>{t('unknownHelp')}</p><Button data-user-reconcile variant="secondary" disabled={action.outcome.pending||action.outcome.checking} onClick={()=>void action.reconcile()}>{t('reconcile')}</Button></div>}
+ {stage?<div className="space-y-4 rounded-xl border p-4"><h3 className="font-semibold">{t('confirm')}</h3><p>{t('confirmHelp')}</p><p>{t(stage.selection.action==='block'?'block':'unblock')}: {stage.selection.row.name??'—'} · {maskedUserPhone(stage.selection.row.phone)}</p>{stage.selection.action==='block'&&<p className="whitespace-pre-wrap break-words">{stage.reason}</p>}<div className="flex flex-wrap gap-3"><Button data-user-confirm disabled={!action.canSubmit} onClick={()=>void action.submit()}>{t('confirm')}</Button><Button data-user-back variant="secondary" onClick={action.back}>{t('back')}</Button></div></div>:<Button data-user-prepare disabled={!action.canPrepare} onClick={action.prepare}>{t('prepare')}</Button>}
+ <Button data-user-close variant="secondary" onClick={action.close}>{t('close')}</Button></div></Dialog>}
+ </div>;
 }

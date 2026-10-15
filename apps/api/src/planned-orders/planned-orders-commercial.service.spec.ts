@@ -4,7 +4,7 @@ import { RealtimeGateway } from '../realtime/realtime.gateway';
 import { PlannedOrdersCommercialService } from './planned-orders-commercial.service';
 import { PlannedOrdersService } from './planned-orders.service';
 
-function setup(orderMode: 'FREE_PILOT' | 'PAID_MOCK') {
+function setup(orderMode: 'FREE_PILOT' | 'PAID_MOCK' | 'DIRECT_PAYMENT') {
   const tx = {
     plannedOrder: { findUnique: jest.fn() },
     masterProfile: { findUnique: jest.fn() },
@@ -12,7 +12,7 @@ function setup(orderMode: 'FREE_PILOT' | 'PAID_MOCK') {
   };
   const prisma = {
     $transaction: jest.fn((callback: (client: typeof tx) => unknown) => callback(tx)),
-    plannedOrder: { findUnique: jest.fn().mockResolvedValue({ commercialMode: orderMode }) },
+    plannedOrder: { findUnique: jest.fn().mockResolvedValue({ commercialMode: orderMode, lifecycleModel: 'LEGACY' }) },
     plannedOrderBid: { findFirstOrThrow: jest.fn() },
   } as unknown as PrismaService;
   const gateway = { emitToUser: jest.fn() } as unknown as RealtimeGateway;
@@ -48,7 +48,7 @@ describe('PlannedOrdersCommercialService', () => {
   it('создаёт отклик для FREE_PILOT-заявки без обращения к lead-credit таблицам', async () => {
     const { service, tx, prisma, gateway, plannedOrders } = setup('FREE_PILOT');
     const bid = { id: 'bid-1', plannedOrderId: 'planned-1', masterUserId: 'master-1' };
-    tx.plannedOrder.findUnique.mockResolvedValue({ id: 'planned-1', clientId: 'client-1', status: 'PUBLISHED' });
+    tx.plannedOrder.findUnique.mockResolvedValue({ id: 'planned-1', clientId: 'client-1', status: 'PUBLISHED', lifecycleModel: 'LEGACY' });
     tx.masterProfile.findUnique.mockResolvedValue({ blockedUntil: null });
     tx.plannedOrderBid.count.mockResolvedValue(0);
     tx.plannedOrderBid.create.mockResolvedValue(bid);
@@ -74,8 +74,8 @@ describe('PlannedOrdersCommercialService', () => {
     });
   });
 
-  it('делегирует отклик PAID_MOCK-заявки даже если новые заявки уже бесплатны', async () => {
-    const { service, plannedOrders } = setup('PAID_MOCK');
+  it.each(['PAID_MOCK', 'DIRECT_PAYMENT'] as const)('preserves the saved legacy %s bid path', async (mode) => {
+    const { service, plannedOrders } = setup(mode);
     const bid = { id: 'paid-bid' };
     plannedOrders.placeBid.mockResolvedValue(bid);
 
@@ -95,6 +95,7 @@ describe('PlannedOrdersCommercialService', () => {
       masterId: 'master-1',
       status: 'MASTER_SELECTED',
       commercialMode: 'FREE_PILOT',
+      lifecycleModel: 'LEGACY',
     };
     const cancelled = { ...selected, status: 'CANCELLED_BY_CLIENT' };
     plannedOrders.findOrThrow.mockResolvedValueOnce(selected);

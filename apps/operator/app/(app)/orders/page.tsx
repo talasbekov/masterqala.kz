@@ -1,338 +1,39 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
-import {
-  fetchOrders,
-  fetchOrder,
-  fetchCandidates,
-  assignMaster,
-  statusLabel,
-  statusPillClass,
-  STATUS_LABELS,
-  PLANNED_STATUS_LABELS,
-  TYPE_LABELS,
-  type OrderListRow,
-  type OrderDetail,
-  type OrderType,
-  type AssignCandidate,
-} from '@/lib/orders';
-import { useOperatorMetrics } from '@/lib/operatorMetrics';
-import { formatDateTime } from '@/lib/format';
-
-const TYPE_FILTERS: { value: OrderType | 'ALL'; label: string }[] = [
-  { value: 'ALL', label: 'все типы' },
-  { value: 'urgent', label: 'срочные' },
-  { value: 'planned', label: 'плановые' },
-];
-
-function statusOptionsFor(type: OrderType | 'ALL'): { value: string; label: string }[] {
-  if (type === 'urgent') return Object.entries(STATUS_LABELS).map(([value, label]) => ({ value, label }));
-  if (type === 'planned') return Object.entries(PLANNED_STATUS_LABELS).map(([value, label]) => ({ value, label }));
-  const merged = new Map<string, string>();
-  Object.entries(STATUS_LABELS).forEach(([value, label]) => merged.set(value, label));
-  Object.entries(PLANNED_STATUS_LABELS).forEach(([value, label]) => merged.set(value, label));
-  return Array.from(merged.entries()).map(([value, label]) => ({ value, label }));
+import {useRef,useState} from 'react';
+import {Button,Dialog,TextField,useLocale} from '@masterqala/ui';
+import {useAuth} from '../../../lib/auth';
+import {useOperatorMetrics} from '../../../lib/operatorMetrics';
+import {STATUS_LABELS,PLANNED_STATUS_LABELS,statusPillClass,type OrderDetail,type OrderType} from '../../../lib/orders';
+import {useOperatorOrdersReads,type OrderSelection,type OrderFilters} from '../../../lib/operator-order-reads';
+import {useOperatorAssignment} from '../../../lib/useOperatorAssignment';
+import {orderText,operatorOrderStatus,type OperatorOrderKey} from '../../../lib/operator-order-copy';
+import {operatorDate} from '../../../lib/operator-read-copy';
+const same=(a:OrderSelection|null,b:OrderSelection)=>a?.id===b.id&&a.type===b.type;
+function OwnedOrders({ownerId}:{ownerId:string|null}){
+ const locale=useLocale(),t=(key:OperatorOrderKey)=>orderText(locale.language,key),status=(value:string)=>operatorOrderStatus(locale.language,value);
+ const {refetch:refetchMetrics}=useOperatorMetrics();
+ const [filters,setFilters]=useState<OrderFilters>({type:'ALL',status:'',search:''}),[selected,setSelected]=useState<OrderSelection|null>(null),[open,setOpen]=useState(false);
+ const editor=useRef(0),editorVersion=editor.current,selection=useRef(selected);selection.current=selected;
+ const reads=useOperatorOrdersReads({ownerId,filters,selected,candidatesOpen:open});const current=useRef(reads);current.current=reads;
+ const assignment=useOperatorAssignment(target=>{if(same(selection.current,target)){void current.current.detail.retry();void current.current.candidates.retry();}void current.current.list.retry();refetchMetrics();});
+ const record=assignment.getRecord(selected),detail=reads.detail.data;
+ const canOpen=!!selected&&selected.type==='urgent'&&reads.detail.fresh&&!reads.detail.loading&&!!detail?.canAssign;
+ function choose(target:OrderSelection|null){editor.current++;setOpen(false);selection.current=target;setSelected(target);}
+ function close(){editor.current++;setOpen(false);}
+ function openEditor(){if(!selected||!reads.detail.isVerifiedCurrent()||!detail?.canAssign||selected.type!=='urgent')return;editor.current++;setOpen(true);}
+ function confirm(masterUserId:string){if(!selected)return;const target=selected;void assignment.assign(target,masterUserId,()=>editor.current===editorVersion&&same(selection.current,target)&&open&&reads.detail.isVerifiedCurrent()&&reads.candidates.isVerifiedCurrent()&&!!detail?.canAssign&&!!reads.candidates.data?.some(candidate=>candidate.masterUserId===masterUserId));}
+ const statuses=filters.type==='urgent'?Object.keys(STATUS_LABELS):filters.type==='planned'?Object.keys(PLANNED_STATUS_LABELS):Array.from(new Set([...Object.keys(STATUS_LABELS),...Object.keys(PLANNED_STATUS_LABELS)]));
+ const field=(label:string,value:string)=><div className="rounded-xl bg-fill-soft px-4 py-3"><p className="text-xs text-ink-soft">{label}</p><p className="mt-2 break-words">{value}</p></div>;
+ const money=(value:number|null)=>value===null?'—':locale.formatMoney(value);
+ function cost(order:OrderDetail){if(order.type==='planned')return <><p>{t('budget')}: {money(order.budget)}</p><p>{t('work')}: {money(order.workPrice)}</p></>;if(order.lifecycleVersion>=2){return <>{order.cancellationAmount!==null?<p>{t('cancellation')}: {money(order.cancellationAmount)}</p>:order.quoteVersion>0?<><p>{t('work')}: {money(order.workPrice)}</p><p>{t('materials')}: {money(order.materialsPrice)}</p><p>{t('callout')}: {money(order.calloutPrice)}</p><p className="font-semibold">{t('total')}: {money(order.quoteTotal)}</p></>:<p data-order-quote-unknown>{t('unknownQuote')}</p>}<p className="text-sm text-ink-soft">{t('direct')}</p></>;}return <><p>{t('callout')}: {money(order.calloutPrice)}</p><p>{t('fee')}: {money(order.serviceFee)}</p><p>{t('work')}: {money(order.workPrice)}</p></>;}
+ return <section className="flex min-w-0 flex-col gap-6 px-6 py-6 text-base leading-6 md:px-10 md:py-8"><header className="flex flex-wrap items-start justify-between gap-4"><h1 className="text-2xl font-semibold md:text-[32px]">{t('orders')}</h1><Button data-order-list-refresh variant="secondary" disabled={reads.list.loading} onClick={()=>{void reads.list.retry();}}>{t('refresh')}</Button></header>
+ <div className="flex flex-wrap items-end gap-4">{(['type','status'] as const).map(name=><div key={name}><label className="block text-sm text-ink-soft" htmlFor={`orders-${name}`}>{t(name)}</label><select id={`orders-${name}`} name={name} value={filters[name]} className="mt-2 min-h-12 rounded-xl bg-surface p-3" onChange={event=>{const value=event.target.value;choose(null);setFilters(previous=>name==='type'?{...previous,type:value as OrderType|'ALL',status:''}:{...previous,status:value});}}>{name==='type'?<><option value="ALL">{t('allTypes')}</option><option value="urgent">{t('urgent')}</option><option value="planned">{t('planned')}</option></>:<><option value="">{t('allStatuses')}</option>{statuses.map(value=><option key={value} value={value}>{status(value)}</option>)}</>}</select></div>)}<TextField id="orders-search" name="search" label={t('search')} value={filters.search} onChange={event=>{choose(null);setFilters(previous=>({...previous,search:event.target.value}));}}/></div>
+ {reads.list.loading&&<p role="status">{t('loading')}</p>}{reads.list.error&&<p role="alert">{t('error')}</p>}{reads.list.data&&!reads.list.fresh&&<p data-order-list-stale>{t('stale')}</p>}{reads.list.fresh&&!reads.list.loading&&!reads.list.data?.length&&<p data-order-list-empty>{t('empty')}</p>}
+ {reads.list.data&&reads.list.data.length>0&&<div className="min-w-0 overflow-x-auto rounded-2xl bg-surface"><table className="w-full text-left text-sm"><thead><tr>{['ID',t('type'),t('client'),t('master'),t('category'),t('status')].map(label=><th key={label} scope="col" className="p-4 font-normal text-ink-soft">{label}</th>)}</tr></thead><tbody>{reads.list.data.map(row=><tr key={`${row.type}:${row.id}`} className={same(selected,row)?'bg-fill-soft':''}><td className="p-4"><button type="button" data-order-select={`${row.type}:${row.id}`} aria-pressed={same(selected,row)} onClick={()=>{if(reads.list.isVerifiedCurrent())choose({id:row.id,type:row.type});}} className="min-h-11 break-all font-semibold underline focus-visible:outline-2">{row.id}</button></td><td className="p-4">{t(row.type)}</td><td className="break-words p-4">{row.client}</td><td className="break-words p-4">{row.master??'—'}</td><td className="p-4">{row.category}</td><td className="p-4"><span className={`rounded-xl px-3 py-2 ${statusPillClass(row.type,row.status)}`}>{status(row.status)}</span></td></tr>)}</tbody></table></div>}
+ {!selected?<p>{t('select')}</p>:<div className="flex min-w-0 flex-col gap-6"><div className="flex flex-wrap gap-4"><Button data-order-close-detail variant="secondary" onClick={()=>choose(null)}>{t('close')}</Button><Button data-order-detail-refresh variant="secondary" disabled={reads.detail.loading} onClick={()=>{close();void reads.detail.retry();}}>{t('refresh')}</Button></div>{reads.detail.loading&&<p role="status">{t('loading')}</p>}{reads.detail.error&&<p role="alert">{t('error')}</p>}{detail&&!reads.detail.fresh&&<p>{t('stale')}</p>}{record&&<div data-order-unknown role="status" className="rounded-2xl bg-fill-soft p-6"><p>{t(record.pending?'pending':record.checking?'checking':'unknown')}</p>{record.error&&<p role="alert">{t('error')}</p>}<Button data-order-reconcile variant="secondary" disabled={record.pending||record.checking} onClick={()=>{void assignment.reconcile(selected);}}>{t('reconcile')}</Button><p className="mt-3 text-sm">{t('retryWarning')}</p></div>}
+ {detail&&<div className="flex min-w-0 flex-col gap-6 xl:flex-row"><div className="flex min-w-0 flex-1 flex-col gap-4"><article className="flex flex-col gap-4 rounded-2xl bg-surface p-6"><h2 className="text-xl font-semibold">{t('participants')}: {detail.id}</h2><p>{status(detail.status)}</p>{field(t('client'),`${detail.client.name??detail.client.phone} · ${detail.client.phone}`)}{field(t('master'),detail.master?`${detail.master.name??detail.master.phone} · ${detail.master.phone}`:'—')}{field(t('address'),`${detail.address} · ${detail.district}`)}<p className="text-sm text-ink-soft">{t('created')}: {operatorDate(locale.language,detail.createdAt)}</p></article><article className="flex flex-col gap-4 rounded-2xl bg-surface p-6"><h2 className="text-xl font-semibold">{t('history')}</h2>{detail.timeline.map((event,i)=><p key={i} className="break-words">{operatorDate(locale.language,event.at)} · {event.event}</p>)}</article></div><aside className="flex w-full flex-col gap-4 rounded-2xl bg-surface p-6 xl:w-[320px] xl:shrink-0"><h2 className="text-xl font-semibold">{t('cost')}</h2>{cost(detail)}{canOpen&&<Button data-order-open-assign variant="secondary" onClick={openEditor}>{t('assign')}</Button>}</aside></div>}
+ </div>}
+ {open&&selected&&<Dialog open title={t('choose')} onClose={close}><div className="max-h-[80dvh] overflow-y-auto"><h2 id="assignment-heading" className="text-xl font-semibold">{t('choose')}</h2>{reads.candidates.loading&&<p role="status">{t('loading')}</p>}{reads.candidates.error&&<p role="alert">{t('error')}</p>}{reads.candidates.data&&!reads.candidates.fresh&&<p>{t('stale')}</p>}{reads.candidates.fresh&&!reads.candidates.data?.length&&<p>{t('emptyCandidates')}</p>}{reads.candidates.data?.map(candidate=><div key={candidate.masterUserId} className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-fill-soft p-4"><p>{candidate.name} · {candidate.distanceKm} {t('distance')} · {t(candidate.isOnline?'online':'offline')}</p><Button data-order-assign disabled={!!record||assignment.isBusy()||!reads.detail.fresh||reads.detail.loading||!detail?.canAssign||!reads.candidates.fresh||reads.candidates.loading} onClick={()=>confirm(candidate.masterUserId)}>{t('assign')}</Button></div>)}<div className="mt-6 flex flex-wrap gap-4"><Button data-order-candidate-refresh variant="secondary" disabled={reads.candidates.loading} onClick={()=>{void reads.candidates.retry();}}>{t('refresh')}</Button><Button data-order-close-assign variant="secondary" onClick={close}>{t('close')}</Button></div></div></Dialog>}
+ </section>;
 }
-
-export default function OrdersPage() {
-  const { refetch: refetchMetrics } = useOperatorMetrics();
-  const [typeFilter, setTypeFilter] = useState<OrderType | 'ALL'>('ALL');
-  const [statusFilter, setStatusFilter] = useState('');
-  const [search, setSearch] = useState('');
-  const [rows, setRows] = useState<OrderListRow[]>([]);
-  const [listLoading, setListLoading] = useState(true);
-  const [listError, setListError] = useState('');
-  const [selected, setSelected] = useState<{ id: string; type: OrderType } | null>(null);
-  const [detail, setDetail] = useState<OrderDetail | null>(null);
-  const [detailLoading, setDetailLoading] = useState(false);
-  const [detailError, setDetailError] = useState('');
-
-  const [assignOpen, setAssignOpen] = useState(false);
-  const [candidates, setCandidates] = useState<AssignCandidate[] | null>(null);
-  const [candidatesLoading, setCandidatesLoading] = useState(false);
-  const [assignError, setAssignError] = useState('');
-  const [assigning, setAssigning] = useState(false);
-
-  function loadList() {
-    setListLoading(true);
-    fetchOrders({
-      type: typeFilter === 'ALL' ? undefined : typeFilter,
-      status: statusFilter || undefined,
-      search: search.trim() || undefined,
-    })
-      .then((data) => {
-        setRows(data);
-        setListError('');
-      })
-      .catch((e) => setListError((e as Error).message))
-      .finally(() => setListLoading(false));
-  }
-
-  useEffect(() => {
-    const timer = setTimeout(loadList, 400);
-    return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [typeFilter, statusFilter, search]);
-
-  useEffect(() => {
-    setStatusFilter('');
-  }, [typeFilter]);
-
-  const selectedRef = useRef<{ id: string; type: OrderType } | null>(null);
-  selectedRef.current = selected;
-
-  function loadDetail(target: { id: string; type: OrderType }) {
-    setDetailLoading(true);
-    fetchOrder(target.id, target.type)
-      .then((data) => {
-        if (selectedRef.current?.id !== target.id) return; // ответ на уже сброшенный выбор
-        setDetail(data);
-        setDetailError('');
-      })
-      .catch((e) => {
-        if (selectedRef.current?.id !== target.id) return;
-        setDetailError((e as Error).message);
-      })
-      .finally(() => {
-        if (selectedRef.current?.id === target.id) setDetailLoading(false);
-      });
-  }
-
-  useEffect(() => {
-    if (!selected) {
-      setDetail(null);
-      return;
-    }
-    loadDetail(selected);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selected]);
-
-  async function openAssignModal() {
-    if (!selected) return;
-    setAssignOpen(true);
-    setAssignError('');
-    setCandidates(null);
-    setCandidatesLoading(true);
-    try {
-      const data = await fetchCandidates(selected.id);
-      setCandidates(data);
-    } catch (e) {
-      setAssignError((e as Error).message);
-    } finally {
-      setCandidatesLoading(false);
-    }
-  }
-
-  async function confirmAssign(masterUserId: string) {
-    if (!selected) return;
-    setAssigning(true);
-    setAssignError('');
-    try {
-      await assignMaster(selected.id, masterUserId);
-      setAssignOpen(false);
-      setCandidates(null);
-      loadDetail(selected);
-      loadList();
-      refetchMetrics();
-    } catch (e) {
-      setAssignError((e as Error).message);
-    } finally {
-      setAssigning(false);
-    }
-  }
-
-  return (
-    <div className="flex flex-col gap-4 p-8">
-      <div className="flex items-center gap-3">
-        <div className="text-2xl font-extrabold text-ink">Заказы</div>
-        <select
-          value={typeFilter}
-          onChange={(e) => setTypeFilter(e.target.value as OrderType | 'ALL')}
-          className="rounded-md border-[1.5px] border-border bg-surface px-3 py-1.5 text-sm"
-        >
-          {TYPE_FILTERS.map((t) => (
-            <option key={t.value} value={t.value}>
-              {t.label}
-            </option>
-          ))}
-        </select>
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="rounded-md border-[1.5px] border-border bg-surface px-3 py-1.5 text-sm"
-        >
-          <option value="">все статусы</option>
-          {statusOptionsFor(typeFilter).map((s) => (
-            <option key={s.value} value={s.value}>
-              {s.label}
-            </option>
-          ))}
-        </select>
-        <input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Поиск по ID заказа или телефону клиента"
-          className="rounded-md border-[1.5px] border-border bg-surface px-3 py-1.5 text-sm"
-        />
-      </div>
-      {listError && <div className="text-sm text-danger">{listError}</div>}
-
-      <div className="flex gap-4">
-        <div className="flex-1 rounded-lg border border-border bg-surface">
-          <div className="grid grid-cols-[100px_90px_1fr_1fr_140px_160px] gap-3 border-b border-fill-soft px-4 py-2 text-[11px] font-extrabold uppercase text-ink-soft">
-            <span>ID</span>
-            <span>Тип</span>
-            <span>Клиент</span>
-            <span>Мастер</span>
-            <span>Категория</span>
-            <span>Статус</span>
-          </div>
-          {listLoading && <div className="p-4 text-sm text-ink-soft">Загрузка…</div>}
-          {!listLoading && rows.length === 0 && <div className="p-4 text-sm text-ink-soft">Ничего не найдено</div>}
-          {rows.map((row) => (
-            <button
-              key={`${row.type}-${row.id}`}
-              type="button"
-              onClick={() => setSelected({ id: row.id, type: row.type })}
-              className={`grid w-full grid-cols-[100px_90px_1fr_1fr_140px_160px] items-center gap-3 border-b border-fill-soft px-4 py-2.5 text-left text-sm font-bold ${
-                selected?.id === row.id ? 'bg-fill-soft' : 'bg-transparent'
-              }`}
-            >
-              <span className="truncate text-ink-soft">{row.id.slice(0, 8)}</span>
-              <span>{TYPE_LABELS[row.type]}</span>
-              <span className="truncate">{row.client}</span>
-              <span className="truncate text-ink-soft">{row.master ?? '—'}</span>
-              <span className="truncate text-ink-soft">{row.category}</span>
-              <span>
-                <span
-                  className={`rounded-pill px-2 py-0.5 text-[10px] font-extrabold ${statusPillClass(row.type, row.status)}`}
-                >
-                  {statusLabel(row.type, row.status)}
-                </span>
-              </span>
-            </button>
-          ))}
-        </div>
-
-        <div className="w-[400px] shrink-0 rounded-lg border border-border bg-surface p-5">
-          {!selected && <div className="text-sm text-ink-soft">Выберите заказ слева</div>}
-          {selected && detailLoading && <div className="text-sm text-ink-soft">Загрузка…</div>}
-          {selected && detailError && <div className="text-sm text-danger">{detailError}</div>}
-          {selected && !detailLoading && detail && (
-            <div className="flex flex-col gap-3">
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-base font-extrabold text-ink">
-                  #{detail.id.slice(0, 8)} · {detail.category}
-                </span>
-                <span
-                  className={`rounded-pill px-3 py-1 text-xs font-extrabold ${statusPillClass(detail.type, detail.status)}`}
-                >
-                  {statusLabel(detail.type, detail.status)}
-                </span>
-              </div>
-
-              <div className="text-sm text-ink-soft">
-                {detail.address} · {detail.district}
-              </div>
-              <div className="text-xs text-ink-soft">Создана {formatDateTime(detail.createdAt)}</div>
-
-              <div className="rounded-md bg-fill-soft p-3">
-                <div className="text-[10px] font-bold uppercase text-ink-soft">Платежи</div>
-                {detail.type === 'urgent' ? (
-                  <div className="mt-1 text-sm font-extrabold text-ink">
-                    Выезд {detail.calloutPrice} ₸ · Сбор {detail.serviceFee} ₸
-                    {detail.workPrice !== null && <> · Работа {detail.workPrice} ₸</>}
-                  </div>
-                ) : (
-                  <div className="mt-1 text-sm font-extrabold text-ink">
-                    Бюджет {detail.budget ?? '—'} ₸
-                    {detail.workPrice !== null && <> · Работа {detail.workPrice} ₸</>}
-                  </div>
-                )}
-              </div>
-
-              <div className="text-sm font-extrabold text-ink">Клиент</div>
-              <div className="text-sm text-ink-soft">
-                {detail.client.name ?? detail.client.phone} · {detail.client.phone}
-              </div>
-
-              {detail.master && (
-                <>
-                  <div className="text-sm font-extrabold text-ink">Мастер</div>
-                  <div className="text-sm text-ink-soft">
-                    {detail.master.name ?? detail.master.phone} · {detail.master.phone}
-                  </div>
-                </>
-              )}
-
-              <div className="text-sm font-extrabold text-ink">Таймлайн</div>
-              <div className="flex flex-col gap-2">
-                {detail.timeline.map((event, i) => (
-                  <div key={i} className="flex items-start gap-2 text-xs">
-                    <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
-                    <span className="text-ink-soft">{formatDateTime(event.at)}</span>
-                    <span className="font-bold text-ink">{event.event}</span>
-                  </div>
-                ))}
-              </div>
-
-              {detail.canAssign && (
-                <button
-                  type="button"
-                  onClick={openAssignModal}
-                  className="rounded-pill bg-primary px-4 py-2 text-sm font-extrabold text-white"
-                >
-                  Назначить мастера вручную
-                </button>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {assignOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-8"
-          onClick={() => setAssignOpen(false)}
-        >
-          <div className="w-full max-w-md rounded-lg bg-surface p-5" onClick={(e) => e.stopPropagation()}>
-            <div className="mb-3 text-base font-extrabold text-ink">Выберите мастера</div>
-            {candidatesLoading && <div className="text-sm text-ink-soft">Загрузка кандидатов…</div>}
-            {assignError && <div className="mb-2 text-sm text-danger">{assignError}</div>}
-            {!candidatesLoading && candidates && candidates.length === 0 && (
-              <div className="text-sm text-ink-soft">Нет доступных кандидатов онлайн.</div>
-            )}
-            {!candidatesLoading && candidates && candidates.length > 0 && (
-              <div className="flex flex-col gap-2">
-                {candidates.map((c) => (
-                  <div
-                    key={c.masterUserId}
-                    className="flex items-center justify-between gap-3 rounded-md border border-border p-3"
-                  >
-                    <span className="text-sm font-bold text-ink">
-                      {c.name} · {c.distanceKm} км · {c.isOnline ? 'онлайн' : 'офлайн'}
-                    </span>
-                    <button
-                      type="button"
-                      disabled={assigning}
-                      onClick={() => confirmAssign(c.masterUserId)}
-                      className="rounded-pill bg-primary px-3 py-1 text-xs font-extrabold text-white disabled:opacity-40"
-                    >
-                      Назначить
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-            <button
-              type="button"
-              onClick={() => setAssignOpen(false)}
-              className="mt-3 rounded-pill border-[1.5px] border-border px-4 py-2 text-sm font-extrabold text-ink-soft"
-            >
-              Отмена
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
+export default function OrdersPage(){const {user}=useAuth();const ownerId=user?.role==='OPERATOR'?user.id:null;return <OwnedOrders key={ownerId??'signed-out'} ownerId={ownerId}/>;}

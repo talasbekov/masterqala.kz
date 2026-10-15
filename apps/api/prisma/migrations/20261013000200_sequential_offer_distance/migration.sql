@@ -1,0 +1,1 @@
+ALTER TABLE "OrderOffer" ADD COLUMN "distanceKm" DOUBLE PRECISION;

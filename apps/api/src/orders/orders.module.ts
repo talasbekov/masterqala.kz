@@ -8,8 +8,11 @@ import { DisputesModule } from '../disputes/disputes.module';
 import { StorageModule } from '../storage/storage.module';
 import { ReviewsModule } from '../reviews/reviews.module';
 import { AuditLogModule } from '../audit-log/audit-log.module';
+import {OrderCreationRequestService} from './order-creation-request.service';
 import { OrdersService } from './orders.service';
 import { OrdersController } from './orders.controller';
+import { DirectOrderLifecycleService } from './direct-order-lifecycle.service';
+import { SequentialMatchingService } from './sequential-matching.service';
 import { MatchingService } from './matching.service';
 
 @Module({
@@ -24,7 +27,7 @@ import { MatchingService } from './matching.service';
     ReviewsModule,
     AuditLogModule,
   ],
-  providers: [OrdersService, MatchingService],
+  providers: [OrderCreationRequestService, OrdersService, MatchingService, SequentialMatchingService, DirectOrderLifecycleService],
   controllers: [OrdersController],
   exports: [OrdersService, MatchingService],
 })

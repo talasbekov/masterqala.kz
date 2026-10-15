@@ -1,6 +1,8 @@
 'use client';
-import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import {DirectClientOrderView,useOrderState} from '@masterqala/ui';
+import MapView from '@/components/MapView';
+import { useCallback } from 'react';
+import { useParams,useRouter } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
 import { api } from '@/lib/api';
 import { getSocket } from '@/lib/socket';
@@ -13,39 +15,23 @@ import DoneView from '@/components/order-views/DoneView';
 import ClosedView from '@/components/order-views/ClosedView';
 import TrackView from '@/components/order-views/TrackView';
 
+const readOrder=(id:string)=>api(`/orders/${id}`);
+
 const TRACK_STATUSES = ['ACCEPTED', 'MASTER_ON_WAY', 'INSPECTION'];
 
 export default function OrderPage() {
   const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
-  const [order, setOrder] = useState<OrderDetail | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-
-  const load = () => {
-    setError('');
-    return api(`/orders/${id}`)
-      .then(setOrder)
-      .catch((e) => setError((e as Error).message))
-      .finally(() => setLoading(false));
-  };
-
-  useEffect(() => {
-    load();
-    const socket = getSocket();
-    const onStatus = (p: { orderId: string }) => {
-      if (p.orderId === id) load();
-    };
-    socket.on('order:status', onStatus);
-    return () => {
-      socket.off('order:status', onStatus);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
-
+  const router=useRouter();
+  const subscribe=useCallback((refresh:()=>void)=>{
+    const socket=getSocket();const changed=(payload:{orderId:string})=>{if(payload.orderId===id)refresh();};
+    socket.on('order:status',changed);socket.on('connect',refresh);
+    return()=>{socket.off('order:status',changed);socket.off('connect',refresh);};
+  },[id]);
+  const {order,loading,error,online,fresh,busy,load,mutate}=useOrderState<OrderDetail>({id,read:readOrder,subscribe});
   if (loading) return <div className="p-6 text-ink-soft">{t('common.loading')}</div>;
 
-  if (error || !order || !id) {
+  if (!order || !id) {
     return (
       <div className="flex flex-col gap-3 p-6">
         <p className="text-sm font-semibold text-danger">{error || t('orderDetail.notFound')}</p>
@@ -59,6 +45,12 @@ export default function OrderPage() {
       </div>
     );
   }
+
+  if(order.lifecycleVersion>=2) return <DirectClientOrderView order={order} busy={busy} error={error} online={online} fresh={fresh}
+    onHome={()=>router.push('/')} onBack={()=>router.push('/orders')} onHelp={()=>router.push('/support')}
+    onCancelPreview={()=>api(`/orders/${id}/cancellation-preview`)}
+    map={<MapView mode="tracking" center={order.lat!=null&&order.lng!=null?{lat:order.lat,lng:order.lng}:{lat:51.1605,lng:71.4704}} height="100%" className="h-full rounded-none"/>}
+    onAction={(action,body)=>mutate(()=>api(`/orders/${id}/${action}`,{method:'POST',body:JSON.stringify(body??{})}))}/>;
 
   const freePilot = order.commercialMode === 'FREE_PILOT' || order.freePilot === true;
 

@@ -74,7 +74,7 @@ export default function PriceView({ order, orderId, onChanged }: { order: OrderD
       <p className="text-xs leading-relaxed text-ink-soft">
         {paymentsEnabled
           ? t('orderDetail.priceRejectNote')
-          : 'В бесплатном пилоте платформа не списывает деньги. После подтверждения вы рассчитываетесь с мастером напрямую; при отклонении заявка отменится.'}
+          : t('orderDetail.pilotPriceNote')}
       </p>
       {error && <p className="text-sm font-semibold text-danger">{error}</p>}
       <div className="mt-auto" />

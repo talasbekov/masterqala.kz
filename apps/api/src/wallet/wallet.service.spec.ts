@@ -155,7 +155,7 @@ describe('WalletService — реквизиты вывода', () => {
 describe('WalletService — ручная сверка ERROR', () => {
   let service: WalletService;
   let prisma: {
-    withdrawalRequest: { findUnique: jest.Mock; update: jest.Mock; findUniqueOrThrow: jest.Mock };
+    withdrawalRequest: { findUnique: jest.Mock; updateMany: jest.Mock; findUniqueOrThrow: jest.Mock };
     masterWalletAccount: { update: jest.Mock };
     $transaction: jest.Mock;
   };
@@ -163,7 +163,7 @@ describe('WalletService — ручная сверка ERROR', () => {
 
   beforeEach(async () => {
     prisma = {
-      withdrawalRequest: { findUnique: jest.fn(), update: jest.fn(), findUniqueOrThrow: jest.fn() },
+      withdrawalRequest: { findUnique: jest.fn(), updateMany: jest.fn().mockResolvedValue({ count: 1 }), findUniqueOrThrow: jest.fn() },
       masterWalletAccount: { update: jest.fn() },
       $transaction: jest.fn((cb: (tx: unknown) => unknown) => cb(prisma)),
     };
@@ -193,8 +193,8 @@ describe('WalletService — ручная сверка ERROR', () => {
 
     await service.resolveError('op1', 'w1', { outcome: 'PAID', reference: 'kaspi-stmt-42', note: 'сверено по выписке' });
 
-    expect(prisma.withdrawalRequest.update).toHaveBeenCalledWith({
-      where: { id: 'w1' },
+    expect(prisma.withdrawalRequest.updateMany).toHaveBeenCalledWith({
+      where: { id: 'w1', status: 'ERROR' },
       data: { status: 'PAID', paidAt: expect.any(Date), providerRef: 'kaspi-stmt-42' },
     });
     expect(prisma.masterWalletAccount.update).not.toHaveBeenCalled();
@@ -223,7 +223,7 @@ describe('WalletService — ручная сверка ERROR', () => {
 
     await service.resolveError('op1', 'w1', { outcome: 'FAILED', note: 'платёж не найден в выписке' });
 
-    expect(prisma.withdrawalRequest.update).toHaveBeenCalledWith({ where: { id: 'w1' }, data: { status: 'FAILED' } });
+    expect(prisma.withdrawalRequest.updateMany).toHaveBeenCalledWith({ where: { id: 'w1', status: 'ERROR' }, data: { status: 'FAILED' } });
     expect(prisma.masterWalletAccount.update).toHaveBeenCalledWith({
       where: { masterUserId: 'm1' },
       data: { balance: { increment: 7000 } },
@@ -237,7 +237,7 @@ describe('WalletService — ручная сверка ERROR', () => {
       service.resolveError('op1', 'w1', { outcome: 'PAID', note: 'x' }),
     ).rejects.toThrow(ConflictException);
 
-    expect(prisma.withdrawalRequest.update).not.toHaveBeenCalled();
+    expect(prisma.withdrawalRequest.updateMany).not.toHaveBeenCalled();
     expect(prisma.masterWalletAccount.update).not.toHaveBeenCalled();
   });
 
@@ -247,5 +247,49 @@ describe('WalletService — ручная сверка ERROR', () => {
     await expect(
       service.resolveError('op1', 'missing', { outcome: 'PAID', note: 'x' }),
     ).rejects.toThrow(NotFoundException);
+  });
+});
+
+
+describe('WalletService — competing ERROR resolutions', () => {
+  it.each([
+    ['FAILED', 'FAILED'],
+    ['PAID', 'FAILED'],
+    ['FAILED', 'PAID'],
+  ] as const)('only one %s/%s resolution may commit', async (first, second) => {
+    // Both callers deliberately observe ERROR before either transaction proceeds.
+    // The fake implements atomic updateMany predicate semantics, not DB locking.
+    const state = { id: 'w1', masterUserId: 'm1', amount: 7000, status: 'ERROR', providerRef: null };
+    let balance = 1000;
+    const delegate = {
+      findUnique: jest.fn(async () => ({ ...state })),
+      findUniqueOrThrow: jest.fn(async () => ({ ...state })),
+      update: jest.fn(async ({ data }) => Object.assign(state, data)),
+      updateMany: jest.fn(async ({ where, data }) => {
+        if (state.status !== where.status) return { count: 0 };
+        Object.assign(state, data);
+        return { count: 1 };
+      }),
+    };
+    const prisma: any = {
+      withdrawalRequest: delegate,
+      masterWalletAccount: { update: jest.fn(async ({ data }) => { balance += data.balance.increment; }) },
+      $transaction: async (fn: any) => fn(prisma),
+    };
+    const auditLog = { write: jest.fn() };
+    const service = new WalletService(prisma, {} as any, {} as any, auditLog as any);
+    const outcomes = await Promise.allSettled([
+      service.resolveError('op1', 'w1', { outcome: first, note: 'first' }),
+      service.resolveError('op2', 'w1', { outcome: second, note: 'second' }),
+    ]);
+    expect(outcomes.filter((result) => result.status === 'fulfilled')).toHaveLength(1);
+    const rejected = outcomes.find((result) => result.status === 'rejected') as PromiseRejectedResult;
+    expect(rejected.reason).toBeInstanceOf(ConflictException);
+    expect(balance).toBe(state.status === 'FAILED' ? 8000 : 1000);
+    expect(auditLog.write).toHaveBeenCalledTimes(1);
+    expect(auditLog.write).toHaveBeenCalledWith(expect.objectContaining({ action: `WITHDRAWAL_RESOLVED_${state.status}` }), prisma);
+    await expect(service.resolveError('op1', 'w1', { outcome: first, note: 'retry after lost response' })).rejects.toThrow(ConflictException);
+    expect(balance).toBe(state.status === 'FAILED' ? 8000 : 1000);
+    expect(auditLog.write).toHaveBeenCalledTimes(1);
   });
 });

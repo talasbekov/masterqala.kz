@@ -8,6 +8,7 @@ datasource db {
 }
 
 model User {
+  language String @default("ru")
   id                     String                  @id @default(uuid())
   phone                  String                  @unique
   name                   String?
@@ -29,6 +30,7 @@ model User {
   presence               MasterPresence?
   masterProfile          MasterProfile?
   masterWalletAccount    MasterWalletAccount?
+  orderCreationRequests  OrderCreationRequest[]
   clientOrders           Order[]                 @relation("ClientOrders")
   masterOrders           Order[]                 @relation("MasterOrders")
   offers                 OrderOffer[]
@@ -132,7 +134,31 @@ model VerificationDecision {
   operator        User          @relation(fields: [operatorId], references: [id])
 }
 
+model OrderCreationRequest {
+  id                 String   @id @default(uuid())
+  ownerId            String
+  requestKey         String
+  payloadHash        String
+  orderId            String   @unique
+  successfulResponse Json?
+  createdAt          DateTime @default(now())
+  owner              User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  order              Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@unique([ownerId, requestKey])
+}
+
 model Order {
+  creationRequest OrderCreationRequest?
+  lifecycleVersion Int @default(1)
+  dispatchMode String @default("WAVE")
+  departedAt DateTime?
+  materialsPrice Int @default(0)
+  quoteVersion Int @default(0)
+  consentedVersion Int?
+  quoteApprovedAt DateTime?
+  workStartedAt DateTime?
+  cancellationAmount Int?
   id              String                    @id @default(uuid())
   clientId        String
   categoryId      String
@@ -179,6 +205,9 @@ model Order {
 }
 
 model OrderOffer {
+  distanceKm Float?
+  expiresAt DateTime?
+  sequential Boolean @default(false)
   id           String       @id @default(uuid())
   orderId      String
   masterUserId String
@@ -226,6 +255,13 @@ model Accrual {
   order        Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
 }
 
+// PLATFORM_V1_RESERVED has no executable creation or lifecycle route yet.
+// Existing records and current creation retain their historical commercial behavior.
+enum PlannedLifecycleModel {
+  LEGACY
+  PLATFORM_V1_RESERVED
+}
+
 model PlannedOrder {
   id             String              @id @default(uuid())
   clientId       String
@@ -234,6 +270,7 @@ model PlannedOrder {
   address        String
   district       String
   status         PlannedOrderStatus  @default(CREATED)
+  lifecycleModel PlannedLifecycleModel @default(LEGACY)
   commercialMode CommercialMode      @default(PAID_MOCK)
   masterId       String?
   selectedBidId  String?             @unique
@@ -468,6 +505,7 @@ enum DecisionType {
 }
 
 enum CommercialMode {
+  DIRECT_PAYMENT
   FREE_PILOT
   PAID_MOCK
   PAID_LIVE
@@ -494,6 +532,7 @@ enum OrderStatus {
   MASTER_ON_WAY
   INSPECTION
   AWAITING_PRICE_CONFIRM
+  PRICE_APPROVED
   IN_PROGRESS
   DONE
   CLOSED

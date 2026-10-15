@@ -2,6 +2,8 @@ import {
   ArrayMaxSize,
   ArrayUnique,
   IsInt,
+  IsDefined,
+  IsDateString,
   IsNotEmpty,
   IsNumber,
   IsOptional,
@@ -29,7 +31,7 @@ export class PreviewOrderDto {
   lng!: number;
 }
 
-export class CreateOrderDto extends PreviewOrderDto {
+class CreateOrderFieldsDto extends PreviewOrderDto {
   @IsString()
   @IsNotEmpty()
   @MaxLength(2000)
@@ -69,17 +71,72 @@ export class CreateOrderDto extends PreviewOrderDto {
   @ArrayMaxSize(5)
   @ArrayUnique()
   @IsString({ each: true })
-  @Matches(STORED_PHOTO_PATH_PATTERN, { each: true, message: 'Некорректная ссылка на фото' })
+  @Matches(STORED_PHOTO_PATH_PATTERN, {
+    each: true,
+    message: 'Некорректная ссылка на фото',
+  })
   photoPaths?: string[];
 }
 
+export class CreateOrderDto extends CreateOrderFieldsDto {
+  @IsOptional()
+  @IsUUID()
+  clientRequestId?: string;
+}
+
+export class CreateIdempotentOrderDto extends CreateOrderFieldsDto {
+  @IsDefined()
+  @IsUUID()
+  clientRequestId!: string;
+}
+
 export class ProposePriceDto {
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(2147483647)
+  materialsPrice?: number;
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(2147483647)
+  calloutPrice?: number;
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(2147483647)
+  expectedQuoteVersion?: number;
+
   @IsInt()
   @Min(1)
+  @Max(2147483647)
   amount!: number;
 
   @IsOptional()
   @IsString()
   @MaxLength(1000)
   comment?: string;
+}
+
+export class QuoteVersionDto {
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(2147483647)
+  quoteVersion?: number;
+}
+
+export class CancelOrderDto {
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(2500)
+  expectedAmount?: number;
+  @IsOptional()
+  @IsDateString()
+  expectedUpdatedAt?: string;
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  reason?: string;
 }

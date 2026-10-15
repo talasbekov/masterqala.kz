@@ -1,10 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import {useLocale,useNewOrderDraft,useCurrentOrderCreation,type NewOrderDraft} from '@masterqala/ui';
+import {useAuth} from '../../../auth';
+import {NewOrderCreationStatus} from '../components/NewOrderCreationStatus';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { api, apiUpload } from '../../../api';
 import { useCommercialMode } from '../../../commercial-mode';
 import { categoryMeta } from '../categoryMeta';
-import MapView, { type LatLng } from '../components/MapView';
+import MapView from '../components/MapView';
 
 interface Category {
   id: string;
@@ -27,49 +30,53 @@ interface Preview {
   serviceFee?: number;
 }
 
-const ASTANA_CENTER: LatLng = { lat: 51.1605, lng: 71.4704 };
-
 export default function NewOrderPage() {
+  const {user}=useAuth();
+  return user?<OwnedNewOrderPage key={user.id} ownerId={user.id}/>:null;
+}
+
+function OwnedNewOrderPage({ownerId}:{ownerId:string}) {
   const { t } = useTranslation();
-  const { paymentsEnabled } = useCommercialMode();
+  const { paymentsEnabled,commercialMode } = useCommercialMode();
+  const direct=commercialMode==='DIRECT_PAYMENT';
+  const {t:copy}=useLocale();
   const navigate = useNavigate();
-  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
-
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [categoryId, setCategoryId] = useState('');
-
-  const [description, setDescription] = useState('');
-  const [photoPaths, setPhotoPaths] = useState<string[]>([]);
-  const [uploading, setUploading] = useState(false);
-
-  const [savedAddresses, setSavedAddresses] = useState<Address[]>([]);
-  const [geo, setGeo] = useState<LatLng>(ASTANA_CENTER);
-  const [addressText, setAddressText] = useState('');
-  const [district, setDistrict] = useState('');
-  const [entrance, setEntrance] = useState('');
-  const [floor, setFloor] = useState('');
-  const [apartment, setApartment] = useState('');
-  const [addressComment, setAddressComment] = useState('');
-
-  const [preview, setPreview] = useState<Preview | null>(null);
-  const [error, setError] = useState('');
-  const [submitting, setSubmitting] = useState(false);
+  const lifetime=useRef({ownerId,active:true});
+  if(lifetime.current.ownerId!==ownerId)lifetime.current={ownerId,active:true};
+  useEffect(()=>{const current=lifetime.current;current.active=true;return()=>{current.active=false}},[ownerId]);
+  const draftState=useNewOrderDraft(ownerId);
+  const {step,categoryId,description,photoPaths,geo,addressText,district,entrance,floor,apartment,addressComment}=draftState.draft;
+  const setter=<K extends keyof NewOrderDraft>(key:K)=>(value:NewOrderDraft[K]|((previous:NewOrderDraft[K])=>NewOrderDraft[K]))=>draftState.set(key,value);
+  const setStep=setter('step'),setCategoryId=setter('categoryId'),setDescription=setter('description'),setPhotoPaths=setter('photoPaths'),setGeo=setter('geo'),setAddressText=setter('addressText'),setDistrict=setter('district'),setEntrance=setter('entrance'),setFloor=setter('floor'),setApartment=setter('apartment'),setAddressComment=setter('addressComment');
+  const [categories,setCategories]=useState<Category[]>([]);
+  const [savedAddresses,setSavedAddresses]=useState<Address[]>([]);
+  const [uploading,setUploading]=useState(false);
+  const [preview,setPreview]=useState<Preview|null>(null);
+  const [error,setError]=useState('');
+  const creation=useCurrentOrderCreation({beginCreate:draftState.beginCreate,finishCreate:draftState.finishCreate,pending:draftState.pending,api,onConfirmed:(id)=>navigate(`/order/${encodeURIComponent(id)}`),invalidMessage:copy('createSubmissionInvalid')});
+  const submitting=creation.busy;
+  const submit=()=>{if(preview&&(direct||preview.available))return creation.submit();};
 
   useEffect(() => {
-    api('/categories').then(setCategories).catch((e) => setError((e as Error).message));
-    api('/addresses').then(setSavedAddresses).catch(() => {});
+    if(!ownerId)return;
+    let active=true;
+    setSavedAddresses([]);setUploading(false);setError('');
+    api('/categories').then(value=>{if(active)setCategories(value)}).catch(e=>{if(active)setError((e as Error).message)});
+    api('/addresses').then(value=>{if(active)setSavedAddresses(value)}).catch(()=>{});
     navigator.geolocation?.getCurrentPosition(
-      (pos) => setGeo({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-      () => setError(t('newOrder.geoError')),
+      pos=>{if(active)draftState.applyInitialLocation({lat:pos.coords.latitude,lng:pos.coords.longitude})},
+      ()=>{if(active)setError(t('newOrder.geoError'))},
     );
-  }, [t]);
+    return()=>{active=false};
+  }, [ownerId,draftState.applyInitialLocation]);
 
   useEffect(() => {
-    if (step !== 4 || !categoryId) return;
-    api('/orders/preview', { method: 'POST', body: JSON.stringify({ categoryId, lat: geo.lat, lng: geo.lng }) })
-      .then(setPreview)
-      .catch((e) => setError((e as Error).message));
-  }, [step, categoryId, geo]);
+    let active=true;setPreview(null);
+    if(!draftState.ready||draftState.pending||step!==4||!categoryId)return;
+    api('/orders/preview',{method:'POST',body:JSON.stringify({categoryId,lat:geo.lat,lng:geo.lng})})
+      .then(value=>{if(active)setPreview(value)}).catch(e=>{if(active)setError((e as Error).message)});
+    return()=>{active=false};
+  },[ownerId,draftState.ready,draftState.pending,step,categoryId,geo.lat,geo.lng]);
 
   function selectAddress(a: Address) {
     setAddressText(a.address);
@@ -80,6 +87,8 @@ export default function NewOrderPage() {
   }
 
   async function addPhoto(file: File) {
+    const current=lifetime.current;
+    if(!current.active||uploading||draftState.pending)return;
     setUploading(true);
     try {
       const res = await apiUpload('/uploads', (() => {
@@ -87,41 +96,17 @@ export default function NewOrderPage() {
         fd.append('file', file);
         return fd;
       })());
+      if(lifetime.current!==current||!current.active)return;
       setPhotoPaths((prev) => [...prev, res.path].slice(0, 5));
     } catch (e) {
-      setError((e as Error).message);
+      if(lifetime.current===current&&current.active)setError((e as Error).message);
     } finally {
-      setUploading(false);
+      if(lifetime.current===current&&current.active)setUploading(false);
     }
   }
 
-  async function submit() {
-    setError('');
-    setSubmitting(true);
-    try {
-      const order = await api('/orders', {
-        method: 'POST',
-        body: JSON.stringify({
-          categoryId,
-          description,
-          address: addressText,
-          district,
-          entrance: entrance || undefined,
-          floor: floor || undefined,
-          apartment: apartment || undefined,
-          addressComment: addressComment || undefined,
-          photoPaths,
-          lat: geo.lat,
-          lng: geo.lng,
-        }),
-      });
-      navigate(`/order/${order.id}`);
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setSubmitting(false);
-    }
-  }
+  if(!draftState.ready||!ownerId)return null;
+  if(draftState.pending||draftState.completedOrderId)return <NewOrderCreationStatus pending={!!draftState.pending} persistent={draftState.pending?.persistent??true} submitting={creation.busy} completedOrderId={draftState.completedOrderId} error={creation.error} onRecover={creation.canRecover?creation.recover:undefined} online={creation.online} recovering={creation.recovering}/>;
 
   const progress = (
     <div className="flex gap-1.5">
@@ -219,7 +204,7 @@ export default function NewOrderPage() {
             </label>
           )}
         </div>
-        {error && <p className="text-sm font-semibold text-danger">{error}</p>}
+        {(error||creation.error) && <p className="text-sm font-semibold text-danger">{error||creation.error}</p>}
         <div className="mt-auto" />
         <button
           type="button"
@@ -239,11 +224,7 @@ export default function NewOrderPage() {
           <MapView mode="pin" center={geo} onCenterChange={setGeo} height={190} />
           <button
             type="button"
-            onClick={() =>
-              navigator.geolocation?.getCurrentPosition((pos) =>
-                setGeo({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-              )
-            }
+            onClick={() => {const apply=draftState.requestLocation();navigator.geolocation?.getCurrentPosition(pos=>apply({lat:pos.coords.latitude,lng:pos.coords.longitude}));}}
             className="absolute bottom-3 right-3 rounded-pill bg-white px-3 py-2 text-xs font-extrabold text-ink shadow-card"
           >
             ◎ {t('newOrder.step3MyLocation')}
@@ -340,7 +321,8 @@ export default function NewOrderPage() {
         </div>
       </div>
       {preview?.available === false && <p className="text-sm font-semibold text-danger">{t('newOrder.unavailable')}</p>}
-      {preview?.available && (
+      {direct&&preview&&<div className="rounded-lg border border-border bg-surface p-4 text-sm leading-relaxed text-ink-soft">{copy('directCreateNote')}</div>}
+      {!direct&&preview?.available && (
         <div className="rounded-lg border border-border bg-surface p-3.5">
           <div className="flex justify-between text-sm font-bold text-ink">
             <span>{t('newOrder.step4CalloutLabel')}</span>
@@ -356,29 +338,29 @@ export default function NewOrderPage() {
           <div className="text-xs leading-relaxed text-on-fill">
             {paymentsEnabled
               ? t('newOrder.step4Note')
-              : 'Выезд в бесплатном пилоте не оплачивается. Стоимость работ мастер назовёт после осмотра; вы подтвердите её и рассчитаетесь с мастером напрямую.'}
+              : t('newOrder.freePilotNote')}
           </div>
         </div>
       )}
       <div className="flex items-center justify-between rounded-md border border-border bg-surface p-3">
         <span className="text-sm font-extrabold text-ink">
-          {paymentsEnabled ? t('newOrder.step4PaymentMethod') : 'Бесплатный пилот · без привязки карты'}
+          {direct?copy('directPayment'):paymentsEnabled ? t('newOrder.step4PaymentMethod') : t('newOrder.freePilotPaymentLabel')}
         </span>
       </div>
       <p className="text-xs leading-relaxed text-ink-soft">
-        {paymentsEnabled
+        {direct?copy('directCancelNote'):paymentsEnabled
           ? t('newOrder.step4CancelNote')
-          : 'Отмена до начала работ не вызывает списаний со стороны платформы. Договорённости по фактическим расходам обсуждаются напрямую с мастером.'}
+          : t('newOrder.freePilotCancelNote')}
       </p>
-      {error && <p className="text-sm font-semibold text-danger">{error}</p>}
+      {(error||creation.error) && <p className="text-sm font-semibold text-danger">{error||creation.error}</p>}
       <div className="mt-auto" />
       <button
         type="button"
         onClick={submit}
-        disabled={submitting || !preview?.available}
+        disabled={submitting || !creation.online || !preview || (!direct&&!preview.available)}
         className="rounded-pill bg-primary p-4 text-[15.5px] font-extrabold text-white disabled:opacity-40"
       >
-        {paymentsEnabled ? t('newOrder.step4Submit', { price: preview?.calloutPrice ?? '' }) : 'Найти мастера бесплатно'}
+        {direct?copy('findMaster'):paymentsEnabled ? t('newOrder.step4Submit', { price: preview?.calloutPrice ?? '' }) : t('newOrder.freePilotSubmit')}
       </button>
     </div>
   );

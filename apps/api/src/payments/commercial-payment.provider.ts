@@ -49,7 +49,7 @@ export class CommercialPaymentProvider implements PaymentProvider {
       select: { commercialMode: true },
     });
     // Fallback нужен только для совместимости со старыми/неполными тестовыми данными.
-    return order ? order.commercialMode !== 'FREE_PILOT' : this.commercialMode.paymentsEnabled();
+    return order ? ['PAID_MOCK', 'PAID_LIVE'].includes(order.commercialMode) : this.commercialMode.paymentsEnabled();
   }
 
   private virtualTransaction(orderId: string, type: PaymentType, amount: number): PaymentTransaction {

@@ -1,0 +1,3 @@
+'use client';
+import Link from 'next/link';import {useLocale} from '@masterqala/ui';import {siteText} from '../lib/site-copy';
+export function PublicReadState({kind,retry}:{kind:'loading'|'error'|'missing';retry?:()=>void}) {const {language}=useLocale();return <main className="mq-site-info"><section className="mq-site-card">{kind==='missing'&&<h1>{siteText(language,'missing')}</h1>}<p role={kind==='error'?'alert':'status'}>{kind==='missing'?'404':siteText(language,kind==='error'?'readError':'loading')}</p>{kind==='error'&&retry&&<button type="button" onClick={retry} className="mq-site-primary mt-6">{siteText(language,'retry')}</button>}{kind==='missing'&&<Link className="mq-site-primary mt-6" href="/">{siteText(language,'home')}</Link>}</section></main>}

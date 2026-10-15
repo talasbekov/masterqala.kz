@@ -2,9 +2,10 @@ import { PrismaService } from '../prisma/prisma.service';
 import { QueueService } from '../queue/queue.service';
 import { RealtimeGateway } from '../realtime/realtime.gateway';
 import { MatchingService } from './matching.service';
+import { SequentialMatchingService } from './sequential-matching.service';
 import { OrdersService } from './orders.service';
 
-function setup(commercialMode: 'FREE_PILOT' | 'PAID_MOCK') {
+function setup(commercialMode: 'FREE_PILOT' | 'PAID_MOCK' | 'DIRECT_PAYMENT') {
   const tx = {
     order: { updateMany: jest.fn().mockResolvedValue({ count: 1 }) },
     orderOffer: { createMany: jest.fn().mockResolvedValue({ count: 1 }) },
@@ -18,6 +19,7 @@ function setup(commercialMode: 'FREE_PILOT' | 'PAID_MOCK') {
         category: { name: 'Сантехник' },
         status: 'SEARCHING',
         commercialMode,
+        dispatchMode: commercialMode === 'DIRECT_PAYMENT' ? 'SEQUENTIAL' : 'WAVE',
         wave: 0,
         searchAttempt: 1,
         description: 'Течёт кран',
@@ -41,8 +43,15 @@ function setup(commercialMode: 'FREE_PILOT' | 'PAID_MOCK') {
   const gateway = { emitToUser: jest.fn() } as unknown as RealtimeGateway;
   const orders = { emitOrderStatus: jest.fn().mockResolvedValue(undefined) } as unknown as OrdersService;
 
+  Object.assign(tx, {
+    $queryRaw: jest.fn().mockImplementation(() => prisma.$queryRaw``),
+    order: { ...tx.order, findUnique: jest.fn().mockImplementation(() => prisma.order.findUnique({where:{id:'order-1'}})), update: jest.fn() },
+    orderOffer: {...tx.orderOffer, findFirst: jest.fn().mockResolvedValue(null),
+      create: jest.fn().mockImplementation(({data}) => ({...data,id:'offer-1'}))},
+  });
   return {
-    service: new MatchingService(prisma, queue, gateway, orders),
+    service: new MatchingService(prisma, queue, gateway, orders, new SequentialMatchingService(prisma, queue, gateway)),
+    prisma,
     gateway: gateway as unknown as { emitToUser: jest.Mock },
   };
 }
@@ -97,5 +106,19 @@ describe('MatchingService — коммерческий режим оффера',
     expect(payload).not.toHaveProperty('floor');
     expect(payload).not.toHaveProperty('apartment');
     expect(payload).not.toHaveProperty('addressComment');
+  });
+});
+
+describe('MatchingService direct dispatch contract', () => {
+  it('sends one nearest-master offer with a 30-second server deadline', async () => {
+    const {service,gateway,prisma}=setup('DIRECT_PAYMENT');
+    (prisma.$queryRaw as jest.Mock).mockResolvedValue([{id:'master-1',meters:1200},{id:'master-2',meters:2200}]);
+    const started=Date.now();
+    await service.handleWave({orderId:'order-1',wave:1});
+    const offers=gateway.emitToUser.mock.calls.filter(call=>call[1]==='offer:new');
+    expect(offers).toHaveLength(1);
+    expect(offers[0][0]).toBe('master-1');
+    expect(new Date(offers[0][2].deadline).getTime()-started).toBeLessThan(31000);
+    expect(offers[0][2]).toMatchObject({commercialMode:'DIRECT_PAYMENT',directPayment:true});
   });
 });

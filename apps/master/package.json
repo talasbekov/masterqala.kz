@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "next dev -p 4300",
     "build": "next build",
-    "start": "next start -p 4300"
+    "start": "next start -p 4300",
+    "test": "pnpm --filter @masterqala/ui exec tsup ../../apps/master/lib/auth.tsx ../../apps/master/test/login-entry.tsx ../../apps/master/test/safety-entry.tsx ../../apps/master/test/dispute-entry.tsx --tsconfig ../../apps/master/test/tsconfig.json --format esm --clean --out-dir ../../apps/master/.test-build --external next/navigation --external next/link --external next/dynamic --external leaflet --external @masterqala/ui --external react --external react-dom --external socket.io-client && node --import ./test/register-next.mjs --test test/*.test.mjs"
   },
   "dependencies": {
     "@masterqala/ui": "workspace:*",

@@ -1,7 +1,7 @@
 import { createContext, type ReactNode, useContext, useEffect, useState } from 'react';
 import { api } from './api';
 
-export type CommercialMode = 'FREE_PILOT' | 'PAID_MOCK' | 'PAID_LIVE';
+export type CommercialMode = 'FREE_PILOT' | 'PAID_MOCK' | 'PAID_LIVE' | 'DIRECT_PAYMENT';
 
 export interface CommercialConfig {
   commercialMode: CommercialMode;

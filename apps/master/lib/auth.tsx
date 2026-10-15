@@ -32,7 +32,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(u);
   };
   const logout = () => {
-    localStorage.clear();
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
     resetSocket();
     setUser(null);
   };

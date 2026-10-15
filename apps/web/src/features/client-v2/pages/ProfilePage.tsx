@@ -1,123 +1,16 @@
-import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
-import { api } from '../../../api';
-import { useAuth } from '../../../auth';
-
-interface Me {
-  name: string | null;
-  phone: string;
-}
-
-const PROFILE_ITEMS = [
-  { icon: '📍', key: 'addresses', to: '/profile/addresses' },
-  { icon: '💳', key: 'payments', to: '/profile/payments' },
-  { icon: '🔔', key: 'notifications', to: '/notifications' },
-  { icon: '🛟', key: 'support', to: '/support' },
-] as const;
-
-const LANGS = [
-  { code: 'ru', label: 'Рус' },
-  { code: 'kk', label: 'Қаз' },
-  { code: 'en', label: 'Eng' },
-] as const;
-
-export default function ProfilePage() {
-  const { t, i18n } = useTranslation();
-  const navigate = useNavigate();
-  const { user, logout } = useAuth();
-  const [me, setMe] = useState<Me | null>(null);
-  const [editing, setEditing] = useState(false);
-  const [name, setName] = useState('');
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
-
-  useEffect(() => {
-    api('/users/me')
-      .then((m: Me) => {
-        setMe(m);
-        setName(m.name ?? '');
-      })
-      .catch((e) => setError((e as Error).message));
-  }, []);
-
-  async function saveName() {
-    setSaving(true);
-    setError('');
-    try {
-      const updated = await api('/users/me', { method: 'PATCH', body: JSON.stringify({ name }) });
-      setMe(updated);
-      setEditing(false);
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  function doLogout() {
-    logout();
-    navigate('/login');
-  }
-
-  return (
-    <div className="flex flex-col gap-3 px-5 pb-3.5 pt-1.5">
-      <div className="flex items-center gap-3">
-        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-primary text-lg font-extrabold text-white">
-          {(me?.name || user?.phone || '?').slice(0, 1).toUpperCase()}
-        </div>
-        <div className="min-w-0 flex-1">
-          {editing ? (
-            <div className="flex items-center gap-1.5">
-              <input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="min-w-0 flex-1 rounded-md border-[1.5px] border-border bg-surface px-2.5 py-1.5 text-sm font-extrabold text-ink outline-none"
-                autoFocus
-              />
-              <button type="button" onClick={saveName} disabled={saving} className="shrink-0 text-sm font-extrabold text-primary">
-                {t('profile.save')}
-              </button>
-            </div>
-          ) : (
-            <button type="button" onClick={() => setEditing(true)} className="block text-left">
-              <span className="text-lg font-extrabold text-ink">{me?.name || t('profile.noName')}</span>
-              <span className="ml-1.5 text-xs font-bold text-primary">{t('profile.editName')}</span>
-            </button>
-          )}
-          <div className="text-xs font-semibold text-ink-soft">{me?.phone ?? user?.phone}</div>
-        </div>
-      </div>
-      <div className="flex gap-1.5">
-        {LANGS.map((l) => (
-          <button
-            key={l.code}
-            type="button"
-            onClick={() => i18n.changeLanguage(l.code)}
-            className={`rounded-pill border-[1.5px] px-3.5 py-1.5 text-xs font-extrabold ${
-              i18n.language === l.code ? 'border-primary bg-primary text-white' : 'border-border text-ink-soft'
-            }`}
-          >
-            {l.label}
-          </button>
-        ))}
-      </div>
-      {error && <p className="text-sm font-semibold text-danger">{error}</p>}
-      {PROFILE_ITEMS.map((item) => (
-        <Link
-          key={item.key}
-          to={item.to}
-          className="flex items-center justify-between rounded-md border border-border bg-surface px-3.5 py-3.5"
-        >
-          <span className="text-sm font-extrabold text-ink">
-            {item.icon} {t(`profile.items.${item.key}`)}
-          </span>
-          <span className="text-ink-soft">›</span>
-        </Link>
-      ))}
-      <button type="button" onClick={doLogout} className="p-2 text-center text-[13.5px] font-extrabold text-danger">
-        {t('profile.logout')}
-      </button>
-    </div>
-  );
+import {Link,useLocation,useNavigate} from 'react-router-dom';
+import {useTranslation} from 'react-i18next';
+import {AccountProfileView,LanguageDialogController,useLanguageDialog,useLocale,LOCALE_COPY} from '@masterqala/ui';
+import {api} from '../../../api';
+import {useAuth} from '../../../auth';
+const items=[['addresses','/profile/addresses'],['payments','/profile/payments'],['notifications','/notifications'],['support','/support']] as const;
+function LanguageControl(){const {language}=useLocale();const open=useLanguageDialog();return <button type="button" className="mq-field mq-field--full mq-profile-language" aria-haspopup="dialog" aria-label={LOCALE_COPY[language].title} onClick={open}><span className="mq-profile-language-value">{({ru:'Русский',kk:'Қазақша',en:'English'})[language]}</span></button>;}
+export default function ProfilePage(){
+ const {t}=useTranslation();const {user,logout}=useAuth();const {language,setLanguage}=useLocale();const location=useLocation();const navigate=useNavigate();
+ const href=location.pathname+location.search+location.hash;
+ return <LanguageDialogController href={href} locale={language} onSelect={setLanguage} router={{push:url=>navigate(url),replace:url=>navigate(url,{replace:true}),back:()=>navigate(-1)}}>
+  <AccountProfileView ownerId={user?.id??null} phoneFallback={user?.phone} api={api} t={key=>t(key)} languageControl={<LanguageControl/>} onLogout={()=>{logout();navigate('/login');}}>
+   {items.map(([key,to])=><Link key={key} to={to} className="flex min-h-[56px] items-center justify-between rounded-md bg-fill-soft px-4 py-3 text-primary">{t(`profile.items.${key}`)}<span aria-hidden>›</span></Link>)}
+  </AccountProfileView>
+ </LanguageDialogController>;
 }

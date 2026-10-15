@@ -42,7 +42,7 @@ describe('MastersService.getMyStats', () => {
 
     expect(stats).toEqual({ completedCount: 10, earnings: 42000, rating: 4.8, reviewCount: 12 });
     expect(prisma.order.count).toHaveBeenCalledWith({ where: { masterId: 'm1', status: 'CLOSED' } });
-    expect(prisma.plannedOrder.count).toHaveBeenCalledWith({ where: { masterId: 'm1', status: 'CLOSED' } });
+    expect(prisma.plannedOrder.count).toHaveBeenCalledWith({ where: { masterId: 'm1', lifecycleModel: 'LEGACY', status: 'CLOSED' } });
     expect(prisma.accrual.aggregate).toHaveBeenCalledWith({ where: { masterUserId: 'm1' }, _sum: { amount: true } });
     expect(reviews.getMasterRatingSummary).toHaveBeenCalledWith('m1');
   });

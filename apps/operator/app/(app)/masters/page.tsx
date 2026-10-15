@@ -1,82 +1,16 @@
 'use client';
-import { useEffect, useState } from 'react';
-import { fetchCategories, fetchMasters, type Category, type OperatorMasterRow } from '@/lib/masters';
-
-export default function MastersPage() {
-  const [category, setCategory] = useState('');
-  const [district, setDistrict] = useState('');
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [rows, setRows] = useState<OperatorMasterRow[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-
-  useEffect(() => {
-    fetchCategories()
-      .then(setCategories)
-      .catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setLoading(true);
-      fetchMasters(category || undefined, district.trim() || undefined)
-        .then((data) => {
-          setRows(data);
-          setError('');
-        })
-        .catch((e) => setError((e as Error).message))
-        .finally(() => setLoading(false));
-    }, 400);
-    return () => clearTimeout(timer);
-  }, [category, district]);
-
-  return (
-    <div className="flex flex-col gap-4 p-8">
-      <div className="flex items-center gap-3">
-        <div className="text-2xl font-extrabold text-ink">Мастера</div>
-        <select
-          value={category}
-          onChange={(e) => setCategory(e.target.value)}
-          className="rounded-md border-[1.5px] border-border bg-surface px-3 py-1.5 text-sm"
-        >
-          <option value="">все категории</option>
-          {categories.map((c) => (
-            <option key={c.id} value={c.slug}>
-              {c.name}
-            </option>
-          ))}
-        </select>
-        <input
-          value={district}
-          onChange={(e) => setDistrict(e.target.value)}
-          placeholder="Район (точное совпадение)"
-          className="rounded-md border-[1.5px] border-border bg-surface px-3 py-1.5 text-sm"
-        />
-      </div>
-      {error && <div className="text-sm text-danger">{error}</div>}
-      <div className="rounded-lg border border-border bg-surface">
-        <div className="grid grid-cols-[1fr_170px_100px_100px_180px] gap-3 border-b border-fill-soft px-4 py-2 text-[11px] font-extrabold uppercase text-ink-soft">
-          <span>Мастер</span>
-          <span>Категории</span>
-          <span>Рейтинг</span>
-          <span>Заказов</span>
-          <span>Статус</span>
-        </div>
-        {loading && <div className="p-4 text-sm text-ink-soft">Загрузка…</div>}
-        {!loading && rows.length === 0 && <div className="p-4 text-sm text-ink-soft">Ничего не найдено</div>}
-        {rows.map((row) => (
-          <div
-            key={row.id}
-            className="grid grid-cols-[1fr_170px_100px_100px_180px] items-center gap-3 border-b border-fill-soft px-4 py-2.5 text-sm font-bold"
-          >
-            <span>{row.name ?? '—'}</span>
-            <span className="text-ink-soft">{row.categories.join(', ')}</span>
-            <span>{row.rating === null ? '—' : `★ ${row.rating.toFixed(1)}`}</span>
-            <span>{row.orders}</span>
-            <span className="text-ink-soft">{row.status}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
+import {useState} from 'react';
+import {Button,TextField,useLocale} from '@masterqala/ui';
+import {useAuth} from '../../../lib/auth';
+import {useOperatorRead} from '../../../lib/useOperatorRead';
+import {readOperatorCategories,readOperatorMasters} from '../../../lib/operator-read-data';
+import {operatorReadText,type OperatorReadKey} from '../../../lib/operator-read-copy';
+function OwnedMasters({ownerId}:{ownerId:string|null}) {
+ const {language}=useLocale(),t=(key:OperatorReadKey)=>operatorReadText(language,key);
+ const [category,setCategory]=useState(''),[district,setDistrict]=useState('');
+ const query=new URLSearchParams();if(category)query.set('category',category);if(district.trim())query.set('district',district.trim());const path='/admin/masters'+(query.size?'?'+query.toString():'');
+ const categories=useOperatorRead({ownerId,path:'/categories',read:readOperatorCategories});
+ const masters=useOperatorRead({ownerId,path,read:readOperatorMasters});
+ return <section className="flex min-w-0 flex-col gap-6 px-6 py-6 text-base leading-6 md:px-10 md:py-8"><header className="flex flex-wrap items-start justify-between gap-4"><div><h1 className="text-2xl font-semibold md:text-[32px]">{t('masters')}</h1><p className="mt-6 text-ink-soft">{t('mastersNote')}</p></div><Button data-masters-retry variant="secondary" disabled={masters.loading} onClick={()=>{void masters.retry();}}>{t('refresh')}</Button></header><div className="grid min-w-0 gap-4 md:grid-cols-2"><div className="mq-field mq-field--responsive mq-field--full"><label htmlFor="operator-master-category" className="mq-field-label">{t('category')}</label><select id="operator-master-category" name="category" value={category} onChange={event=>setCategory(event.target.value)} className="mq-field-control"><option value="">{t('allCategories')}</option>{categories.data?.map(item=><option key={item.id} value={item.slug}>{item.name}</option>)}</select></div><TextField variant="responsive" fullWidth name="district" label={t('district')} value={district} onChange={event=>setDistrict(event.target.value)}/></div>{categories.error&&<div data-category-error role="alert" className="flex flex-col gap-3 rounded-2xl bg-surface p-6"><p>{t('categoryError')}</p><Button data-category-retry variant="secondary" disabled={categories.loading} onClick={()=>{void categories.retry();}}>{t('refresh')}</Button></div>}{masters.loading&&<p role="status">{t('loading')}</p>}{masters.error&&<p role="alert">{t('readError')}</p>}{masters.data&&!masters.fresh&&<p data-masters-stale role="status">{t('stale')}</p>}{masters.fresh&&!masters.loading&&masters.data?.length===0&&<p data-masters-empty>{t('emptyMasters')}</p>}{masters.data&&masters.data.length>0&&<div className="min-w-0 overflow-x-auto rounded-2xl bg-surface"><table className="w-full text-left text-sm"><thead className="text-xs text-ink-soft"><tr>{(['masters','specialty','rating','orders','status'] as const).map(key=><th key={key} scope="col" className="p-4 font-normal">{t(key)}</th>)}</tr></thead><tbody>{masters.data.map(row=><tr key={row.id}><td className="break-words p-4">{row.name??'—'}</td><td className="break-words p-4">{row.categories.join(', ')}</td><td className="p-4">{row.rating===null?'—':row.rating.toLocaleString(({ru:'ru-RU',kk:'kk-KZ',en:'en-GB'})[language],{minimumFractionDigits:1,maximumFractionDigits:1})}<p className="text-xs text-ink-soft">{t('reviews')}: {row.reviewCount}</p></td><td className="p-4">{row.orders}</td><td className="break-words p-4">{row.status}</td></tr>)}</tbody></table></div>}</section>;
 }
+export default function MastersPage(){const {user}=useAuth();const ownerId=user?.role==='OPERATOR'?user.id:null;return <OwnedMasters key={ownerId??'signed-out'} ownerId={ownerId}/>;}

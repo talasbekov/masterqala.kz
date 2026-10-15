@@ -16,6 +16,6 @@ export function AuthGuard({ children }: { children: ReactNode }) {
     }
   }, [user, router]);
 
-  if (!checked) return <div className="p-6 text-ink-soft">Загрузка…</div>;
+  if (!checked || !user) return <div className="p-6 text-ink-soft">Загрузка…</div>;
   return <>{children}</>;
 }

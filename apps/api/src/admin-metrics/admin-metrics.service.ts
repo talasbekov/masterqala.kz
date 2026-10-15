@@ -21,8 +21,8 @@ export class AdminMetricsService {
       stuckOrders,
     ] = await Promise.all([
       this.prisma.order.count({ where: { status: { in: nonTerminalStatuses as any } } }),
-      this.prisma.plannedOrder.count({ where: { status: 'PUBLISHED' } }),
-      this.prisma.dispute.count({ where: { status: 'OPEN' } }),
+      this.prisma.plannedOrder.count({ where: { lifecycleModel: 'LEGACY', status: 'PUBLISHED' } }),
+      this.prisma.dispute.count({ where: { status: 'OPEN', OR: [{ plannedOrderId: null }, { plannedOrder: { lifecycleModel: 'LEGACY' } }] } }),
       this.prisma.masterProfile.count({ where: { status: { in: ['PENDING_REVIEW', 'NEEDS_INFO'] } } }),
       this.prisma.withdrawalRequest.count({ where: { status: 'PENDING' } }),
       this.prisma.$queryRaw<{ accepted: bigint; noMasters: bigint }[]>`

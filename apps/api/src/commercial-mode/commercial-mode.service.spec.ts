@@ -27,6 +27,13 @@ describe('CommercialModeService', () => {
     });
   });
 
+  it('direct payment disables platform collections without describing a free callout', () => {
+    expect(service('DIRECT_PAYMENT').publicConfig()).toEqual({
+      commercialMode: 'DIRECT_PAYMENT', paymentsEnabled: false, leadCreditsEnabled: false, payoutsEnabled: false,
+    });
+    expect(service('DIRECT_PAYMENT').isFreePilot()).toBe(false);
+  });
+
   it('останавливает запуск при неизвестном значении', () => {
     expect(() => service('FREE')).toThrow('Недопустимый COMMERCIAL_MODE=FREE');
   });

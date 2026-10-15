@@ -1,157 +1,34 @@
 'use client';
+import {Button,useLocale} from '@masterqala/ui';
 import Link from 'next/link';
-import { useCallback, useEffect, useState } from 'react';
-import { useAuth } from '@/lib/auth';
-import { useMasterPresence } from '@/lib/masterPresence';
-import { getSocket } from '@/lib/socket';
-import { APPLICATION_STATUS_RU, fetchApplication, type Application } from '@/lib/masterApplication';
-import { fetchActiveOrder, type ActiveOrder } from '@/lib/activeOrder';
-import { fetchMasterStats, type MasterStats } from '@/lib/masterStats';
-import { ActiveOrderView } from '@/components/ActiveOrderView';
-import { PlannedFeedView } from '@/components/PlannedFeedView';
+import {useEffect,useState} from 'react';
+import {useAuth} from '@/lib/auth';
+import {useMasterPresence} from '@/lib/masterPresence';
+import {useMasterDashboardData} from '@/lib/useMasterDashboardData';
+import {masterSurfaceText} from '@/lib/masterSurfaceCopy';
+import {MasterAvailabilityControl} from '@/components/MasterAvailabilityControl';
+import {ActiveOrderView} from '@/components/ActiveOrderView';
+import {PlannedFeedView} from '@/components/PlannedFeedView';
 
-type Tab = 'urgent' | 'planned';
-
-export default function WorkDashboardPage() {
-  const { user } = useAuth();
-  const { online, connected, geoDenied, goOnline, goOffline } = useMasterPresence();
-  const [application, setApplication] = useState<Application | null>(null);
-  const [loaded, setLoaded] = useState(false);
-  const [tab, setTab] = useState<Tab>('urgent');
-  const [activeOrder, setActiveOrder] = useState<ActiveOrder | null>(null);
-  const [stats, setStats] = useState<MasterStats | null>(null);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('tab') === 'planned') {
-      setTab('planned');
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchApplication().then((app) => {
-      setApplication(app);
-      setLoaded(true);
-    });
-  }, []);
-
-  useEffect(() => {
-    fetchMasterStats().then(setStats).catch(() => setStats(null));
-  }, []);
-
-  const loadActive = useCallback(() => {
-    fetchActiveOrder().then(setActiveOrder);
-  }, []);
-
-  useEffect(() => {
-    if (!application || application.status !== 'ACTIVE') return;
-    loadActive();
-    const socket = getSocket();
-    const onStatus = () => loadActive();
-    socket.on('order:status', onStatus);
-    return () => {
-      socket.off('order:status', onStatus);
-    };
-  }, [application, loadActive]);
-
-  if (!loaded) return <div className="p-8 text-ink-soft">Загрузка…</div>;
-
-  if (!application || application.status !== 'ACTIVE') {
-    return (
-      <div className="mx-auto max-w-[480px] p-8">
-        <div className="rounded-lg border border-border bg-surface p-6 text-center">
-          <div className="text-lg font-extrabold text-ink">
-            {application ? APPLICATION_STATUS_RU[application.status] : 'Вы ещё не подали анкету мастера'}
-          </div>
-          {application?.status === 'REJECTED' && application.rejectionReason && (
-            <p className="mt-2 text-sm text-danger">Причина: {application.rejectionReason}</p>
-          )}
-          {application?.status === 'NEEDS_INFO' && application.latestDecisionComment && (
-            <p className="mt-2 text-sm text-ink-soft">Что нужно дополнить: {application.latestDecisionComment}</p>
-          )}
-          <Link
-            href="/become-master"
-            className="mt-4 inline-block rounded-pill bg-primary px-5 py-3 text-sm font-extrabold text-white"
-          >
-            {application ? 'Открыть анкету' : 'Подать анкету'}
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
-  if (activeOrder) {
-    return (
-      <div className="h-full">
-        <ActiveOrderView order={activeOrder} onChanged={loadActive} />
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex h-full flex-col">
-      <div className="mx-4 mt-4 flex flex-col gap-3 md:hidden">
-        <div className="flex items-center justify-between rounded-lg border border-border bg-surface p-4">
-          <div>
-            <div className="text-sm font-extrabold text-ink">{online ? 'Вы онлайн' : 'Вы офлайн'}</div>
-            <div className="text-xs text-ink-soft">{connected ? 'Соединение активно' : 'Нет соединения'}</div>
-            {geoDenied && <div className="mt-1 text-xs text-danger">Нет доступа к геолокации</div>}
-          </div>
-          <button
-            type="button"
-            onClick={online ? goOffline : goOnline}
-            className={`rounded-pill px-4 py-2 text-xs font-extrabold text-white ${online ? 'bg-ink-soft' : 'bg-primary'}`}
-          >
-            {online ? 'Выйти' : 'На линию'}
-          </button>
-        </div>
-        {stats && (
-          <div className="grid grid-cols-3 gap-2">
-            <div className="rounded-lg border border-border bg-surface p-3 text-center">
-              <div className="text-lg font-extrabold text-ink">{stats.completedCount}</div>
-              <div className="text-[10px] font-bold text-ink-soft">заказов</div>
-            </div>
-            <div className="rounded-lg border border-border bg-surface p-3 text-center">
-              <div className="text-lg font-extrabold text-ink">{stats.earnings} ₸</div>
-              <div className="text-[10px] font-bold text-ink-soft">заработок</div>
-            </div>
-            <div className="rounded-lg border border-border bg-surface p-3 text-center">
-              <div className="text-lg font-extrabold text-ink">{stats.rating ? stats.rating.toFixed(1) : '—'}</div>
-              <div className="text-[10px] font-bold text-ink-soft">рейтинг</div>
-            </div>
-          </div>
-        )}
-      </div>
-      <div className="mx-auto mt-8 flex w-full max-w-[480px] rounded-pill border border-border p-1">
-        <button
-          className={`flex-1 rounded-pill py-2 text-sm font-extrabold ${tab === 'urgent' ? 'bg-primary text-white' : 'text-ink-soft'}`}
-          onClick={() => setTab('urgent')}
-        >
-          Срочные
-        </button>
-        <button
-          className={`flex-1 rounded-pill py-2 text-sm font-extrabold ${tab === 'planned' ? 'bg-primary text-white' : 'text-ink-soft'}`}
-          onClick={() => setTab('planned')}
-        >
-          Плановые
-        </button>
-      </div>
-
-      {tab === 'urgent' && (
-        <div className="mx-auto max-w-[480px] p-8 text-center">
-          <div className="text-lg font-extrabold text-ink">Здравствуйте, {user?.name ?? user?.phone}</div>
-          <p className="mt-3 text-sm text-ink-soft">
-            {online
-              ? 'Ждём заявки рядом с вами…'
-              : 'Нажмите «Стать онлайн» в боковой панели, чтобы получать срочные заявки.'}
-          </p>
-          {geoDenied && (
-            <p className="mt-3 rounded-md bg-fill-soft p-3 text-sm text-ink-soft">
-              Без доступа к геолокации заявки приходить не будут. Разрешите доступ в настройках браузера и попробуйте снова.
-            </p>
-          )}
-        </div>
-      )}
-      {tab === 'planned' && <PlannedFeedView />}
-    </div>
-  );
+type Tab='urgent'|'planned';
+export default function WorkDashboardPage(){
+ const {language}=useLocale(),{user}=useAuth(),{offer}=useMasterPresence();
+ const copy=(key:Parameters<typeof masterSurfaceText>[1])=>masterSurfaceText(language,key);
+ const sources=useMasterDashboardData({ownerId:user?.id??null});
+ const application=sources.application.data,activeOrder=sources.active.data,stats=sources.stats.data;
+ const [tab,setTab]=useState<Tab>('urgent');
+ useEffect(()=>{if(new URLSearchParams(window.location.search).get('tab')==='planned')setTab('planned');},[]);
+ const warning=(error:string,retained:boolean,retry:()=>Promise<void>)=>error?<div role="alert" className="mq-master-read-warning">{retained&&<p>{copy('stale')}</p>}<p>{error}</p><Button variant="secondary" onClick={()=>void retry()}>{copy('retry')}</Button></div>:null;
+ const title=<h1>{copy('work')}</h1>;
+ if(sources.application.loading&&!application)return <div className="mq-master-dashboard">{title}<p role="status">{copy('loading')}</p></div>;
+ if(sources.application.error&&!application)return <div className="mq-master-dashboard">{title}{warning(sources.application.error,false,sources.application.retry)}</div>;
+ if(!application||application.status!=='ACTIVE')return <div className="mq-master-dashboard">{title}{warning(sources.application.error,!!application,sources.application.retry)}<section className="mq-master-card"><h2>{application?copy(application.status):copy('noApplication')}</h2>{application?.fullName&&<p>{application.fullName}</p>}{application?.status==='REJECTED'&&application.rejectionReason&&<p>{copy('decision')}: {application.rejectionReason}</p>}{application?.status==='NEEDS_INFO'&&application.latestDecisionComment&&<p>{copy('additional')}: {application.latestDecisionComment}</p>}<Link className="mq-master-link-action" href="/become-master">{copy(application?'openApplication':'submitApplication')}</Link></section></div>;
+ const mobileAvailability=<div className="mq-master-dashboard__availability"><MasterAvailabilityControl/></div>;
+ const warnings=<>{warning(sources.application.error,true,sources.application.retry)}{warning(sources.active.error,!!activeOrder,sources.active.retry)}{warning(sources.stats.error,!!stats,sources.stats.retry)}</>;
+ if(sources.active.loading&&!activeOrder)return <div className="mq-master-dashboard">{title}{warnings}<p role="status">{copy('loading')}</p></div>;
+ if(sources.active.error&&!activeOrder)return <div className="mq-master-dashboard">{title}{warnings}</div>;
+ if(activeOrder&&(activeOrder.lifecycleVersion??1)<2)return <div className="h-full">{warnings}<ActiveOrderView order={activeOrder} onChanged={sources.active.retry}/></div>;
+ if(activeOrder)return <div className="mq-master-dashboard">{title}{warnings}{mobileAvailability}<section className="mq-master-card"><h2>{copy('currentOrder')}</h2><dl><div><dt>{copy('task')}</dt><dd>{activeOrder.description||copy('unavailable')}</dd></div><div><dt>{copy('address')}</dt><dd>{activeOrder.address||copy('unavailable')}</dd></div></dl><Link className="mq-master-link-action" href={`/order/${encodeURIComponent(activeOrder.id)}`}>{copy('openOrder')}</Link></section></div>;
+ const specialties=application.categories.map(item=>item?.category?.name).filter(name=>typeof name==='string'&&!!name.trim());
+ return <div className="mq-master-dashboard">{title}{warnings}{mobileAvailability}<div className="mq-master-dashboard__tabs" role="group" aria-label={copy('work')}><button type="button" aria-pressed={tab==='urgent'} onClick={()=>setTab('urgent')}>{copy('urgent')}</button><button type="button" aria-pressed={tab==='planned'} onClick={()=>setTab('planned')}>{copy('planned')}</button></div>{tab==='planned'?<PlannedFeedView/>:<div className="mq-master-dashboard__grid"><div className="mq-master-dashboard__main"><section className="mq-master-card"><h2>{application.fullName}</h2><dl><div><dt>{copy('specialty')}</dt><dd>{specialties.length?specialties.join(', '):copy('unavailable')}</dd></div><div><dt>{copy('district')}</dt><dd>{application.district||copy('unavailable')}</dd></div></dl></section>{offer?<section className="mq-master-card"><h2>{copy('actualOffer')}</h2><p>{offer.category}</p><p>{offer.description}</p>{offer.district&&<p>{offer.district}</p>}{Number.isFinite(offer.distanceKm)&&offer.distanceKm>=0&&<p>{copy('distance')}: {new Intl.NumberFormat(language,{maximumFractionDigits:1}).format(offer.distanceKm)} {copy('km')}</p>}<p className="mq-master-muted">{copy('offerNote')}</p></section>:<section className="mq-master-card mq-master-empty"><h2>{copy('noOffer')}</h2><p>{copy('noOfferNote')}</p></section>}</div><aside className="mq-master-dashboard__aside"><section className="mq-master-card"><h2>{copy('profile')}</h2><dl><div><dt>{copy('completed')}</dt><dd>{stats?.completedCount??'—'}</dd></div><div><dt>{copy('rating')}</dt><dd data-master-rating>{stats?.rating!=null?stats.rating.toFixed(1):'—'}</dd></div><div><dt>{copy('reviews')}</dt><dd>{stats?.reviewCount??'—'}</dd></div></dl><Link href="/become-master">{copy('openApplication')}</Link></section></aside></div>}</div>;
 }

@@ -1,6 +1,7 @@
 'use client';
 import { createContext, useContext, useState, type ReactNode } from 'react';
 import { resetSocket } from './socket';
+import {clearNewOrderDraft} from './new-order-draft';
 
 export interface AuthUser {
   id: string;
@@ -32,7 +33,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(u);
   };
   const logout = () => {
-    localStorage.clear();
+    clearNewOrderDraft();
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
     resetSocket();
     setUser(null);
   };

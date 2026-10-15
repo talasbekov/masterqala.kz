@@ -31,6 +31,17 @@ describe('Users: me', () => {
     expect(updated.body.defaultAddress).toBe('Алматы, ул. Абая 1');
   });
 
+  it('persists a supported language without changing profile text or another user', async () => {
+    const first=await loginAs(app,'+77071234567');
+    const second=await loginAs(app,'+77071234568');
+    await request(app.getHttpServer()).patch('/api/v1/users/me').set('Authorization',`Bearer ${first.token}`).send({language:'kk',name:'Айгерім'}).expect(200);
+    const restored=await request(app.getHttpServer()).get('/api/v1/users/me').set('Authorization',`Bearer ${first.token}`).expect(200);
+    expect(restored.body).toMatchObject({language:'kk',name:'Айгерім'});
+    const other=await request(app.getHttpServer()).get('/api/v1/users/me').set('Authorization',`Bearer ${second.token}`).expect(200);
+    expect(other.body.language).toBe('ru');
+    await request(app.getHttpServer()).patch('/api/v1/users/me').set('Authorization',`Bearer ${first.token}`).send({language:'KZ'}).expect(400);
+  });
+
   it('PATCH с name длиннее 100 символов → 400', async () => {
     const { token } = await loginAs(app, '+77071234567');
     await request(app.getHttpServer())

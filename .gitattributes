@@ -1,0 +1,4 @@
+# These legacy sources have byte-level regression checks. Preserve canonical
+# repository bytes even when a developer uses core.autocrlf=true on Windows.
+apps/web/src/features/client-v2/pages/LegacyDisputePage.tsx text eol=lf
+apps/client/components/LegacyDisputeView.tsx text eol=lf

@@ -1,11 +1,18 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import {TextField,useLocale} from '@masterqala/ui';
 import { useRouter } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
 import { api, apiUpload } from '@/lib/api';
 import { useCommercialMode } from '@/lib/commercial-mode';
 import { categoryMeta } from '@/lib/categoryMeta';
-import MapView, { type LatLng } from '@/components/MapView';
+import MapView from '@/components/MapView';
+import {useAuth} from '@/lib/auth';
+import {useNewOrderDraft,useCurrentOrderCreation} from '@/components/useNewOrderDraft';
+import {NewOrderLayout} from '@/components/NewOrderLayout';
+import Link from 'next/link';
+import {NewOrderCreationStatus} from '@/components/NewOrderCreationStatus';
+import type {NewOrderDraft} from '@/lib/new-order-draft';
 
 interface Category {
   id: string;
@@ -28,49 +35,62 @@ interface Preview {
   serviceFee?: number;
 }
 
-const ASTANA_CENTER: LatLng = { lat: 51.1605, lng: 71.4704 };
-
 export default function NewOrderPage() {
+  const {user}=useAuth();
+  return user?<NewOrderForm key={user.id} ownerId={user.id}/>:null;
+}
+
+function NewOrderForm({ownerId}:{ownerId:string}) {
   const { t } = useTranslation();
-  const { paymentsEnabled } = useCommercialMode();
+  const { paymentsEnabled,commercialMode } = useCommercialMode();
+  const direct=commercialMode==='DIRECT_PAYMENT';
+  const {t:copy}=useLocale();
   const router = useRouter();
-  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
+  const {draft,ready,set,applyInitialLocation,requestLocation,beginCreate,finishCreate,pending,completedOrderId}=useNewOrderDraft(ownerId);
+  const {step,categoryId,description,photoPaths,geo,addressText,district,entrance,floor,apartment,addressComment}=draft;
+  function field<K extends keyof NewOrderDraft>(key:K) {
+    return (value:NewOrderDraft[K]|((previous:NewOrderDraft[K])=>NewOrderDraft[K]))=>set(key,value);
+  }
+  const setStep=field('step'),setCategoryId=field('categoryId'),setDescription=field('description'),setPhotoPaths=field('photoPaths');
+  const setGeo=field('geo'),setAddressText=field('addressText'),setDistrict=field('district'),setEntrance=field('entrance');
+  const setFloor=field('floor'),setApartment=field('apartment'),setAddressComment=field('addressComment');
+  const photoInput=useRef<HTMLInputElement>(null);
+  const translation=useRef(t);translation.current=t;
 
   const [categories, setCategories] = useState<Category[]>([]);
-  const [categoryId, setCategoryId] = useState('');
 
-  const [description, setDescription] = useState('');
-  const [photoPaths, setPhotoPaths] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
 
   const [savedAddresses, setSavedAddresses] = useState<Address[]>([]);
-  const [geo, setGeo] = useState<LatLng>(ASTANA_CENTER);
-  const [addressText, setAddressText] = useState('');
-  const [district, setDistrict] = useState('');
-  const [entrance, setEntrance] = useState('');
-  const [floor, setFloor] = useState('');
-  const [apartment, setApartment] = useState('');
-  const [addressComment, setAddressComment] = useState('');
 
   const [preview, setPreview] = useState<Preview | null>(null);
   const [error, setError] = useState('');
-  const [submitting, setSubmitting] = useState(false);
+  const creation=useCurrentOrderCreation({beginCreate,finishCreate,pending,api,invalidMessage:copy('createSubmissionInvalid'),onConfirmed:id=>router.push(`/order/${encodeURIComponent(id)}`)});
+  const submitting=creation.busy;
 
   useEffect(() => {
-    api('/categories').then(setCategories).catch((e) => setError((e as Error).message));
-    api('/addresses').then(setSavedAddresses).catch(() => {});
+    if (!ready||pending||completedOrderId) return;
+    let cancelled=false;
+    api('/categories').then(value=>{if(!cancelled)setCategories(value);}).catch((e)=>{if(!cancelled)setError((e as Error).message);});
+    api('/addresses').then(value=>{if(!cancelled)setSavedAddresses(value);}).catch(()=>{});
     navigator.geolocation?.getCurrentPosition(
-      (pos) => setGeo({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-      () => setError(t('newOrder.geoError')),
+      (pos) => {if(!cancelled)applyInitialLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });},
+      () => {if(!cancelled)setError(translation.current('newOrder.geoError'));},
     );
-  }, [t]);
+    return()=>{cancelled=true;};
+  }, [ready,applyInitialLocation,pending,completedOrderId]);
 
   useEffect(() => {
-    if (step !== 4 || !categoryId) return;
+    if (!ready || pending || completedOrderId || step !== 4 || !categoryId) return;
+    let cancelled=false;
+    setPreview(null);
     api('/orders/preview', { method: 'POST', body: JSON.stringify({ categoryId, lat: geo.lat, lng: geo.lng }) })
-      .then(setPreview)
-      .catch((e) => setError((e as Error).message));
-  }, [step, categoryId, geo]);
+      .then(value=>{if(!cancelled)setPreview(value);})
+      .catch((e)=>{if(!cancelled)setError((e as Error).message);});
+    return()=>{cancelled=true;};
+  }, [ready,step,categoryId,geo,pending,completedOrderId]);
+
+  function categoryName(category?:Category){return category?t(`newOrder.category_${category.slug}`,{defaultValue:category.name}):'';}
 
   function selectAddress(a: Address) {
     setAddressText(a.address);
@@ -96,36 +116,12 @@ export default function NewOrderPage() {
     }
   }
 
-  async function submit() {
-    setError('');
-    setSubmitting(true);
-    try {
-      const order = await api('/orders', {
-        method: 'POST',
-        body: JSON.stringify({
-          categoryId,
-          description,
-          address: addressText,
-          district,
-          entrance: entrance || undefined,
-          floor: floor || undefined,
-          apartment: apartment || undefined,
-          addressComment: addressComment || undefined,
-          photoPaths,
-          lat: geo.lat,
-          lng: geo.lng,
-        }),
-      });
-      router.push(`/order/${order.id}`);
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setSubmitting(false);
-    }
-  }
+  if(!ready)return <div className="p-6 text-ink-soft">{t('common.loading')}</div>;
+
+  if(pending||completedOrderId)return <NewOrderCreationStatus pending={!!pending} persistent={pending?.persistent??true} submitting={submitting} completedOrderId={completedOrderId} error={creation.error||error} onRecover={creation.canRecover?creation.recover:undefined} online={creation.online} recovering={creation.recovering}/>;
 
   const progress = (
-    <div className="flex gap-1.5">
+    <div role="progressbar" aria-label={t('common.stepOf', { n: step, total: 4 })} aria-valuemin={1} aria-valuemax={4} aria-valuenow={step} className="flex gap-1.5">
       {[1, 2, 3, 4].map((s) => (
         <div key={s} className={`h-1.5 flex-1 rounded-full ${s <= step ? 'bg-primary' : 'bg-border'}`} />
       ))}
@@ -145,12 +141,10 @@ export default function NewOrderPage() {
   };
 
   const header = (
-    <div className="flex items-center gap-2.5">
-      <button type="button" onClick={goBack} className="text-xl text-primary">
-        ←
-      </button>
-      <span className="flex-1 text-lg font-extrabold text-ink">{stepTitles[step]}</span>
-      <span className="text-xs font-bold text-ink-soft">{t('common.stepOf', { n: step, total: 4 })}</span>
+    <div>
+      <button type="button" onClick={goBack} aria-label={copy('back')} className="mq-new-order-icon-action text-xl">←</button>
+      <h1 id="new-order-heading">{stepTitles[step]}</h1>
+      <Link href="/support" aria-label={copy('help')} className="mq-new-order-icon-action">?</Link>
     </div>
   );
 
@@ -174,7 +168,7 @@ export default function NewOrderPage() {
                 }`}
               >
                 <div className="mb-1.5 text-xl">{meta.icon}</div>
-                <div className="text-sm font-extrabold text-ink">{c.name}</div>
+                <div className="text-sm font-extrabold text-ink">{categoryName(c)}</div>
               </button>
             );
           })}
@@ -191,7 +185,7 @@ export default function NewOrderPage() {
           type="button"
           onClick={() => setStep(2)}
           disabled={!categoryId}
-          className="rounded-pill bg-primary p-4 text-[15px] font-extrabold text-white disabled:opacity-40"
+          className="mq-new-order-primary rounded-pill bg-primary p-4 text-[15px] font-extrabold text-white disabled:opacity-40"
         >
           {t('common.next')}
         </button>
@@ -200,12 +194,11 @@ export default function NewOrderPage() {
   } else if (step === 2) {
     stepContent = (
       <>
-        <textarea
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          placeholder={t('newOrder.step2Placeholder')}
-          className="min-h-28 rounded-md border-[1.5px] border-border bg-surface p-3.5 text-sm text-ink outline-none placeholder:text-muted"
-        />
+        <h2 className="mq-new-order-task-title">{t('newOrder.step2Title')}</h2>
+        <div className="mq-new-order-description">
+          <label htmlFor="new-order-description">{t('newOrder.step2Title')}</label>
+          <textarea id="new-order-description" value={description} onChange={(e)=>setDescription(e.target.value)} maxLength={2000} placeholder={t('newOrder.step2Placeholder')}/>
+        </div>
         <div className="text-sm font-extrabold text-ink">
           {t('newOrder.step2PhotosLabel')} <span className="text-xs font-semibold text-ink-soft">{t('newOrder.step2PhotosHint')}</span>
         </div>
@@ -214,24 +207,18 @@ export default function NewOrderPage() {
             <div key={p} className="h-18 w-18 rounded-md bg-fill" />
           ))}
           {photoPaths.length < 5 && (
-            <label className="flex h-18 w-18 cursor-pointer items-center justify-center rounded-md border-[1.5px] border-dashed border-primary text-2xl text-primary">
-              ＋
-              <input
-                type="file"
-                accept="image/jpeg,image/png"
-                className="hidden"
-                disabled={uploading}
-                onChange={(e) => e.target.files?.[0] && addPhoto(e.target.files[0])}
-              />
-            </label>
+            <div>
+              <button type="button" aria-label={t('newOrder.step2PhotosLabel')} disabled={uploading} onClick={()=>photoInput.current?.click()} className="flex h-18 w-18 items-center justify-center rounded-md border-[1.5px] border-dashed border-primary text-2xl text-primary disabled:opacity-40"><span aria-hidden="true">＋</span></button>
+              <input ref={photoInput} type="file" accept="image/jpeg,image/png" className="sr-only" tabIndex={-1} aria-label={t('newOrder.step2PhotosLabel')} disabled={uploading} onChange={(e)=>e.target.files?.[0]&&addPhoto(e.target.files[0])}/>
+            </div>
           )}
         </div>
-        {error && <p className="text-sm font-semibold text-danger">{error}</p>}
+        {(creation.error||error) && <p role="alert" className="text-sm font-semibold text-danger">{creation.error||error}</p>}
         <div className="mt-auto" />
         <button
           type="button"
           onClick={() => setStep(3)}
-          className="rounded-pill bg-primary p-4 text-[15px] font-extrabold text-white"
+          className="mq-new-order-primary rounded-pill bg-primary p-4 text-[15px] font-extrabold text-white"
         >
           {t('newOrder.step2Next')}
         </button>
@@ -240,12 +227,7 @@ export default function NewOrderPage() {
   } else if (step === 3) {
     stepContent = (
       <>
-        <input
-          value={addressText}
-          onChange={(e) => setAddressText(e.target.value)}
-          placeholder={t('newOrder.step3Title')}
-          className="rounded-md border-[1.5px] border-primary bg-surface p-3 text-sm font-bold text-ink outline-none"
-        />
+        <TextField label={t('newOrder.step3Title')} variant="responsive" fullWidth value={addressText} maxLength={500} onChange={(e)=>setAddressText(e.target.value)}/>
         {savedAddresses.length > 0 && (
           <div className="flex flex-wrap gap-1.5">
             {savedAddresses.map((a) => (
@@ -260,51 +242,19 @@ export default function NewOrderPage() {
             ))}
           </div>
         )}
-        <div className="grid grid-cols-3 gap-2">
-          <div className="rounded-md border-[1.5px] border-border bg-surface p-2.5">
-            <div className="text-[10px] font-bold text-ink-soft">{t('newOrder.step3Entrance')}</div>
-            <input
-              value={entrance}
-              onChange={(e) => setEntrance(e.target.value)}
-              className="w-full bg-transparent text-sm font-extrabold text-ink outline-none"
-            />
-          </div>
-          <div className="rounded-md border-[1.5px] border-border bg-surface p-2.5">
-            <div className="text-[10px] font-bold text-ink-soft">{t('newOrder.step3Floor')}</div>
-            <input
-              value={floor}
-              onChange={(e) => setFloor(e.target.value)}
-              className="w-full bg-transparent text-sm font-extrabold text-ink outline-none"
-            />
-          </div>
-          <div className="rounded-md border-[1.5px] border-border bg-surface p-2.5">
-            <div className="text-[10px] font-bold text-ink-soft">{t('newOrder.step3Apartment')}</div>
-            <input
-              value={apartment}
-              onChange={(e) => setApartment(e.target.value)}
-              className="w-full bg-transparent text-sm font-extrabold text-ink outline-none"
-            />
-          </div>
+        <div className="mq-new-order-address-details">
+          <TextField label={t('newOrder.step3Entrance')} variant="responsive" fullWidth value={entrance} maxLength={50} onChange={(e)=>setEntrance(e.target.value)}/>
+          <TextField label={t('newOrder.step3Floor')} variant="responsive" fullWidth value={floor} maxLength={50} onChange={(e)=>setFloor(e.target.value)}/>
+          <TextField label={t('newOrder.step3Apartment')} variant="responsive" fullWidth value={apartment} maxLength={50} onChange={(e)=>setApartment(e.target.value)}/>
         </div>
-        <input
-          value={district}
-          onChange={(e) => setDistrict(e.target.value)}
-          placeholder={t('newOrder.step3District')}
-          className="rounded-md border-[1.5px] border-border bg-surface p-3 text-sm text-ink outline-none placeholder:text-muted"
-        />
-        <input
-          value={addressComment}
-          onChange={(e) => setAddressComment(e.target.value)}
-          placeholder={t('newOrder.step3Comment')}
-          className="rounded-md border-[1.5px] border-border bg-surface p-3 text-sm text-ink outline-none placeholder:text-muted"
-        />
+        <TextField label={t('newOrder.step3District')} variant="responsive" fullWidth value={district} maxLength={200} onChange={(e)=>setDistrict(e.target.value)}/>
+        <TextField label={t('newOrder.step3Comment')} variant="responsive" fullWidth value={addressComment} maxLength={500} onChange={(e)=>setAddressComment(e.target.value)}/>
         <button
           type="button"
-          onClick={() =>
-            navigator.geolocation?.getCurrentPosition((pos) =>
-              setGeo({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-            )
-          }
+          onClick={() => {
+            const apply=requestLocation();
+            navigator.geolocation?.getCurrentPosition((pos)=>apply({lat:pos.coords.latitude,lng:pos.coords.longitude}));
+          }}
           className="rounded-pill border-[1.5px] border-border p-2.5 text-xs font-extrabold text-ink-soft"
         >
           ◎ {t('newOrder.step3MyLocation')}
@@ -314,7 +264,7 @@ export default function NewOrderPage() {
           type="button"
           onClick={() => setStep(4)}
           disabled={!addressText || !district}
-          className="rounded-pill bg-primary p-4 text-[15px] font-extrabold text-white disabled:opacity-40"
+          className="mq-new-order-primary rounded-pill bg-primary p-4 text-[15px] font-extrabold text-white disabled:opacity-40"
         >
           {t('newOrder.step3Next')}
         </button>
@@ -326,7 +276,7 @@ export default function NewOrderPage() {
         <div className="rounded-md bg-fill p-3.5">
           <div className="text-sm font-extrabold text-ink">
             {categoryMeta(categories.find((c) => c.id === categoryId)?.slug ?? '').icon}{' '}
-            {categories.find((c) => c.id === categoryId)?.name} · «{description.slice(0, 40)}» ·{' '}
+            {categoryName(categories.find((c) => c.id === categoryId))} · «{description.slice(0, 40)}» ·{' '}
             {t('common.photosCount', { n: photoPaths.length })}
           </div>
           <div className="mt-1 text-xs font-semibold text-on-fill">
@@ -334,7 +284,8 @@ export default function NewOrderPage() {
           </div>
         </div>
         {preview?.available === false && <p className="text-sm font-semibold text-danger">{t('newOrder.unavailable')}</p>}
-        {preview?.available && (
+        {direct&&preview&&<div className="rounded-lg border border-border bg-surface p-4 text-sm leading-relaxed text-ink-soft">{copy('directCreateNote')}</div>}
+      {!direct&&preview?.available && (
           <div className="rounded-lg border border-border bg-surface p-3.5">
             <div className="flex justify-between text-sm font-bold text-ink">
               <span>{t('newOrder.step4CalloutLabel')}</span>
@@ -350,50 +301,36 @@ export default function NewOrderPage() {
             <div className="text-xs leading-relaxed text-on-fill">
               {paymentsEnabled
                 ? t('newOrder.step4Note')
-                : 'Выезд в бесплатном пилоте не оплачивается. Стоимость работ мастер назовёт после осмотра; вы подтвердите её и рассчитаетесь с мастером напрямую.'}
+                : t('newOrder.freePilotNote')}
             </div>
           </div>
         )}
         <div className="flex items-center justify-between rounded-md border border-border bg-surface p-3">
           <span className="text-sm font-extrabold text-ink">
-            {paymentsEnabled ? t('newOrder.step4PaymentMethod') : 'Бесплатный пилот · без привязки карты'}
+            {direct?copy('directPayment'):paymentsEnabled ? t('newOrder.step4PaymentMethod') : t('newOrder.freePilotPaymentLabel')}
           </span>
         </div>
         <p className="text-xs leading-relaxed text-ink-soft">
           {paymentsEnabled
             ? t('newOrder.step4CancelNote')
-            : 'Отмена до начала работ не вызывает списаний со стороны платформы. Договорённости по фактическим расходам обсуждаются напрямую с мастером.'}
+            : t('newOrder.freePilotCancelNote')}
         </p>
-        {error && <p className="text-sm font-semibold text-danger">{error}</p>}
+        {(creation.error||error) && <p role="alert" className="text-sm font-semibold text-danger">{creation.error||error}</p>}
         <div className="mt-auto" />
         <button
           type="button"
-          onClick={submit}
-          disabled={submitting || !preview?.available}
-          className="rounded-pill bg-primary p-4 text-[15.5px] font-extrabold text-white disabled:opacity-40"
+          onClick={creation.submit}
+          disabled={submitting || !creation.online || !preview?.available}
+          className="mq-new-order-primary rounded-pill bg-primary p-4 text-[15.5px] font-extrabold text-white disabled:opacity-40"
         >
-          {paymentsEnabled ? t('newOrder.step4Submit', { price: preview?.calloutPrice ?? '' }) : 'Найти мастера бесплатно'}
+          {direct?copy('findMaster'):paymentsEnabled ? t('newOrder.step4Submit', { price: preview?.calloutPrice ?? '' }) : t('newOrder.freePilotSubmit')}
         </button>
       </>
     );
   }
 
-  return (
-    <div className="mx-auto flex h-screen max-w-6xl flex-col gap-4 px-8 py-6">
-      {header}
-      {progress}
-      <div className="flex flex-1 gap-6 overflow-hidden">
-        <div className="flex w-[560px] shrink-0 flex-col gap-3 overflow-y-auto pb-2">{stepContent}</div>
-        <div className="flex-1 overflow-hidden rounded-lg">
-          <MapView
-            mode="pin"
-            center={geo}
-            onCenterChange={step === 3 ? setGeo : undefined}
-            height={undefined}
-            className="h-full"
-          />
-        </div>
-      </div>
-    </div>
-  );
+  return <NewOrderLayout step={step} header={header} progress={progress} mapLabel={t('newOrder.step3Title')}
+    map={<MapView mode="pin" center={geo} onCenterChange={step===3?setGeo:undefined} height="100%" className="h-full"/>}>
+    {stepContent}
+  </NewOrderLayout>;
 }

@@ -12,15 +12,24 @@
       "import": "./dist/index.js"
     },
     "./tokens.css": "./src/tokens.css",
-    "./styles.css": "./dist/styles.css"
+    "./styles.css": "./dist/styles.css",
+    "./controls.css": "./src/controls.css",
+    "./locale.css": "./src/locale.css",
+    "./account.css": "./src/account.css",
+    "./login.css": "./src/login.css"
   },
   "files": [
     "dist",
-    "src/tokens.css"
+    "src/tokens.css",
+    "src/controls.css",
+    "src/locale.css",
+    "src/account.css",
+    "src/login.css"
   ],
   "scripts": {
     "build": "tsup src/index.ts --format esm --dts --external react --external react-dom && tailwindcss -i ./src/styles.css -o ./dist/styles.css --minify",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "pnpm run build && node --experimental-strip-types --test test/*.test.mjs"
   },
   "peerDependencies": {
     "react": "^19.0.0",
@@ -34,6 +43,7 @@
     "react-dom": "^19.2.7",
     "tailwindcss": "^4.3.2",
     "tsup": "^8.5.1",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "jsdom": "26.1.0"
   }
 }

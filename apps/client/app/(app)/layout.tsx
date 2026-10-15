@@ -1,13 +1,10 @@
-import { Sidebar } from '@/components/Sidebar';
+'use client';
+import {usePathname} from 'next/navigation';
+import {ClientShell} from '@/components/ClientShell';
 import { AuthGuard } from '@/components/AuthGuard';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="flex min-h-screen bg-background">
-      <Sidebar />
-      <main className="flex-1 overflow-y-auto">
-        <AuthGuard>{children}</AuthGuard>
-      </main>
-    </div>
-  );
+  const orderPage=usePathname().startsWith('/order/');
+  if(orderPage)return <div className="flex min-h-screen bg-background"><main className="min-w-0 flex-1 overflow-y-auto"><AuthGuard>{children}</AuthGuard></main></div>;
+  return <ClientShell><AuthGuard>{children}</AuthGuard></ClientShell>;
 }

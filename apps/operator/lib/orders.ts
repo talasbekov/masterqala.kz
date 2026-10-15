@@ -14,6 +14,7 @@ export const STATUS_LABELS: Record<string, string> = {
   MASTER_ON_WAY: 'Мастер в пути',
   INSPECTION: 'Осмотр',
   AWAITING_PRICE_CONFIRM: 'Согласование цены',
+  PRICE_APPROVED:'Цена согласована',
   IN_PROGRESS: 'В работе',
   DONE: 'Выполнена',
   CLOSED: 'Закрыта',
@@ -54,6 +55,7 @@ const URGENT_VARIANTS: Record<string, StatusVariant> = {
   MASTER_ON_WAY: 'active',
   INSPECTION: 'active',
   AWAITING_PRICE_CONFIRM: 'active',
+  PRICE_APPROVED:'active',
   IN_PROGRESS: 'active',
   DONE: 'success',
   CLOSED: 'success',
@@ -116,7 +118,7 @@ interface OrderDetailBase {
 }
 
 export type OrderDetail =
-  | (OrderDetailBase & { type: 'urgent'; calloutPrice: number; serviceFee: number })
+  | (OrderDetailBase & { type: 'urgent'; calloutPrice: number; serviceFee: number; lifecycleVersion:number;commercialMode:string;cancellationAmount:number|null;materialsPrice:number;quoteTotal:number|null;quoteVersion:number;consentedVersion:number|null })
   | (OrderDetailBase & { type: 'planned'; budget: number | null });
 
 export interface AssignCandidate {

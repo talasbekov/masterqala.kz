@@ -1,5 +1,8 @@
 @import "tailwindcss";
 @import "@masterqala/ui/tokens.css";
+@import "@masterqala/ui/controls.css";
+@import "@masterqala/ui/login.css";
+@import "@masterqala/ui/locale.css";
 @source "../app";
 @source "../components";
 @source "../lib";
@@ -9,3 +12,5 @@ body {
   color: var(--color-ink);
   font-family: var(--font-sans);
 }
+
+@source "../../../packages/ui/src";
