@@ -36,6 +36,7 @@ export const FEED_SELECT = {
   budget: true,
   status: true,
   commercialMode: true,
+  lifecycleModel: true,
   createdAt: true,
   _count: { select: { bids: true } },
 } satisfies Prisma.PlannedOrderSelect;

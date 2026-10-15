@@ -1,3 +1,5 @@
+import { requireLegacyPlannedOrder } from '../planned-orders/planned-lifecycle';
+import { storedQuoteTotal, versionedQuoteTotal } from '../orders/quote-amount';
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { OrderStatus, PlannedOrderStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
@@ -58,7 +60,7 @@ export class AdminOrdersService {
         : Promise.resolve([]),
       opts.type !== 'urgent' && !statusInvalidForPlanned
         ? this.prisma.plannedOrder.findMany({
-            where: { status: opts.status as PlannedOrderStatus | undefined, OR: searchFilter },
+            where: { lifecycleModel: 'LEGACY', status: opts.status as PlannedOrderStatus | undefined, OR: searchFilter },
             include: { client: true, master: true, category: true },
             orderBy: { createdAt: 'desc' },
             take: 100,
@@ -165,7 +167,7 @@ export class AdminOrdersService {
       quoteVersion:order.quoteVersion,
       consentedVersion:order.consentedVersion,
       materialsPrice:order.materialsPrice,
-      quoteTotal:order.workPrice===null?null:order.workPrice+order.materialsPrice+order.calloutPrice,
+      quoteTotal:order.lifecycleVersion>=2?versionedQuoteTotal(order):storedQuoteTotal(order),
       calloutPrice: order.calloutPrice,
       serviceFee: order.serviceFee,
       workPrice: order.workPrice,
@@ -180,6 +182,7 @@ export class AdminOrdersService {
       include: { client: true, master: true, category: true, disputes: true },
     });
     if (!order) throw new NotFoundException('Заказ не найден');
+    requireLegacyPlannedOrder(order);
 
     const timeline: TimelineEntry[] = [
       { at: order.createdAt, event: 'создана' },

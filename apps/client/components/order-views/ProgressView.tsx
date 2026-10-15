@@ -30,7 +30,7 @@ export default function ProgressView({ order }: { order: OrderDetail }) {
               </div>
               <div className="pb-3.5">
                 <div className={`text-[13.5px] ${active ? 'font-extrabold text-ink' : 'font-semibold text-ink-soft'}`}>
-                  {s.label}
+                  {t(`legacyStatus.${s.status}`, { defaultValue: s.status })}
                 </div>
               </div>
             </div>
@@ -40,7 +40,7 @@ export default function ProgressView({ order }: { order: OrderDetail }) {
       <div className="rounded-md bg-fill p-3.5 text-xs font-semibold leading-relaxed text-ink">
         {paymentsEnabled
           ? t('orderDetail.progressNote', { price: order.calloutPrice + (order.workPrice ?? 0) })
-          : `Согласованная стоимость работ: ${order.workPrice ?? 0} ₸. Расчёт происходит напрямую с мастером.`}
+          : t('orderDetail.pilotProgressNote', { price: order.workPrice ?? 0 })}
       </div>
       <div className="mt-auto" />
       <Link

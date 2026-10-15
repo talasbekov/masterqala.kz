@@ -1,3 +1,4 @@
+import { versionedQuoteTotal } from './quote-amount';
 import {
   BadRequestException,
   ConflictException,
@@ -218,7 +219,7 @@ export class OrdersService implements OnModuleInit {
   private withDeadlines<T extends { priceProposedAt: Date | null; lifecycleVersion?:number; quoteVersion?:number;workPrice?:number|null;materialsPrice?:number;calloutPrice?:number }>(order: T) {
     return {
       ...order,
-      ...(order.lifecycleVersion && order.lifecycleVersion>=2 ? {quoteTotal:order.quoteVersion ? (order.workPrice??0)+(order.materialsPrice??0)+(order.calloutPrice??0):null} : {}),
+      ...(order.lifecycleVersion && order.lifecycleVersion>=2 ? {quoteTotal:versionedQuoteTotal(order)} : {}),
       priceDeadline: order.priceProposedAt && (!order.lifecycleVersion || order.lifecycleVersion<2)
         ? new Date(order.priceProposedAt.getTime() + PRICE_CONFIRM_TIMEOUT_S * 1000).toISOString()
         : null,
@@ -288,7 +289,7 @@ export class OrdersService implements OnModuleInit {
       const busy = await tx.order.count({
         where: { masterId: masterUserId, OR:[{status:{in:ACTIVE_MASTER_STATUSES}}, {lifecycleVersion:{gte:2},status:'DONE'}] },
       });
-      if (busy > 0 || await tx.plannedOrder.count({where:{masterId:masterUserId,status:'IN_PROGRESS'}})) {
+      if (busy > 0 || await tx.plannedOrder.count({where:{masterId:masterUserId,lifecycleModel:'LEGACY',status:'IN_PROGRESS'}})) {
         throw new ConflictException('У вас уже есть активная заявка');
       }
       if(order.lifecycleVersion>=2) {

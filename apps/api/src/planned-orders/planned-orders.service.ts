@@ -1,3 +1,4 @@
+import { isLegacyPlannedOrder, requireLegacyPlannedOrder } from './planned-lifecycle';
 import {
   BadRequestException,
   ConflictException,
@@ -67,6 +68,7 @@ export class PlannedOrdersService implements OnModuleInit {
       const created = await tx.plannedOrder.create({
         data: {
           clientId,
+          lifecycleModel: 'LEGACY',
           categoryId: dto.categoryId,
           description: dto.description,
           address: dto.address,
@@ -96,7 +98,7 @@ export class PlannedOrdersService implements OnModuleInit {
 
   async listMine(clientId: string) {
     const orders = await this.prisma.plannedOrder.findMany({
-      where: { clientId },
+      where: { clientId, lifecycleModel: 'LEGACY' },
       orderBy: { createdAt: 'desc' },
       include: PLANNED_ORDER_INCLUDE,
     });
@@ -121,6 +123,7 @@ export class PlannedOrdersService implements OnModuleInit {
   async findOrThrow(id: string) {
     const order = await this.prisma.plannedOrder.findUnique({ where: { id }, include: PLANNED_ORDER_INCLUDE });
     if (!order) throw new NotFoundException('Заявка не найдена');
+    requireLegacyPlannedOrder(order);
     const dispute = await this.prisma.dispute.findFirst({ where: { plannedOrderId: id }, orderBy: { createdAt: 'desc' } });
     const withBids = { ...order, bids: await this.enrichBids(order.bids), dispute };
     return this.reviews.attachRating(this.withDeadline(withBids));
@@ -146,7 +149,7 @@ export class PlannedOrdersService implements OnModuleInit {
       bids.map((b) =>
         Promise.all([
           this.prisma.order.count({ where: { masterId: b.masterUserId, status: 'CLOSED' } }),
-          this.prisma.plannedOrder.count({ where: { masterId: b.masterUserId, status: 'CLOSED' } }),
+          this.prisma.plannedOrder.count({ where: { masterId: b.masterUserId, lifecycleModel: 'LEGACY', status: 'CLOSED' } }),
           this.reviews.getMasterRatingSummary(b.masterUserId),
         ]),
       ),
@@ -173,7 +176,7 @@ export class PlannedOrdersService implements OnModuleInit {
     tx: Tx = this.prisma,
   ): Promise<void> {
     const res = await tx.plannedOrder.updateMany({
-      where: { id, status: Array.isArray(from) ? { in: from } : from },
+      where: { id, lifecycleModel: 'LEGACY', status: Array.isArray(from) ? { in: from } : from },
       data,
     });
     if (res.count === 0) throw new ConflictException('Заявка в другом статусе');
@@ -201,7 +204,7 @@ export class PlannedOrdersService implements OnModuleInit {
     const categoryIds = categories.map((c) => c.categoryId);
     if (categoryIds.length === 0) return [];
     return this.prisma.plannedOrder.findMany({
-      where: { status: 'PUBLISHED', categoryId: { in: categoryIds } },
+      where: { lifecycleModel: 'LEGACY', status: 'PUBLISHED', categoryId: { in: categoryIds } },
       orderBy: { slotStart: 'asc' },
       select: FEED_SELECT,
     });
@@ -214,6 +217,7 @@ export class PlannedOrdersService implements OnModuleInit {
       await this.prisma.$transaction(async (tx) => {
         const order = await tx.plannedOrder.findUnique({ where: { id: plannedOrderId } });
         if (!order) throw new NotFoundException('Заявка не найдена');
+        requireLegacyPlannedOrder(order);
         if (order.status !== 'PUBLISHED') throw new ConflictException('Заявка уже не принимает ставки');
         clientId = order.clientId;
 
@@ -302,7 +306,7 @@ export class PlannedOrdersService implements OnModuleInit {
   /** Джоба: мастер молчал 2 часа. bidId сверяется — устаревший вызов (после re-select) игнорируется. */
   async handleConfirmTimeout({ plannedOrderId, bidId }: { plannedOrderId: string; bidId: string }): Promise<void> {
     const order = await this.prisma.plannedOrder.findUnique({ where: { id: plannedOrderId } });
-    if (!order || order.status !== 'MASTER_SELECTED' || order.selectedBidId !== bidId) return;
+    if (!order || !isLegacyPlannedOrder(order) || order.status !== 'MASTER_SELECTED' || order.selectedBidId !== bidId) return;
     await this.returnToPublished(plannedOrderId);
   }
 
@@ -340,7 +344,7 @@ export class PlannedOrdersService implements OnModuleInit {
   /** Джоба: клиент молчал 24ч после «Выполнено». Заморожена, пока открыт спор. */
   async handleAutoClose({ plannedOrderId }: { plannedOrderId: string }): Promise<void> {
     const order = await this.prisma.plannedOrder.findUnique({ where: { id: plannedOrderId } });
-    if (!order || order.status !== 'DONE') return;
+    if (!order || !isLegacyPlannedOrder(order) || order.status !== 'DONE') return;
     if (await this.disputes.hasOpenDispute({ plannedOrderId })) return;
     await this.closeOrder(plannedOrderId);
   }
@@ -356,14 +360,14 @@ export class PlannedOrdersService implements OnModuleInit {
       where: { id: plannedOrderId },
       include: { _count: { select: { bids: true } } },
     });
-    if (!order || order.status !== 'PUBLISHED' || order._count.bids > 0) return;
+    if (!order || !isLegacyPlannedOrder(order) || order.status !== 'PUBLISHED' || order._count.bids > 0) return;
     await this.gate(plannedOrderId, 'PUBLISHED', { status: 'EXPIRED' });
     await this.emitPlannedStatus(plannedOrderId);
   }
 
   async emitPlannedStatus(plannedOrderId: string): Promise<void> {
     const order = await this.prisma.plannedOrder.findUnique({ where: { id: plannedOrderId }, include: PLANNED_ORDER_INCLUDE });
-    if (!order) return;
+    if (!order || !isLegacyPlannedOrder(order)) return;
     const base = {
       plannedOrderId: order.id,
       status: order.status,

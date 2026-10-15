@@ -2,6 +2,8 @@ import { INestApplication } from '@nestjs/common';
 import * as request from 'supertest';
 import { createTestApp, resetDb, loginAs } from './helpers';
 import { PrismaService } from '../src/prisma/prisma.service';
+import { WalletService } from '../src/wallet/wallet.service';
+import { AuditLogService } from '../src/audit-log/audit-log.service';
 
 describe('Admin: заявки на вывод (e2e)', () => {
   let app: INestApplication;
@@ -147,5 +149,66 @@ describe('Admin: заявки на вывод (e2e)', () => {
       .set('Authorization', `Bearer ${opToken}`)
       .send({ outcome: 'PAID' })
       .expect(400);
+  });
+});
+
+
+describe('Withdrawal ERROR reconciliation atomicity (real database)', () => {
+  let app: INestApplication;
+  let prisma: PrismaService;
+  beforeAll(async () => { app = await createTestApp(); prisma = app.get(PrismaService); });
+  afterAll(async () => { await app?.close(); });
+  beforeEach(async () => { await resetDb(app); });
+
+  async function seed() {
+    const master = await prisma.user.create({ data: { phone: '+77129990001' } });
+    const operator = await prisma.user.create({ data: { phone: '+77129990002', role: 'OPERATOR' } });
+    await prisma.masterWalletAccount.create({ data: { masterUserId: master.id, balance: 5000 } });
+    const withdrawal = await prisma.withdrawalRequest.create({ data: { masterUserId: master.id, amount: 8000, status: 'ERROR' } });
+    return { master, operator, withdrawal };
+  }
+
+  it.each([['FAILED', 'FAILED'], ['PAID', 'FAILED'], ['FAILED', 'PAID']] as const)(
+    'concurrent %s/%s has one resolution, one audit, and at most one release', async (first, second) => {
+      const { master, operator, withdrawal } = await seed();
+      // Force both independent requests to observe the same ERROR snapshot.
+      // Subsequent conditional updates and all side effects use the real database.
+      const originalRead = prisma.withdrawalRequest.findUnique.bind(prisma.withdrawalRequest);
+      let reads = 0;
+      let release!: () => void;
+      const bothRead = new Promise<void>((resolve) => { release = resolve; });
+      const spy = jest.spyOn(prisma.withdrawalRequest, 'findUnique').mockImplementation((async (args: Parameters<typeof originalRead>[0]) => {
+        const result = await originalRead(args);
+        if (args.where.id === withdrawal.id) { if (++reads === 2) release(); await bothRead; }
+        return result;
+      }) as unknown as typeof prisma.withdrawalRequest.findUnique);
+      let results: PromiseSettledResult<unknown>[];
+      try {
+        results = await Promise.allSettled([first, second].map((outcome) => app.get(WalletService).resolveError(operator.id, withdrawal.id, { outcome, note: 'Test reconciliation' })));
+      } finally { release(); spy.mockRestore(); }
+      expect(results.filter((result) => result.status === 'fulfilled')).toHaveLength(1);
+      const failure = results.find((result) => result.status === 'rejected') as PromiseRejectedResult;
+      expect(failure.reason.getStatus()).toBe(409);
+      const resolved = await prisma.withdrawalRequest.findUniqueOrThrow({ where: { id: withdrawal.id } });
+      const account = await prisma.masterWalletAccount.findUniqueOrThrow({ where: { masterUserId: master.id } });
+      expect(account.balance).toBe(resolved.status === 'FAILED' ? 13000 : 5000);
+      const audits = await prisma.auditLog.findMany({ where: { targetId: withdrawal.id } });
+      expect(audits).toHaveLength(1);
+      expect(audits[0].action).toBe(`WITHDRAWAL_RESOLVED_${resolved.status}`);
+      await expect(app.get(WalletService).resolveError(operator.id, withdrawal.id, { outcome: first, note: 'Retry after lost response' })).rejects.toMatchObject({ status: 409 });
+      expect((await prisma.masterWalletAccount.findUniqueOrThrow({ where: { masterUserId: master.id } })).balance).toBe(account.balance);
+      expect(await prisma.auditLog.count({ where: { targetId: withdrawal.id } })).toBe(1);
+    },
+  );
+
+  it('audit failure rolls back the resolution and returned balance together', async () => {
+    const { master, operator, withdrawal } = await seed();
+    const spy = jest.spyOn(app.get(AuditLogService), 'write').mockRejectedValueOnce(new Error('Audit unavailable'));
+    try {
+      await expect(app.get(WalletService).resolveError(operator.id, withdrawal.id, { outcome: 'FAILED', note: 'Test rollback' })).rejects.toThrow('Audit unavailable');
+    } finally { spy.mockRestore(); }
+    expect((await prisma.withdrawalRequest.findUniqueOrThrow({ where: { id: withdrawal.id } })).status).toBe('ERROR');
+    expect((await prisma.masterWalletAccount.findUniqueOrThrow({ where: { masterUserId: master.id } })).balance).toBe(5000);
+    expect(await prisma.auditLog.count({ where: { targetId: withdrawal.id } })).toBe(0);
   });
 });

@@ -1,3 +1,4 @@
+import { requireLegacyPlannedOrder } from '../planned-orders/planned-lifecycle';
 import {
   ConflictException,
   ForbiddenException,
@@ -58,6 +59,7 @@ export class DisputesService {
   async openForPlannedOrder(user: User, plannedOrderId: string, dto: OpenDisputeDto) {
     const order = await this.prisma.plannedOrder.findUnique({ where: { id: plannedOrderId } });
     if (!order) throw new NotFoundException('Заявка не найдена');
+    requireLegacyPlannedOrder(order);
     const role = this.resolveRole(user, order.clientId, order.masterId);
     this.assertWithinWindow(order.status, order.closedAt);
     return this.create(user.id, role, dto.reason, { plannedOrderId });
@@ -107,6 +109,10 @@ export class DisputesService {
   private async findOrThrow(disputeId: string) {
     const dispute = await this.prisma.dispute.findUnique({ where: { id: disputeId } });
     if (!dispute) throw new NotFoundException('Спор не найден');
+    if (dispute.plannedOrderId) {
+      const order = await this.prisma.plannedOrder.findUniqueOrThrow({ where: { id: dispute.plannedOrderId } });
+      requireLegacyPlannedOrder(order);
+    }
     return dispute;
   }
 
@@ -217,7 +223,7 @@ export class DisputesService {
       where: {
         OR: [
           { order: { OR: [{ clientId: userId }, { masterId: userId }] } },
-          { plannedOrder: { OR: [{ clientId: userId }, { masterId: userId }] } },
+          { plannedOrder: { lifecycleModel: 'LEGACY', OR: [{ clientId: userId }, { masterId: userId }] } },
         ],
       },
       select: {
@@ -235,7 +241,7 @@ export class DisputesService {
 
   async listAll(status?: 'OPEN' | 'RESOLVED') {
     return this.prisma.dispute.findMany({
-      where: status ? { status } : undefined,
+      where: { status, OR: [{ plannedOrderId: null }, { plannedOrder: { lifecycleModel: 'LEGACY' } }] },
       orderBy: { createdAt: 'desc' },
     });
   }
@@ -296,9 +302,10 @@ export class DisputesService {
         }
       } else if (plannedOrderId) {
         const order = await tx.plannedOrder.findUniqueOrThrow({ where: { id: plannedOrderId } });
+        requireLegacyPlannedOrder(order);
         if (dto.penalizeMaster && order.masterId) await this.penalties.applyPenalty(tx, order.masterId);
         if (order.status === 'DONE') {
-          await tx.plannedOrder.updateMany({ where: { id: plannedOrderId, status: 'DONE' }, data: { status: 'CLOSED', closedAt: new Date() } });
+          await tx.plannedOrder.updateMany({ where: { id: plannedOrderId, lifecycleModel: 'LEGACY', status: 'DONE' }, data: { status: 'CLOSED', closedAt: new Date() } });
         }
       }
     });

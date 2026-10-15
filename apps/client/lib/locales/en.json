@@ -127,5 +127,65 @@
     "category_locksmith": "Locks and doors",
     "category_handyman": "Minor repairs",
     "category_other": "Other services"
+  },
+  "payments": {
+    "title": "Payment methods",
+    "comingSoon": "Payment method management is coming soon",
+    "note": "The callout amount is reserved when you create a request and charged only after a master accepts. Work is paid for after your confirmation.",
+    "pilotTitle": "Free pilot",
+    "pilotNote": "The platform does not charge callout or service fees. The work price is agreed with the master after inspection, and payment is made directly."
+  },
+  "orderDetail": {
+    "priceTitle": "Work price",
+    "priceOffered": "{{name}} inspected the issue and proposes:",
+    "priceCalloutLabel": "Callout (already paid)",
+    "priceWorkLabel": "Work",
+    "priceTotalLabel": "Total",
+    "priceConfirm": "Confirm {{price}} ₸",
+    "priceReject": "Reject price",
+    "priceRejectNote": "Rejecting the price cancels the request. The callout payment is not refunded because the master has already arrived.",
+    "support": "Support",
+    "orderNumber": "Request #{{id}}",
+    "progressNote": "Total due: {{price}} ₸ (callout paid; work is paid for after completion is confirmed).",
+    "doneTitle": "The master has finished the work",
+    "doneCalloutLabel": "Callout",
+    "doneWorkLabel": "Work",
+    "doneTotalLabel": "Total",
+    "doneNote": "Check the result. If everything is in order, confirm. Otherwise, open a dispute for an operator to review.",
+    "confirmDone": "Confirm completion",
+    "openDispute": "Open a dispute",
+    "pilotPriceNote": "During the free pilot, the platform does not charge you. After confirmation, you pay the master directly; rejecting the price cancels the request.",
+    "pilotDoneNote": "Check the result and confirm completion. Pay the master directly for the work. If there is a problem, open a dispute.",
+    "pilotProgressNote": "Agreed work price: {{price}} ₸. Payment is made directly to the master."
+  },
+  "plannedDetail": {
+    "waitingConfirm": "Waiting for {{name}} to confirm",
+    "waitingConfirmHint": "usually replies within 10–20 minutes",
+    "confirmed": "{{name}} confirmed the order — contact details are available",
+    "workLabel": "Work",
+    "whenLabel": "When",
+    "cancel": "Cancel"
+  },
+  "plannedStatus": {
+    "CREATED": "Created",
+    "PUBLISHED": "Published",
+    "MASTER_SELECTED": "Master selected",
+    "CONFIRMED": "Confirmed",
+    "IN_PROGRESS": "In progress",
+    "DONE": "Completed",
+    "CLOSED": "Closed",
+    "EXPIRED": "Expired",
+    "CANCELLED_BY_CLIENT": "Cancelled by client",
+    "CANCELLED_BY_MASTER": "Cancelled by master",
+    "DISPUTE": "Dispute"
+  },
+  "legacyStatus": {
+    "ACCEPTED": "Accepted",
+    "MASTER_ON_WAY": "Master on the way",
+    "INSPECTION": "Inspection",
+    "AWAITING_PRICE_CONFIRM": "Price confirmation",
+    "IN_PROGRESS": "In progress",
+    "DONE": "Completed",
+    "CLOSED": "Closed"
   }
 }

@@ -1,3 +1,4 @@
+import { storedQuoteTotal } from './quote-amount';
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { Order, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
@@ -5,6 +6,11 @@ import { ProposePriceDto, CancelOrderDto } from './dto';
 
 const MAX_AMOUNT=2147483647;
 const afterStart=['IN_PROGRESS','DONE','CLOSED'];
+function requireCompleteQuote(order: Order) {
+  if (storedQuoteTotal(order) === null) {
+    throw new ConflictException('Согласованная сумма недоступна. Обновите заказ.');
+  }
+}
 function conflict() { throw new ConflictException('Состояние или версия заказа изменились. Обновите заказ.'); }
 
 @Injectable()
@@ -59,6 +65,7 @@ export class DirectOrderLifecycleService {
       if(!Number.isInteger(quoteVersion) || !quoteVersion || order.quoteVersion!==quoteVersion) conflict();
       if(order.consentedVersion===quoteVersion && ['PRICE_APPROVED',...afterStart].includes(order.status)) return null;
       if(order.status!=='AWAITING_PRICE_CONFIRM') conflict();
+      requireCompleteQuote(order);
       return {status:'PRICE_APPROVED',consentedVersion:quoteVersion,quoteApprovedAt:new Date()};
     });
   }
@@ -68,6 +75,7 @@ export class DirectOrderLifecycleService {
       if(!quoteVersion || order.quoteVersion!==quoteVersion || order.consentedVersion!==quoteVersion) conflict();
       if(order.workStartedAt && afterStart.includes(order.status)) return null;
       if(order.status!=='PRICE_APPROVED') conflict();
+      requireCompleteQuote(order);
       return {status:'IN_PROGRESS',workStartedAt:new Date()};
     });
   }
@@ -84,6 +92,7 @@ export class DirectOrderLifecycleService {
     return this.change(userId,id,'client',order=>{
       if(order.status==='CLOSED') return null;
       if(order.status!=='DONE') conflict();
+      requireCompleteQuote(order);
       return {status:'CLOSED',closedAt:new Date()};
     });
   }

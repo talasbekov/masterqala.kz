@@ -1,3 +1,4 @@
+import {isKnownQuoteAmount} from './quote-amount';
 import {useLocale} from './Locale';
 export interface DirectOrder {
   id:string;entrance?:string|null;floor?:string|null;apartment?:string|null;status:string;lifecycleVersion:number;commercialMode?:string;description:string;address:string;
@@ -8,7 +9,7 @@ export interface DirectOrder {
 }
 export function QuoteCard({order}:{order:Pick<DirectOrder,'id'|'workPrice'|'materialsPrice'|'calloutPrice'|'quoteTotal'|'workComment'>}) {
   const{t,formatMoney}=useLocale();
-  const money=(value:number|null)=>value==null?'—':formatMoney(value);
+  const money=(value:number|null)=>isKnownQuoteAmount(value)?formatMoney(value):'—';
   return <section className="flex flex-col gap-3 rounded-lg bg-fill-soft p-4 md:bg-surface md:p-6">
     {order.workComment&&<h2 className="break-words text-xl font-semibold text-primary">{order.workComment}</h2>}
     <p className="text-xs text-ink-soft">{t('orderNumber',{id:order.id.slice(0,8)})}</p>

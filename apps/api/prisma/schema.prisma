@@ -255,6 +255,13 @@ model Accrual {
   order        Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
 }
 
+// PLATFORM_V1_RESERVED has no executable creation or lifecycle route yet.
+// Existing records and current creation retain their historical commercial behavior.
+enum PlannedLifecycleModel {
+  LEGACY
+  PLATFORM_V1_RESERVED
+}
+
 model PlannedOrder {
   id             String              @id @default(uuid())
   clientId       String
@@ -263,6 +270,7 @@ model PlannedOrder {
   address        String
   district       String
   status         PlannedOrderStatus  @default(CREATED)
+  lifecycleModel PlannedLifecycleModel @default(LEGACY)
   commercialMode CommercialMode      @default(PAID_MOCK)
   masterId       String?
   selectedBidId  String?             @unique

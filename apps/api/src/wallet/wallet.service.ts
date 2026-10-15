@@ -147,14 +147,19 @@ export class WalletService {
       throw new ConflictException('Заявка не в статусе ошибки — сверка не требуется');
     }
 
-    await this.prisma.$transaction(async (tx) => {
-      if (input.outcome === 'PAID') {
-        await tx.withdrawalRequest.update({
-          where: { id: withdrawalId },
-          data: { status: 'PAID', paidAt: new Date(), providerRef: input.reference ?? withdrawal.providerRef },
-        });
-      } else {
-        await tx.withdrawalRequest.update({ where: { id: withdrawalId }, data: { status: 'FAILED' } });
+    return this.prisma.$transaction(async (tx) => {
+      // Only the winner may release the reserved balance or write a resolution.
+      // PostgreSQL rechecks this predicate after a concurrent update commits.
+      const resolved = await tx.withdrawalRequest.updateMany({
+        where: { id: withdrawalId, status: 'ERROR' },
+        data: input.outcome === 'PAID'
+          ? { status: 'PAID', paidAt: new Date(), providerRef: input.reference ?? withdrawal.providerRef }
+          : { status: 'FAILED' },
+      });
+      if (resolved.count !== 1) {
+        throw new ConflictException('Заявка не в статусе ошибки — сверка не требуется');
+      }
+      if (input.outcome === 'FAILED') {
         await tx.masterWalletAccount.update({
           where: { masterUserId: withdrawal.masterUserId },
           data: { balance: { increment: withdrawal.amount } },
@@ -171,8 +176,7 @@ export class WalletService {
         },
         tx,
       );
+      return tx.withdrawalRequest.findUniqueOrThrow({ where: { id: withdrawalId } });
     });
-
-    return this.prisma.withdrawalRequest.findUniqueOrThrow({ where: { id: withdrawalId } });
   }
 }

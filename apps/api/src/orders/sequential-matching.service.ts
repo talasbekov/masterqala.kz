@@ -53,7 +53,7 @@ export class SequentialMatchingService implements OnModuleInit {
           AND (pr."blockedUntil" IS NULL OR pr."blockedUntil"<now()) AND u.id<>${order.clientId}
           AND mp.location IS NOT NULL AND o.location IS NOT NULL AND ST_DWithin(mp.location,o.location,10000)
           AND NOT EXISTS(SELECT 1 FROM "Order" busy WHERE busy."masterId"=u.id AND (busy.status IN (${active}) OR (busy."lifecycleVersion">=2 AND busy.status='DONE')))
-          AND NOT EXISTS(SELECT 1 FROM "PlannedOrder" busy WHERE busy."masterId"=u.id AND busy.status='IN_PROGRESS')
+          AND NOT EXISTS(SELECT 1 FROM "PlannedOrder" busy WHERE busy."masterId"=u.id AND busy."lifecycleModel"='LEGACY' AND busy.status='IN_PROGRESS')
           AND NOT EXISTS(SELECT 1 FROM "OrderOffer" offered WHERE offered."orderId"=${orderId} AND offered."masterUserId"=u.id AND (offered.attempt=${order.searchAttempt} OR offered.outcome='ACCEPTED'))
           AND NOT EXISTS(SELECT 1 FROM "OrderOffer" other WHERE other."masterUserId"=u.id AND other.outcome='PENDING' AND other.sequential=true AND other."expiresAt">now())
         ORDER BY meters ASC,u.id ASC LIMIT 1`;

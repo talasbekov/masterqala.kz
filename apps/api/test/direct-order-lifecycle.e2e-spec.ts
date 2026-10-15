@@ -73,3 +73,36 @@ describe('Direct quote and explicit acceptance (e2e)',()=>{
     expect(await app.get(PrismaService).paymentTransaction.count({where:{orderId:order.id}})).toBe(0);
   });
 });
+
+describe('Direct stored quote amount guards (e2e)',()=>{
+  let app:INestApplication;
+  const previous=process.env.COMMERCIAL_MODE;
+  beforeAll(async()=>{process.env.COMMERCIAL_MODE='DIRECT_PAYMENT';app=await createTestApp();});
+  afterAll(async()=>{await app?.close();if(previous===undefined)delete process.env.COMMERCIAL_MODE;else process.env.COMMERCIAL_MODE=previous;});
+  beforeEach(async()=>resetDb(app));
+  it('an incomplete persisted quote cannot be approved, started or accepted',async()=>{
+    const {plumbing}=await seedCategories(app),client=await loginAs(app,'+77073000031');
+    const master=await createActiveMaster(app,'+77073000032',plumbing.id,pointAtKm(1));
+    const order=await createOrderViaApi(app,client.token,plumbing.id);
+    const post=(token:string,action:string,body:object={})=>request(app.getHttpServer()).post(`/api/v1/orders/${order.id}/${action}`).set('Authorization',`Bearer ${token}`).send(body);
+    await app.get(MatchingService).handleWave({orderId:order.id,wave:1});
+    await post(master.token,'accept').expect(201);
+    await post(master.token,'on-way').expect(201);
+    await post(master.token,'on-site').expect(201);
+    await post(master.token,'propose-price',{amount:8000,materialsPrice:3500,calloutPrice:2500,expectedQuoteVersion:0}).expect(201);
+    const prisma=app.get(PrismaService);
+    await prisma.order.update({where:{id:order.id},data:{workPrice:null}});
+    const read = await request(app.getHttpServer()).get(`/api/v1/orders/${order.id}`).set('Authorization',`Bearer ${client.token}`).expect(200);
+    expect(read.body.quoteTotal).toBeNull();
+    await post(client.token,'confirm-price',{quoteVersion:1}).expect(409);
+    expect((await prisma.order.findUniqueOrThrow({where:{id:order.id}})).consentedVersion).toBeNull();
+    await prisma.order.update({where:{id:order.id},data:{status:'PRICE_APPROVED',consentedVersion:1}});
+    await post(master.token,'start-work',{quoteVersion:1}).expect(409);
+    expect((await prisma.order.findUniqueOrThrow({where:{id:order.id}})).workStartedAt).toBeNull();
+    await prisma.order.update({where:{id:order.id},data:{status:'DONE'}});
+    await post(client.token,'confirm-completion').expect(409);
+    expect((await prisma.order.findUniqueOrThrow({where:{id:order.id}})).closedAt).toBeNull();
+    expect(await prisma.paymentTransaction.count({where:{orderId:order.id}})).toBe(0);
+    expect(await prisma.accrual.count({where:{orderId:order.id}})).toBe(0);
+  });
+});

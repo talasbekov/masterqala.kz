@@ -17,7 +17,7 @@ function fixture(status='AWAITING_PRICE_CONFIRM') {
   const prisma:any={order:delegate,orderOffer:{findMany:async()=>[],updateMany:async()=>({count:0})},dispute:{findFirst:async()=>null},$queryRaw:async()=>[{id:state.id}],
     $transaction:async(fn:any)=>fn(prisma)};
   const queue:any={send:jest.fn()},gateway:any={emitToUser:jest.fn()},payments:any={},penalties:any={},compensation:any={accrueCallout:jest.fn()},
-    disputes:any={hasOpenDispute:async()=>false},storage:any={},reviews:any={attachRating:async(value:any)=>value},audit:any={write:jest.fn()},mode:any={mode:()=> 'DIRECT_PAYMENT'};
+    disputes:any={hasOpenDispute:async()=>false},storage:any={},reviews:any={attachRating:async(value:any)=>value,attachRatingToAll:async(value:any)=>value},audit:any={write:jest.fn()},mode:any={mode:()=> 'DIRECT_PAYMENT'};
   const Constructor:any=OrdersService;
   const service:any=new Constructor(prisma,{},queue,gateway,payments,penalties,compensation,disputes,storage,reviews,audit,mode,new DirectOrderLifecycleService(prisma));
   return{service,state,queue,compensation,prisma};
@@ -71,5 +71,47 @@ describe('Direct cancellation',()=>{
     const{service,state}=fixture('MASTER_ON_WAY');
     await expect(service.cancel({id:'client-1'},'order-1',{expectedAmount:0,expectedUpdatedAt:state.updatedAt.toISOString()})).rejects.toMatchObject({status:409});
     expect(state.status).toBe('MASTER_ON_WAY');
+  });
+});
+
+describe('Direct quote incomplete stored amounts',()=>{
+  it.each([null,undefined,NaN,Infinity,-1])('does not approve or start with unavailable work amount %s',async(workPrice)=>{
+    const {service,state}=fixture();state.workPrice=workPrice;
+    await expect(service.confirmPrice('client-1','order-1',{quoteVersion:1})).rejects.toThrow();
+    expect(state.status).toBe('AWAITING_PRICE_CONFIRM');expect(state.consentedVersion).toBeNull();
+    state.status='PRICE_APPROVED';state.consentedVersion=1;
+    await expect(service.startWork('master-1','order-1',{quoteVersion:1})).rejects.toThrow();
+    expect(state.status).toBe('PRICE_APPROVED');expect(state.workStartedAt).toBeNull();
+    state.status='DONE';
+    await expect(service.confirmCompletion('client-1','order-1')).rejects.toThrow();
+    expect(state.status).toBe('DONE');expect(state.closedAt).toBeNull();
+  });
+  it.each(['materialsPrice','calloutPrice'])('blocks unavailable %s and an overflowing total',async(field)=>{
+    const {service,state}=fixture('PRICE_APPROVED');state.consentedVersion=1;state[field]=null;
+    await expect(service.startWork('master-1','order-1',{quoteVersion:1})).rejects.toThrow();
+    state[field]=2147483647;
+    await expect(service.startWork('master-1','order-1',{quoteVersion:1})).rejects.toThrow();
+    expect(state.workStartedAt).toBeNull();
+  });
+});
+
+describe('Direct quote read serialization',()=>{
+  it.each(['workPrice','materialsPrice','calloutPrice'])('never substitutes missing/malformed %s when serializing reads',async(field)=>{
+    for(const value of [null,undefined,NaN,Infinity,-1,0.5]){
+      const {service,state,prisma}=fixture('PRICE_APPROVED');state[field]=value;
+      prisma.order.findMany=async()=>[{...state}];prisma.order.findFirst=async()=>({...state});
+      expect((await service.findOrThrow('order-1')).quoteTotal).toBeNull();
+      expect((await service.getById({id:'client-1'},'order-1')).quoteTotal).toBeNull();
+      expect((await service.listMine('client-1'))[0].quoteTotal).toBeNull();
+      expect((await service.getMasterActive('master-1')).order.quoteTotal).toBeNull();
+    }
+  });
+  it('a complete zero is known, overflow and an absent version are not',async()=>{
+    const {service,state}=fixture();state.workPrice=0;state.materialsPrice=0;state.calloutPrice=0;
+    expect((await service.findOrThrow('order-1')).quoteTotal).toBe(0);
+    state.workPrice=2147483647;state.materialsPrice=1;
+    expect((await service.findOrThrow('order-1')).quoteTotal).toBeNull();
+    state.workPrice=1000;state.materialsPrice=0;state.quoteVersion=0;
+    expect((await service.findOrThrow('order-1')).quoteTotal).toBeNull();
   });
 });

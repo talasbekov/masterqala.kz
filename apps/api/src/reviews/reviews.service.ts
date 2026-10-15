@@ -1,3 +1,4 @@
+import { requireLegacyPlannedOrder } from '../planned-orders/planned-lifecycle';
 import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
@@ -33,6 +34,7 @@ export class ReviewsService {
   async submitForPlannedOrder(clientId: string, plannedOrderId: string, dto: SubmitReviewDto) {
     const order = await this.prisma.plannedOrder.findUnique({ where: { id: plannedOrderId } });
     if (!order) throw new NotFoundException('Заявка не найдена');
+    requireLegacyPlannedOrder(order);
     if (order.clientId !== clientId) throw new ForbiddenException('Нет доступа к заявке');
     if (order.status !== 'CLOSED') throw new ConflictException('Отзыв можно оставить только после закрытия заявки');
     this.assertWithinReviewWindow(order.closedAt);

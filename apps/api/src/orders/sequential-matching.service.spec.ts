@@ -27,6 +27,7 @@ describe('Sequential deferred candidate event/expiry contract', () => {
     expect(eligibility.sql).not.toMatch(/FOR UPDATE/);
     expect(selection.sql.replace(/\s*FOR UPDATE OF u SKIP LOCKED\s*$/, '')).toBe(eligibility.sql.trimEnd());
     expect(selection.values).toEqual(eligibility.values);
+    expect(selection.sql).toContain(`busy."lifecycleModel"='LEGACY'`);
   });
 
   it('still closes an expired offer while deferring a temporarily locked next candidate', async () => {

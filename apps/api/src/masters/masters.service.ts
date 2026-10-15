@@ -206,7 +206,7 @@ export class MastersService {
   async getMyStats(userId: string): Promise<MasterStats> {
     const [orderCount, plannedCount, accrualAgg, ratingSummary] = await Promise.all([
       this.prisma.order.count({ where: { masterId: userId, status: 'CLOSED' } }),
-      this.prisma.plannedOrder.count({ where: { masterId: userId, status: 'CLOSED' } }),
+      this.prisma.plannedOrder.count({ where: { masterId: userId, lifecycleModel: 'LEGACY', status: 'CLOSED' } }),
       this.prisma.accrual.aggregate({ where: { masterUserId: userId }, _sum: { amount: true } }),
       this.reviews.getMasterRatingSummary(userId),
     ]);
