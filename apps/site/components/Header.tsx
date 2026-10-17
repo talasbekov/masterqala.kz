@@ -2,14 +2,18 @@
 import Link from 'next/link';
 import {LOCALE_COPY,useLanguageDialog,useLocale} from '@masterqala/ui';
 import {siteText} from '../lib/site-copy';
-export function Header({appUrl}:{appUrl:string|null}) {
-  const {language}=useLocale(),open=useLanguageDialog();
-  const links=[{href:'/become-a-master',key:'master'},{href:'/about',key:'about'},{href:'/faq',key:'faq'}] as const;
-  const navigation=<>{links.map(link=><Link key={link.href} href={link.href} className="text-sm text-ink-soft hover:text-ink">{siteText(language,link.key)}</Link>)}{appUrl&&<a href={appUrl} className="mq-site-primary">{siteText(language,'login')}</a>}</>;
-  return <header className="relative border-b border-border bg-surface"><div className="mx-auto flex min-h-[88px] max-w-6xl flex-wrap items-center gap-4 px-6 py-4">
-    <Link href="/" className="mr-auto text-lg font-semibold text-ink">MasterQala</Link>
-    <nav aria-label={siteText(language,'navigation')} className="hidden items-center gap-6 md:flex">{navigation}</nav>
-    <button type="button" aria-haspopup="dialog" aria-label={LOCALE_COPY[language].title} onClick={open} className="min-h-[44px] rounded-md bg-fill-soft px-4 font-semibold text-primary">{language==='kk'?'KZ':language.toUpperCase()}</button>
-    <details className="md:hidden"><summary className="min-h-[44px] cursor-pointer list-none py-3 text-sm font-semibold">{siteText(language,'menu')}</summary><nav aria-label={siteText(language,'navigation')} className="absolute inset-x-0 top-full z-10 flex flex-col gap-4 border-b border-border bg-surface px-6 py-4">{navigation}</nav></details>
-  </div></header>;
+import {publicText} from '../lib/public-content';
+import {editorialText as text} from '../lib/editorial-copy';
+export function Header({appUrl,landing=true}:{appUrl:string|null;landing?:boolean}) {
+ const {language,setLanguage}=useLocale(),open=useLanguageDialog();
+ const links=<><Link href="/#services">{text(language,'services')}</Link><Link href="/about">{publicText(language,'how')}</Link><Link href="/become-a-master">{text(language,'navMaster')}</Link></>;
+ return <header className={landing?'mq-site-header mq-site-header-landing':'mq-site-header mq-site-header-current'}>
+  <div className="mq-site-header-inner">
+   <Link href="/" className="mq-site-brand">MasterQala</Link>
+   {landing?<nav className="mq-site-desktop-nav" aria-label={siteText(language,'navigation')}>{links}</nav>:<p className="mq-site-header-context">{text(language,'context')}</p>}
+   {landing?<button type="button" className="mq-site-language" aria-haspopup="dialog" aria-label={LOCALE_COPY[language].title} onClick={open}>{text(language,'city')} · {language==='kk'?'KZ':language.toUpperCase()}</button>:
+    <div className="mq-site-languages">{(['ru','kk','en'] as const).map(code=><button key={code} type="button" lang={code} aria-pressed={code===language} aria-haspopup={code===language?'dialog':undefined} aria-label={code===language?LOCALE_COPY[language].title:undefined} onClick={code===language?open:()=>setLanguage(code)}>{code==='kk'?'KZ':code.toUpperCase()}</button>)}</div>}
+   {landing&&<details className="mq-site-mobile-menu"><summary>{siteText(language,'menu')}</summary><nav aria-label={siteText(language,'navigation')}>{links}<Link href="/faq">{text(language,'navFaq')}</Link>{appUrl&&<a href={appUrl+'/'}>{siteText(language,'login')}</a>}</nav></details>}
+  </div>
+ </header>;
 }

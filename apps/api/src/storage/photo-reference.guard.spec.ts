@@ -14,6 +14,13 @@ describe('PhotoReferenceGuard', () => {
     };
   }
 
+  it('validates on the supplied transaction without acquiring another connection', async () => {
+    const root = { $queryRaw: async () => { throw new Error('pool exhausted'); } };
+    const tx = { $queryRaw: async () => [{ count: 1n }] };
+    const guard = new PhotoReferenceGuard(root as never, { exists: async () => true } as never);
+    await expect((guard as any).assertAvailable(userId, [validPath], tx)).resolves.toBeUndefined();
+  });
+
   it('пропускает только CLEAN upload владельца до TTL и consume', async () => {
     const { guard, prisma, storage } = setup(1, true);
 

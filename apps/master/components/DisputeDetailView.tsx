@@ -1,14 +1,12 @@
 'use client';
 import Link from 'next/link';
-import {Button,OrderDisputeView,disputeText,useLocale,useOrderDispute,type DisputeSummary} from '@masterqala/ui';
+import {Button,disputeText,useLocale,type DisputeSummary} from '@masterqala/ui';
 import {useAuth} from '../lib/auth';
-import {api,apiUpload} from '../lib/api';
 import {useMasterDisputes} from '../lib/useMasterDisputes';
+import {OwnedMasterDispute} from './desktop-dispute/DesktopDispute';
 function VerifiedDetail({ownerId,summary}:{ownerId:string;summary:DisputeSummary}) {
-  const {language}=useLocale();
   const kind=summary.orderId?'orders':'planned-orders',id=(summary.orderId??summary.plannedOrderId)!;
-  const controller=useOrderDispute({ownerId,target:{kind,id},expectedDisputeId:summary.id,api,upload:apiUpload});
-  return <OrderDisputeView controller={controller} role="master" orderHref={`/${kind==='orders'?'order':'planned'}/${encodeURIComponent(id)}`} listHref="/disputes" confirmReply={()=>window.confirm(disputeText(language,'confirmReply'))} renderLink={({href,children,className,ariaLabel})=><Link href={href} className={className} aria-label={ariaLabel}>{children}</Link>}/>;
+  return <OwnedMasterDispute key={`${ownerId}:${kind}:${id}:${summary.id}`} ownerId={ownerId} kind={kind} id={id} expectedDisputeId={summary.id}/>;
 }
 export function DisputeDetailView({disputeId}:{disputeId:string}) {
   const {user}=useAuth(),{language}=useLocale();

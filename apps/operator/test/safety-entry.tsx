@@ -23,3 +23,5 @@ export {useOperatorUserRead,useOperatorUserAction} from '../lib/operator-users-c
 export {default as Users} from '../app/(app)/users/page';
 export {useOperatorSecurityReads,useOperatorSecurityAction} from '../lib/operator-security-controller';
 export {default as Security} from '../app/(app)/security/page';
+
+export {default as Withdrawals} from '../app/(app)/withdrawals/page';

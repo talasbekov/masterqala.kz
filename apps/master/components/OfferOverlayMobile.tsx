@@ -2,18 +2,20 @@
 import {Button,useLocale} from '@masterqala/ui';
 import { useMasterPresence } from '@/lib/masterPresence';
 import { useCountdown } from '@/lib/useCountdown';
+import {offerNoticeText,urgentCopy} from './desktop-urgent/copy';
 
 export function OfferOverlayMobile() {
   const { offer, offerNote, acceptingOffer, acceptOffer, declineOffer, dismissOfferNote } = useMasterPresence();
-  const {t}=useLocale();
+  const {t,language}=useLocale();
+  const c=urgentCopy[language];
   const secondsLeft = useCountdown(offer?.deadline ?? null);
 
   if (!offer) {
     if (!offerNote) return null;
     return (
-      <div className="fixed inset-x-4 bottom-20 z-50 flex items-start gap-3 rounded-md border border-border bg-fill-soft p-3 text-sm text-ink-soft shadow-lg md:hidden">
-        <p className="flex-1">{offerNote}</p>
-        <button type="button" onClick={dismissOfferNote} aria-label="Скрыть уведомление" className="text-ink-soft">
+      <div role="status" className="fixed inset-x-4 bottom-20 z-50 flex items-start gap-3 rounded-md border border-border bg-fill-soft p-3 text-sm text-ink-soft shadow-lg md:hidden">
+        <p className="min-w-0 flex-1 break-words">{offerNoticeText(offerNote,language)}</p>
+        <button type="button" onClick={dismissOfferNote} aria-label={c.dismiss} className="min-h-11 min-w-11 text-ink-soft">
           ✕
         </button>
       </div>

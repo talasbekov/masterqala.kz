@@ -28,7 +28,7 @@ export const PLANNED_ORDER_INCLUDE = {
 export const FEED_SELECT = {
   id: true,
   categoryId: true,
-  category: { select: { id: true, name: true } },
+  category: { select: { id: true, name: true, slug: true } },
   district: true,
   description: true,
   slotStart: true,

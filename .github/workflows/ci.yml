@@ -71,6 +71,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Check isolated test deployment guards
+        run: node --test scripts/test-production/guard.test.cjs
+
       - name: Build and test shared UI
         run: pnpm --filter @masterqala/ui run test
 

@@ -19,9 +19,9 @@ for(const language of ['ru','kk','en'])test(`${language} actual catalog searches
   const pending=window.sessionStorage.getItem(ui.CREATE_PENDING_KEY),saved=window.sessionStorage.getItem(ui.DRAFT_STORAGE_KEY);
   const input=document.querySelector('input[type="search"]');
   await act(async()=>{Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype,'value').set.call(input,' ACTUAL ');input.dispatchEvent(new window.Event('input',{bubbles:true}));});
-  const link=document.querySelector('a[href="/order/new"]');assert.match(link.getAttribute('aria-label'),/Actual service/);
+  const link=document.querySelector('a[href="/?category=fixture-cat"]');assert.match(link.getAttribute('aria-label'),/Actual service/);
   await act(async()=>link.dispatchEvent(new window.MouseEvent('click',{bubbles:true,cancelable:true,button:0})));
-  assert.match(document.body.textContent,/Actual destination \/order\/new/);
+  assert.match(document.body.textContent,/Actual destination \/\?category=fixture-cat/);
   assert.equal(window.sessionStorage.getItem(ui.CREATE_PENDING_KEY),pending);assert.equal(window.sessionStorage.getItem(ui.DRAFT_STORAGE_KEY),saved);
   assert.ok(a.reads.every(r=>r.method==='GET'));assert.equal(a.reads.length,1);
  }finally{await a.cleanup()}

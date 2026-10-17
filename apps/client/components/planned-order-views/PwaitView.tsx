@@ -1,5 +1,6 @@
 'use client';
-import { useState } from 'react';
+import {formatServiceDate} from '@masterqala/ui';
+import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
 import { api } from '@/lib/api';
@@ -16,42 +17,47 @@ export default function PwaitView({
   orderId: string;
   onChanged: () => void;
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const dateLocale=i18n.resolvedLanguage?.startsWith('kk')?'kk-KZ':i18n.resolvedLanguage?.startsWith('en')?'en-GB':'ru-RU';
   const router = useRouter();
   const [selected, setSelected] = useState<PlannedBid | null>(null);
   const [error, setError] = useState('');
+  const cancelling=useRef(false);
+  const [busy,setBusy]=useState(false);
 
   async function cancel() {
+    if(cancelling.current)return;
+    cancelling.current=true;setBusy(true);
     setError('');
     try {
       await api(`/planned-orders/${orderId}/cancel`, { method: 'POST' });
       onChanged();
     } catch (e) {
       setError((e as Error).message);
-    }
+    } finally {cancelling.current=false;setBusy(false);}
   }
 
   if (selected) {
-    return <SelectBidConfirm plannedOrderId={orderId} bid={selected} onBack={() => setSelected(null)} />;
+    return <SelectBidConfirm plannedOrderId={orderId} bid={selected} onBack={() => setSelected(null)} onSelected={()=>{setSelected(null);onChanged();}} />;
   }
 
   const cheapestId = order.bids.length ? order.bids.reduce((a, b) => (b.price < a.price ? b : a)).id : null;
   const slotDate = new Date(order.slotStart);
-  const when = `${slotDate.toLocaleDateString('ru-RU', { day: '2-digit', month: 'long' })}`;
+  const when = `${formatServiceDate(slotDate,dateLocale,{day:'2-digit',month:'long'})}`;
 
   return (
     <div className="mx-auto flex w-full max-w-[560px] flex-col gap-3 px-5 pb-3.5 pt-1.5">
       <div className="flex items-center gap-2.5">
-        <button type="button" onClick={() => router.push('/')} className="text-xl text-primary">
+        <button type="button" onClick={() => router.push('/orders')} className="text-xl text-primary">
           ←
         </button>
-        <span className="flex-1 truncate text-[17px] font-extrabold text-ink">{order.category?.name}</span>
+        <span className="flex-1 truncate text-[17px] font-extrabold text-ink">{t(`newOrder.category_${order.category?.slug}`,{defaultValue:order.category?.name??''})}</span>
         <span className="rounded-pill bg-fill-soft px-2.5 py-1 text-[11px] font-extrabold text-primary">
           {t('plannedDetail.publishedBadge')}
         </span>
       </div>
       <div className="rounded-md bg-fill px-3.5 py-2.5 text-[12.5px] font-semibold text-ink">
-        {categoryMeta(order.category?.slug ?? '').icon} {order.category?.name} · {when} · {order.district}
+        {categoryMeta(order.category?.slug ?? '').icon} {t(`newOrder.category_${order.category?.slug}`,{defaultValue:order.category?.name??''})} · {when} · {order.district}
         {order.budget && ` · ~${order.budget} ₸`}
       </div>
       <div className="flex items-baseline justify-between">
@@ -76,11 +82,11 @@ export default function PwaitView({
               </div>
               <div>
                 <div className="text-sm font-extrabold text-ink">
-                  {b.master.name} <span className="text-xs text-success">✓</span>
+                  {b.master.name} {b.master.verified&&<span className="text-xs text-success">✓</span>}
                 </div>
                 <div className="text-[11.5px] font-semibold text-ink-soft">
                   ★ {b.master.rating?.toFixed(1) ?? '—'} · {t('plannedDetail.ordersShort', { n: b.master.completedCount })} ·{' '}
-                  {b.master.experienceYears} лет
+                  {b.master.experienceYears} {dateLocale==='kk-KZ'?'жыл тәжірибе':dateLocale==='en-GB'?'years of experience':'лет опыта'}
                 </div>
               </div>
             </div>
@@ -120,6 +126,7 @@ export default function PwaitView({
         <button
           type="button"
           onClick={cancel}
+          disabled={busy}
           className="flex-1 rounded-pill border-[1.5px] border-danger p-3 text-[13.5px] font-extrabold text-danger"
         >
           {t('plannedDetail.cancel')}

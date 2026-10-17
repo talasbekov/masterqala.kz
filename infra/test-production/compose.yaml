@@ -1,0 +1,114 @@
+name: masterqala-test-production
+
+x-api-environment: &api-environment
+  MQ_TEST_PRODUCTION: isolated-local-only
+  NODE_ENV: test
+  COMMERCIAL_MODE: FREE_PILOT
+  DATABASE_URL: postgresql://mq_test_production:${TEST_DB_PASSWORD:?Run init first}@db:5432/masterqala_test_production
+  JWT_SECRET: ${TEST_JWT_SECRET:?Run init first}
+  PORT: "3000"
+  CORS_ORIGINS: http://127.0.0.1:14100,http://127.0.0.1:14200,http://127.0.0.1:14300,http://127.0.0.1:14400
+  TRUST_PROXY_HOPS: "0"
+  SMS_PROVIDER_MODE: CONSOLE
+  FILE_SCAN_MODE: DISABLED
+  PDF_CDR_MODE: BYPASS
+  PGBOSS_DISABLED: "0"
+  UPLOAD_DIR: /var/lib/masterqala-test/uploads
+  OPERATOR_PHONE: "+77000000103"
+
+x-ui: &ui
+  restart: "no"
+  depends_on:
+    api:
+      condition: service_healthy
+  healthcheck:
+    test: [CMD, node, -e, "fetch('http://127.0.0.1:3000/').then(r=>process.exit(r.status<400?0:1)).catch(()=>process.exit(1))"]
+    interval: 15s
+    timeout: 10s
+    retries: 12
+    start_period: 30s
+
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    pull_policy: never
+    restart: "no"
+    environment:
+      POSTGRES_USER: mq_test_production
+      POSTGRES_PASSWORD: ${TEST_DB_PASSWORD:?Run init first}
+      POSTGRES_DB: masterqala_test_production
+    ports: ["127.0.0.1:15432:5432"]
+    volumes: [test-db:/var/lib/postgresql/data]
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U mq_test_production -d masterqala_test_production"]
+      interval: 5s
+      timeout: 5s
+      retries: 24
+
+  release:
+    image: masterqala-test-production-api:local
+    build:
+      context: ../..
+      dockerfile: infra/test-production/Dockerfile
+      target: api
+    restart: "no"
+    environment: *api-environment
+    command: [node, /app/scripts/test-production/release.cjs]
+    depends_on:
+      db:
+        condition: service_healthy
+
+  api:
+    image: masterqala-test-production-api:local
+    restart: "no"
+    environment: *api-environment
+    ports: ["127.0.0.1:13000:3000"]
+    volumes: [test-uploads:/var/lib/masterqala-test/uploads]
+    depends_on:
+      release:
+        condition: service_completed_successfully
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:3000/api/v1/health/ready').then(async r=>process.exit(r.ok&&(await r.json()).ready?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 30s
+
+  site:
+    <<: *ui
+    build:
+      context: ../..
+      dockerfile: infra/test-production/Dockerfile
+      target: ui
+      args: {APP: site}
+    ports: ["127.0.0.1:14100:3000"]
+  client:
+    <<: *ui
+    build:
+      context: ../..
+      dockerfile: infra/test-production/Dockerfile
+      target: ui
+      args: {APP: client}
+    ports: ["127.0.0.1:14200:3000"]
+  master:
+    <<: *ui
+    build:
+      context: ../..
+      dockerfile: infra/test-production/Dockerfile
+      target: ui
+      args: {APP: master}
+    ports: ["127.0.0.1:14300:3000"]
+  operator:
+    <<: *ui
+    build:
+      context: ../..
+      dockerfile: infra/test-production/Dockerfile
+      target: ui
+      args: {APP: operator}
+    ports: ["127.0.0.1:14400:3000"]
+
+volumes:
+  test-db:
+    name: masterqala_test_production_db
+  test-uploads:
+    name: masterqala_test_production_uploads

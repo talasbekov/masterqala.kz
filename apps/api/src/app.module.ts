@@ -5,6 +5,7 @@ import { CommonModule } from './common/common.module';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { MastersModule } from './masters/masters.module';
+import { MasterHistoryModule } from './master-history/master-history.module';
 import { UploadsModule } from './uploads/uploads.module';
 import { AdminModule } from './admin/admin.module';
 import { PaymentsModule } from './payments/payments.module';
@@ -40,6 +41,7 @@ import { AdminMetricsModule } from './admin-metrics/admin-metrics.module';
     AuthModule,
     UsersModule,
     MastersModule,
+    MasterHistoryModule,
     UploadsModule,
     AdminModule,
     AdminUsersModule,

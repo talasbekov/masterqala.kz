@@ -1,0 +1,3 @@
+import type {Locale} from '@masterqala/ui';
+const names:Record<string,Record<Locale,string>>={plumbing:{ru:'Сантехника',kk:'Сантехника',en:'Plumbing'},electrics:{ru:'Электрика',kk:'Электрика',en:'Electrical work'},appliances:{ru:'Бытовая техника',kk:'Тұрмыстық техника',en:'Home appliances'},locksmith:{ru:'Замки и двери',kk:'Құлыптар мен есіктер',en:'Locks and doors'},handyman:{ru:'Мелкий ремонт',kk:'Ұсақ жөндеу',en:'Minor repairs'},other:{ru:'Другие услуги',kk:'Басқа қызметтер',en:'Other services'}};
+export function masterCategoryName(category:{slug?:string;name:string},language:Locale){return category.slug&&names[category.slug]?names[category.slug][language]:category.name;}

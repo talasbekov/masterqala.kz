@@ -8,6 +8,7 @@ datasource db {
 }
 
 model User {
+  plannedCreationRequests PlannedOrderCreationRequest[]
   language String @default("ru")
   id                     String                  @id @default(uuid())
   phone                  String                  @unique
@@ -262,7 +263,23 @@ enum PlannedLifecycleModel {
   PLATFORM_V1_RESERVED
 }
 
+model PlannedOrderCreationRequest {
+  id                String       @id @default(uuid())
+  ownerId           String
+  requestKey        String
+  payloadHash       String
+  orderId           String       @unique
+  expiryScheduledAt DateTime?
+  createdAt         DateTime     @default(now())
+  owner             User         @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  order             PlannedOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@unique([ownerId, requestKey])
+  @@index([expiryScheduledAt, createdAt])
+}
+
 model PlannedOrder {
+  creationRequest PlannedOrderCreationRequest?
   id             String              @id @default(uuid())
   clientId       String
   categoryId     String

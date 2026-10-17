@@ -159,6 +159,16 @@
     "pilotProgressNote": "Agreed work price: {{price}} ₸. Payment is made directly to the master."
   },
   "plannedDetail": {
+    "doneTitle": "The master has finished the work",
+    "doneNote": "Check the result. If everything is in order, confirm. Otherwise, open a dispute for an operator to review.",
+    "confirmDone": "Confirm completion",
+    "openDispute": "Open a dispute",
+    "closedTitle": "Order completed",
+    "closedCancelledTitle": "Request cancelled",
+    "closedExpiredTitle": "Request expired",
+    "rateTitle": "Rate the master",
+    "rateThanks": "Thank you for your review!",
+    "toHome": "Back to home",
     "waitingConfirm": "Waiting for {{name}} to confirm",
     "waitingConfirmHint": "usually replies within 10–20 minutes",
     "confirmed": "{{name}} confirmed the order — contact details are available",

@@ -6,11 +6,157 @@
 @source "../app";
 @source "../components";
 @source "../lib";
+@source "../../../packages/ui/src";
 
-body {
-  background: var(--color-background);
-  color: var(--color-ink);
-  font-family: var(--font-sans);
+body { background: var(--color-background); color: var(--color-ink); font-family: var(--font-sans); }
+
+/* Figma 97:1285–2056: 224px navy navigation, 100px topbar, 40px workspace gutters. */
+.operator-shell { display: flex; min-width: 0; min-height: 100dvh; background: var(--color-background); }
+.operator-sidebar { display: flex; flex: 0 0 224px; flex-direction: column; gap: 8px; padding: 28px 16px 16px; background: var(--color-primary); color: var(--color-surface); }
+.operator-sidebar-brand a { display: inline-flex; align-items: center; min-height: 34px; font-size: 24px; font-weight: 600; line-height: 1.4; }
+.operator-sidebar-brand p { margin-top: 8px; font-size: 12px; line-height: 1.4; }
+.operator-sidebar nav { display: flex; flex-direction: column; gap: 8px; padding-top: 32px; }
+.operator-nav-link { display: flex; min-width: 0; min-height: 48px; align-items: center; gap: 8px; padding: 12px 16px; border-radius: var(--radius-md); color: var(--color-surface); font-size: 14px; font-weight: 600; line-height: 1.3; }
+.operator-nav-link:hover, .operator-logout:hover { background: rgb(255 255 255 / 10%); }
+.operator-nav-link[aria-current="page"] { background: var(--color-accent); color: var(--color-primary); }
+.operator-nav-count { padding: 3px 6px; border-radius: 6px; background: rgb(255 255 255 / 15%); font-size: 12px; }
+.operator-nav-link[aria-current="page"] .operator-nav-count { background: var(--color-primary); color: var(--color-surface); }
+.operator-logout { min-height: 48px; margin-top: auto; padding: 12px 16px; border-radius: var(--radius-md); text-align: left; font-size: 14px; font-weight: 600; }
+.operator-workspace { flex: 1; min-width: 0; }
+.operator-topbar { display: flex; min-width: 0; min-height: 100px; align-items: center; gap: 24px; padding: 24px; background: var(--color-surface); }
+.operator-topbar-context { flex: 1; min-width: 0; color: var(--color-ink-soft); font-size: 14px; line-height: 1.5; }
+.operator-access { padding: 8px 16px; border-radius: var(--radius-md); background: var(--color-fill-soft); color: var(--color-primary); font-size: 12px; line-height: 1.4; text-align: center; }
+.operator-identity { width: 200px; min-width: 0; overflow-wrap: anywhere; color: var(--color-primary); font-size: 14px; font-weight: 600; }
+.operator-locale-entry { min-height: 52px; min-width: 64px; padding: 12px 16px; border-radius: var(--radius-md); background: var(--color-fill-soft); color: var(--color-primary); font-weight: 600; }
+.operator-main { min-width: 0; padding: 32px 40px 40px; }
+[data-operator-shell] main { overflow-wrap: anywhere; }
+[data-operator-shell] main > section, [data-operator-shell] main > div { min-width: 0; padding: 0; }
+[data-operator-shell] h1 { color: var(--color-primary); font-size: 32px; font-weight: 600; line-height: 1.4; }
+.operator-main > :is(section,div) > header > div > p { margin-top: 24px; color: var(--color-ink-soft); font-size: 16px; line-height: 1.5; }
+[data-operator-shell] h2, [data-operator-shell] h3 { color: var(--color-primary); }
+[data-operator-shell] table { width: 100%; min-width: 540px; font-size: 14px; line-height: 1.5; }
+[data-operator-shell] table thead { background: var(--color-fill-soft); color: var(--color-ink-soft); font-size: 12px; line-height: 1.4; }
+[data-operator-shell] table th { font-weight: 400; }
+[data-operator-shell] table th, [data-operator-shell] table td { padding: 16px; vertical-align: top; }
+[data-operator-shell] .operator-journal-table { min-width: 720px; }
+[data-operator-shell] .operator-journal-table :is(th,td):first-child { min-width: 168px; white-space: nowrap; overflow-wrap: normal; }
+[data-operator-shell] .operator-masters-table { min-width: 680px; }
+[data-operator-shell] .operator-masters-table :is(th,td):nth-child(3),
+[data-operator-shell] .operator-masters-table :is(th,td):nth-child(4) { min-width: 112px; white-space: nowrap; overflow-wrap: normal; }
+[data-operator-shell] .overflow-x-auto { position: relative; max-width: 100%; }
+[data-operator-shell] :is(input,textarea,select) { max-width: 100%; }
+[data-operator-shell] .mq-field { width: 100%; max-width: 100%; }
+[data-operator-shell] :is(a,button,input,select,textarea):focus-visible { outline: 3px solid var(--color-accent); outline-offset: 3px; }
+[data-overview-metrics] article { min-height: 141px; }
+[data-overview-metrics] article > p { font-size: 28px; line-height: 1.4; color: var(--color-primary); }
+.operator-filters { display: grid; gap: 16px; grid-template-columns: repeat(3,minmax(0,1fr)); background: transparent; padding: 0; }
+.operator-filters > div { min-width: 0; padding: 12px 16px; border-radius: var(--radius-md); background: var(--color-surface); }
+.operator-filters label { color: var(--color-ink-soft); font-size: 12px; line-height: 1.4; }
+.operator-filters :is(select,input) { min-height: 40px; margin-top: 4px; border-color: transparent; padding: 0; }
+.operator-filters > div > .mq-field { padding: 0; background: transparent; }
+.operator-filters .mq-field-control { min-height: 40px; }
+.operator-verification-columns { display: grid; gap: 24px; grid-template-columns: minmax(0,1fr) 320px; align-items: start; }
+.operator-verification-detail { width: 100%; min-width: 0; }
+.operator-order-detail { display: flex; flex-direction: column; gap: 24px; }
+.operator-order-detail-cards { display: grid; width: 100%; min-width: 0; grid-template-columns: minmax(0,1fr) 320px; gap: 16px 24px; align-items: start; }
+.operator-order-detail-cards > div, .operator-order-detail-cards > p { grid-column: 1 / -1; }
+.operator-order-detail-cards > article { grid-column: 1; padding: 24px; }
+.operator-order-detail-cards > aside { grid-column: 2; grid-row: 1 / span 2; padding: 24px; }
+.operator-order-detail h3 { font-size: 20px; line-height: 1.4; }
+.operator-dispute-table button { min-height: 44px; text-align: left; font-weight: 600; text-decoration: underline; text-underline-offset: 4px; }
+
+/* 621:201: the current pilot finance page intentionally has no financial queue. */
+.operator-finance-shell { display: flex; flex-direction: column; min-width: 0; min-height: 100dvh; background: var(--color-background); }
+.operator-finance-header { display: flex; min-height: 88px; align-items: center; gap: 32px; padding: 16px 48px; background: var(--color-primary); color: var(--color-surface); }
+.operator-finance-brand { width: 220px; font-size: 28px; font-weight: 600; line-height: 1.4; }
+.operator-finance-header > p { flex: 1; font-size: 14px; line-height: 1.5; }
+.operator-finance-locales { display: flex; gap: 8px; }
+.operator-finance-locales button { width: 52px; min-height: 44px; padding: 8px; border-radius: var(--radius-md); background: var(--color-fill-soft); color: var(--color-primary); font-size: 16px; font-weight: 600; }
+.operator-finance-locales button[aria-pressed="true"] { background: var(--color-accent); }
+.operator-finance-main { flex: 1; padding: 48px; }
+.operator-finance-content { display: flex; flex-direction: column; gap: 32px; }
+.operator-finance-status { align-self: flex-start; padding: 4px 16px; font-size: 12px; line-height: 24px; color: var(--color-primary); }
+[data-operator-finance-shell] h1 { font-size: 42px; font-weight: 700; line-height: 1; }
+.operator-finance-intro { color: var(--color-ink-soft); font-size: 16px; line-height: 1.5; }
+.operator-finance-columns { display: grid; grid-template-columns: minmax(0,1fr) 432px; align-items: start; gap: 32px; }
+.operator-finance-primary, .operator-finance-context { display: flex; min-width: 0; flex-direction: column; gap: 24px; }
+.operator-information-card { display: flex; flex-direction: column; gap: 16px; padding: 24px; border-radius: var(--radius-lg); background: var(--color-surface); }
+.operator-information-card h2 { font-size: 24px; font-weight: 600; line-height: 1.4; }
+.operator-information-card p { font-size: 16px; line-height: 1.5; }
+.operator-finance-actions { display: flex; flex-direction: column; align-items: flex-start; gap: 24px; }
+.operator-finance-actions > :is(a,button) { display: flex; width: 380px; max-width: 100%; min-height: 52px; justify-content: center; align-items: center; padding: 12px 16px; border-radius: var(--radius-md); background: var(--color-primary); color: var(--color-surface); text-align: center; font-size: 16px; font-weight: 600; line-height: 1.4; }
+.operator-finance-actions > button:disabled { background: #e1e6e9; color: #52616b; opacity: 1; }
+.operator-finance-footer { display: flex; flex-direction: column; gap: 12px; margin-top: 24px; padding: 24px 48px; background: var(--color-primary); color: var(--color-surface); }
+.operator-finance-footer strong { font-size: 20px; line-height: 1.4; }
+.operator-finance-footer p { font-size: 14px; line-height: 1.5; }
+
+@media (max-width: 1199px) {
+ .operator-identity { width: 144px; }
+ .operator-topbar { gap: 16px; }
+ .operator-main { padding: 28px 24px; }
+ .operator-verification-columns, .operator-order-detail-cards { grid-template-columns: minmax(0,1fr); }
+ .operator-order-detail-cards > aside { grid-column: 1; grid-row: auto; }
+ .operator-finance-columns { grid-template-columns: minmax(0,1fr) minmax(300px,36%); }
+}
+@media (max-width: 767px) {
+ .operator-shell { flex-direction: column; }
+ .operator-sidebar { flex: none; padding: 20px 16px 16px; }
+ .operator-sidebar-brand { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; }
+ .operator-sidebar-brand p { margin-top: 0; }
+ .operator-sidebar nav { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); padding-top: 12px; }
+ .operator-nav-link { padding: 12px; }
+ .operator-logout { margin-top: 8px; }
+ .operator-topbar { min-height: 100px; flex-wrap: wrap; padding: 16px; gap: 12px; }
+ .operator-topbar-context { flex-basis: calc(100% - 80px); }
+ .operator-locale-entry { order: 1; margin-left: auto; }
+ .operator-access { order: 2; }
+ .operator-identity { order: 3; flex: 1; width: auto; }
+ .operator-main { padding: 24px 16px; }
+ [data-operator-shell] h1 { font-size: 28px; }
+ .operator-main > :is(section,div) > header > div > p { margin-top: 16px; }
+ .operator-filters { grid-template-columns: minmax(0,1fr); }
+ .operator-filters > div { grid-column: auto; }
+ [data-operator-shell] main > section { gap: 20px; }
+ .operator-finance-header { flex-wrap: wrap; padding: 20px 24px; gap: 16px; }
+ .operator-finance-brand { width: auto; font-size: 24px; }
+ .operator-finance-header > p { flex-basis: 100%; }
+ .operator-finance-main { padding: 32px 24px; }
+ .operator-finance-content { gap: 24px; }
+ [data-operator-finance-shell] h1 { font-size: 32px; }
+ .operator-finance-columns { grid-template-columns: minmax(0,1fr); gap: 24px; }
+ .operator-information-card { padding: 20px; }
+ .operator-information-card h2 { font-size: 22px; }
+ .operator-finance-footer { padding: 24px; }
 }
 
-@source "../../../packages/ui/src";
+.operator-shell, .operator-finance-shell { --operator-ink: #202020; color: var(--operator-ink); }
+.operator-filters-two { grid-template-columns: repeat(2,minmax(0,1fr)); }
+@media (max-width: 767px) { .operator-filters-two { grid-template-columns: minmax(0,1fr); } }
+[data-overview-metrics] h2 { color: var(--color-ink-soft); }
+
+/* Shared 93:1641 auth framing, with operator identity and the existing OTP flow. */
+.operator-auth-header { display: flex; align-items: center; gap: 32px; min-height: 92px; padding: 24px 32px; background: var(--color-surface); color: var(--color-primary); }
+.operator-auth-brand { font-size: 24px; font-weight: 600; line-height: 1.4; }
+.operator-auth-header > p { flex: 1; font-size: 16px; line-height: 1.5; }
+.operator-auth-locales { display: flex; flex-wrap: wrap; gap: 8px; }
+.operator-auth-locales button { min-width: 44px; min-height: 44px; padding: 8px; border-radius: var(--radius-md); font-size: 14px; font-weight: 600; }
+.operator-auth-locales button[aria-pressed="true"] { background: var(--color-fill-soft); }
+.operator-auth-shell :is(a,button):focus-visible { outline: 3px solid var(--color-primary); outline-offset: 3px; }
+
+/* Selected orders keep their queue context; wide tables scroll rather than fragment labels. */
+[data-operator-shell] .operator-orders-table { min-width: 880px; }
+[data-operator-shell] .operator-orders-table :is(th,td):first-child { min-width: 180px; }
+[data-operator-shell] .operator-orders-table :is(th,td):last-child { min-width: 180px; overflow-wrap: normal; }
+[data-operator-shell] .operator-verification-table { min-width: 640px; }
+[data-operator-shell] .operator-verification-table :is(th,td):nth-child(3) { min-width: 168px; white-space: nowrap; overflow-wrap: normal; }
+[data-operator-shell] .operator-dispute-table table { min-width: 760px; }
+[data-operator-shell] .operator-dispute-table :is(th,td):last-child { min-width: 168px; white-space: nowrap; overflow-wrap: normal; }
+.operator-verification-status { align-self: flex-start; padding: 4px 16px; border-radius: var(--radius-md); background: var(--color-fill-soft); color: var(--color-primary); font-size: 12px; line-height: 1.4; }
+.operator-decision-confirmation { min-width: 0; border-top: 1px solid var(--color-border); padding-top: 24px; }
+.operator-decision-confirmation > div > p:last-child { white-space: pre-wrap; }
+.operator-dialog-content { min-width: 0; overflow-wrap: anywhere; padding: 4px; scroll-padding-block: 8px; }
+@media (max-width: 767px) {
+ .operator-auth-header { gap: 12px; flex-wrap: wrap; min-height: 0; padding: 16px 24px; }
+ .operator-auth-header > p { order: 3; flex-basis: 100%; font-size: 14px; }
+ .operator-auth-locales { margin-left: auto; }
+}

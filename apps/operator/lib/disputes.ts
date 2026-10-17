@@ -6,12 +6,12 @@ export type CommercialMode = 'DIRECT_PAYMENT' | 'FREE_PILOT' | 'PAID_MOCK' | 'PA
 
 export const DISPUTE_STATUS_LABELS: Record<DisputeStatus, string> = {
   OPEN: 'Открыт',
-  RESOLVED: 'Разрешён',
+  RESOLVED: 'Решён',
 };
 
 export const DISPUTE_ROLE_LABELS: Record<DisputeRole, string> = {
-  CLIENT: 'клиент',
-  MASTER: 'мастер',
+  CLIENT: 'Клиент',
+  MASTER: 'Мастер',
 };
 
 export interface DisputeListRow {

@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
 import { api, apiUpload } from '@/lib/api';
 import { useCommercialMode } from '@/lib/commercial-mode';
-import { categoryMeta } from '@/lib/categoryMeta';
 import MapView from '@/components/MapView';
 import {useAuth} from '@/lib/auth';
 import {useNewOrderDraft,useCurrentOrderCreation} from '@/components/useNewOrderDraft';
@@ -13,21 +12,14 @@ import {NewOrderLayout} from '@/components/NewOrderLayout';
 import Link from 'next/link';
 import {NewOrderCreationStatus} from '@/components/NewOrderCreationStatus';
 import type {NewOrderDraft} from '@/lib/new-order-draft';
+import {SavedAddressPicker} from '@/components/desktop-order/SavedAddressPicker';
+import {savedAddressPatch} from '@/components/desktop-order/saved-address';
+import {savedAddressCopy,desktopCopy} from '@/components/desktop-order/copy';
 
 interface Category {
   id: string;
   slug: string;
   name: string;
-}
-interface Address {
-  id: string;
-  label: string;
-  address: string;
-  entrance: string | null;
-  floor: string | null;
-  apartment: string | null;
-  lat: number | null;
-  lng: number | null;
 }
 interface Preview {
   available: boolean;
@@ -44,9 +36,10 @@ function NewOrderForm({ownerId}:{ownerId:string}) {
   const { t } = useTranslation();
   const { paymentsEnabled,commercialMode } = useCommercialMode();
   const direct=commercialMode==='DIRECT_PAYMENT';
-  const {t:copy}=useLocale();
+  const {t:copy,language}=useLocale();
+  const addressCopy={...savedAddressCopy[language],...desktopCopy[language]};
   const router = useRouter();
-  const {draft,ready,set,applyInitialLocation,requestLocation,beginCreate,finishCreate,pending,completedOrderId}=useNewOrderDraft(ownerId);
+  const {draft,ready,set,patch,applyInitialLocation,requestLocation,beginCreate,finishCreate,pending,completedOrderId}=useNewOrderDraft(ownerId);
   const {step,categoryId,description,photoPaths,geo,addressText,district,entrance,floor,apartment,addressComment}=draft;
   function field<K extends keyof NewOrderDraft>(key:K) {
     return (value:NewOrderDraft[K]|((previous:NewOrderDraft[K])=>NewOrderDraft[K]))=>set(key,value);
@@ -61,8 +54,6 @@ function NewOrderForm({ownerId}:{ownerId:string}) {
 
   const [uploading, setUploading] = useState(false);
 
-  const [savedAddresses, setSavedAddresses] = useState<Address[]>([]);
-
   const [preview, setPreview] = useState<Preview | null>(null);
   const [error, setError] = useState('');
   const creation=useCurrentOrderCreation({beginCreate,finishCreate,pending,api,invalidMessage:copy('createSubmissionInvalid'),onConfirmed:id=>router.push(`/order/${encodeURIComponent(id)}`)});
@@ -72,7 +63,6 @@ function NewOrderForm({ownerId}:{ownerId:string}) {
     if (!ready||pending||completedOrderId) return;
     let cancelled=false;
     api('/categories').then(value=>{if(!cancelled)setCategories(value);}).catch((e)=>{if(!cancelled)setError((e as Error).message);});
-    api('/addresses').then(value=>{if(!cancelled)setSavedAddresses(value);}).catch(()=>{});
     navigator.geolocation?.getCurrentPosition(
       (pos) => {if(!cancelled)applyInitialLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });},
       () => {if(!cancelled)setError(translation.current('newOrder.geoError'));},
@@ -91,14 +81,6 @@ function NewOrderForm({ownerId}:{ownerId:string}) {
   }, [ready,step,categoryId,geo,pending,completedOrderId]);
 
   function categoryName(category?:Category){return category?t(`newOrder.category_${category.slug}`,{defaultValue:category.name}):'';}
-
-  function selectAddress(a: Address) {
-    setAddressText(a.address);
-    setEntrance(a.entrance ?? '');
-    setFloor(a.floor ?? '');
-    setApartment(a.apartment ?? '');
-    if (a.lat != null && a.lng != null) setGeo({ lat: a.lat, lng: a.lng });
-  }
 
   async function addPhoto(file: File) {
     setUploading(true);
@@ -156,18 +138,18 @@ function NewOrderForm({ownerId}:{ownerId:string}) {
         <div className="text-xl font-extrabold text-ink">{t('newOrder.step1Question')}</div>
         <div className="grid grid-cols-2 gap-2.5">
           {categories.map((c) => {
-            const meta = categoryMeta(c.slug);
             const active = c.id === categoryId;
             return (
               <button
                 key={c.id}
                 type="button"
                 onClick={() => setCategoryId(c.id)}
-                className={`rounded-md border-2 p-3.5 text-left ${
+                aria-pressed={active}
+                className={`mq-new-order-category rounded-md border-2 p-3.5 text-left ${
                   active ? 'border-primary bg-fill-soft' : 'border-border bg-surface'
                 }`}
               >
-                <div className="mb-1.5 text-xl">{meta.icon}</div>
+                {(c.slug==='plumbing'||c.slug==='electrics')&&<img className="mb-1.5" src={c.slug==='electrics'?'/desktop/bolt.svg':'/desktop/wrench.svg'} alt="" width={24} height={24}/>}
                 <div className="text-sm font-extrabold text-ink">{categoryName(c)}</div>
               </button>
             );
@@ -228,20 +210,8 @@ function NewOrderForm({ownerId}:{ownerId:string}) {
     stepContent = (
       <>
         <TextField label={t('newOrder.step3Title')} variant="responsive" fullWidth value={addressText} maxLength={500} onChange={(e)=>setAddressText(e.target.value)}/>
-        {savedAddresses.length > 0 && (
-          <div className="flex flex-wrap gap-1.5">
-            {savedAddresses.map((a) => (
-              <button
-                key={a.id}
-                type="button"
-                onClick={() => selectAddress(a)}
-                className="rounded-pill border-[1.5px] border-border px-3 py-1.5 text-xs font-bold text-ink-soft"
-              >
-                {a.label}
-              </button>
-            ))}
-          </div>
-        )}
+        <SavedAddressPicker ownerId={ownerId} api={api} copy={addressCopy} onApply={address=>patch(savedAddressPatch(address))}/>
+        {draft.locationNeedsConfirmation&&<div role="status"><p>{addressCopy.savedAddressNoPin}</p><button type="button" className="mq-new-order-primary" onClick={()=>setGeo(geo)}>{addressCopy.confirmPin}</button></div>}
         <div className="mq-new-order-address-details">
           <TextField label={t('newOrder.step3Entrance')} variant="responsive" fullWidth value={entrance} maxLength={50} onChange={(e)=>setEntrance(e.target.value)}/>
           <TextField label={t('newOrder.step3Floor')} variant="responsive" fullWidth value={floor} maxLength={50} onChange={(e)=>setFloor(e.target.value)}/>
@@ -263,7 +233,7 @@ function NewOrderForm({ownerId}:{ownerId:string}) {
         <button
           type="button"
           onClick={() => setStep(4)}
-          disabled={!addressText || !district}
+          disabled={!addressText || !district || draft.locationNeedsConfirmation}
           className="mq-new-order-primary rounded-pill bg-primary p-4 text-[15px] font-extrabold text-white disabled:opacity-40"
         >
           {t('newOrder.step3Next')}
@@ -275,7 +245,6 @@ function NewOrderForm({ownerId}:{ownerId:string}) {
       <>
         <div className="rounded-md bg-fill p-3.5">
           <div className="text-sm font-extrabold text-ink">
-            {categoryMeta(categories.find((c) => c.id === categoryId)?.slug ?? '').icon}{' '}
             {categoryName(categories.find((c) => c.id === categoryId))} · «{description.slice(0, 40)}» ·{' '}
             {t('common.photosCount', { n: photoPaths.length })}
           </div>

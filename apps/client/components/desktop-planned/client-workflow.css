@@ -1,0 +1,157 @@
+/* Stage 9: original client frames 93:1320/1365/1419/1460/1518 and 99:1409.
+   Real FREE_PILOT data replaces the paid and demonstration content in current frames. */
+.client-workflow { --workflow-brand: var(--color-primary, #123b52); --workflow-soft: var(--color-fill-soft, #f4f3ef); }
+.client-workflow .planned-header { background: white; color: #123b52; min-height: 92px; padding: 24px 32px; gap: 32px; }
+.client-workflow .planned-header .desktop-brand { flex: 0 1 280px; font: 600 24px/1.4 Inter,Arial,sans-serif; letter-spacing: 0; }
+.client-workflow .planned-header nav { flex: 1; gap: 32px; font-size: 16px; }
+.client-workflow .planned-city { color: #666; font-size: 14px; }
+.client-workflow .planned-header .desktop-locales button { background: #f4f3ef; color: #123b52; }
+.client-workflow .planned-header .desktop-locales button[aria-pressed=true] { background: #ffe34a; }
+.client-workflow .planned-workspace-main { max-width: 1328px; padding: 48px 24px 56px; }
+.client-workflow .planned-columns, .client-workflow .compare-columns { grid-template-columns: minmax(0,1fr) 384px; gap: 64px; }
+.client-workflow .planned-heading h1, .client-workflow .compare-heading h1, .client-workflow .dispute-heading h1 { font: 600 32px/1.4 Inter,Arial,sans-serif; letter-spacing: 0; }
+.client-workflow .planned-heading p, .client-workflow .compare-heading p { font-size: 16px; color: #666; }
+.client-workflow .planned-card, .client-workflow .compare-card, .client-workflow .dispute-card { border: 0; border-radius: 16px; padding: 24px; }
+.client-workflow .planned-card h2, .client-workflow .compare-card h2, .client-workflow .dispute-card h2 { font: 600 20px/1.4 Inter,Arial,sans-serif; margin-bottom: 16px; }
+.client-workflow .planned-card p { color: #666; font-size: 16px; line-height: 1.5; }
+.client-workflow .planned-card .desktop-field { margin: 16px 0; padding: 12px 16px; gap: 8px; background: #f4f3ef; border-radius: 12px; font-size: 12px; font-weight: 400; color: #666; }
+.client-workflow .planned-card .desktop-field input, .client-workflow .planned-card .desktop-field textarea { background: transparent; border: 0; border-radius: 0; padding: 0; min-height: 24px; color: #202020; font-size: 16px; line-height: 1.5; }
+.client-workflow .planned-card .desktop-field textarea { min-height: 76px; }
+.client-workflow .planned-card .desktop-field:focus-within { outline: 2px solid #123b52; outline-offset: -2px; }
+.client-workflow .planned-card .desktop-field input:focus-visible, .client-workflow .planned-card .desktop-field textarea:focus-visible { outline: 0; }
+.client-workflow .desktop-submit, .client-workflow-action { display: flex; width: 100%; align-items: center; justify-content: center; min-height: 52px; border-radius: 12px; padding: 12px 16px; background: #123b52; color: white; font: 600 16px/1.4 Inter,Arial,sans-serif; text-align: center; text-decoration: none; }
+.client-workflow .desktop-submit:disabled { background: #e1e6e9; color: #52616b; opacity: 1; }
+.client-workflow-action:focus-visible { outline: 3px solid #123b52; outline-offset: 3px; }
+.client-workflow .planned-create-form > .planned-stack { gap: 0; border-radius: 16px; background: white; overflow: hidden; }
+.client-workflow .planned-create-form > .planned-stack > .planned-card { border-radius: 0; }
+.client-workflow .planned-create-form > .planned-stack > .planned-card + .planned-card { padding-top: 0; }
+.client-workflow .planned-how { list-style: decimal; padding-left: 20px; display: grid; gap: 16px; color: #202020; font-size: 16px; line-height: 1.5; }
+.client-workflow .planned-form-submit small { display: block; margin-top: 12px; text-align: center; color: #666; font-size: 12px; }
+.client-workflow .planned-summary { position: static; }
+.client-workflow .planned-detail-content > div { gap: 24px; }
+.client-workflow .planned-detail-content .text-xs { font-size: 14px; line-height: 1.5; }
+.client-workflow .planned-detail-content .bg-surface { border-color: #f4f3ef; }
+.client-workflow .planned-booked .planned-booked-slot { margin: 0; color: #123b52; font-size: 32px; font-weight: 600; line-height: 1.4; }
+.client-workflow .planned-booked-call { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 8px 12px; border-radius: 12px; background: #f4f3ef; font-size: 14px; font-weight: 600; text-align: center; }
+.client-workflow .planned-booked > .bg-success-bg { background: #f4f3ef; color: #123b52; font-size: 16px; font-weight: 500; }
+.client-workflow .planned-booked > .bg-surface { border: 0; background: #f4f3ef; padding: 20px; }
+.client-workflow .planned-booked > .bg-surface > .flex { flex-wrap: wrap; gap: 16px; font-size: 16px; font-weight: 500; }
+.client-workflow .mq-new-order-category { min-height: 92px; background: #f4f3ef; border-color: transparent; border-radius: 12px; }
+.client-workflow .mq-new-order-category[aria-pressed=true] { background: #ffe34a; border-color: #123b52; }
+.client-workflow .mq-new-order-category img { width: 24px; height: 24px; }
+.client-workflow .urgent-actions { max-width: none; }
+.client-workflow .urgent-actions button { border-radius: 12px; font-weight: 600; }
+.client-workflow .urgent-actions button[data-urgent-action=confirm-price], .client-workflow .urgent-actions button[data-urgent-action=confirm-completion], .client-workflow .urgent-actions button[data-urgent-action=retry-search] { background: #123b52; color: white; }
+.client-workflow .urgent-price { padding: 16px; }
+.client-workflow .urgent-price strong { font-size: 22px; }
+
+/* Offer cards preserve every supplied comparison field and the selection guard. */
+.client-workflow .compare-offers { background: transparent; padding: 0; }
+.client-workflow .compare-section-heading { margin-bottom: 16px; }
+.client-workflow .compare-section-heading h2 { margin-bottom: 0; }
+.client-workflow .compare-offer-list { display: grid; gap: 16px; }
+.client-workflow .compare-offer { padding: 24px; background: white; border-radius: 16px; min-width: 0; }
+.client-workflow .compare-offer-header { display: flex; align-items: center; gap: 16px; }
+.client-workflow .compare-avatar { margin: 0; flex-shrink: 0; width: 56px; height: 56px; background: #123b52; color: white; font-weight: 500; }
+.client-workflow .compare-master { font-size: 20px; font-weight: 600; }
+.client-workflow .compare-verified { color: #666; font-size: 14px; }
+.client-workflow .compare-offer-terms { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 24px; margin: 20px 0; }
+.client-workflow .compare-offer-terms > div { min-width: 0; }
+.client-workflow .compare-offer-terms > div:first-child, .client-workflow .compare-offer-terms > div:last-child { grid-column: 1/-1; }
+.client-workflow .compare-offer-terms > div:first-child { display: flex; justify-content: space-between; gap: 16px; }
+.client-workflow .compare-offer-terms dt { color: #666; font-size: 14px; }
+.client-workflow .compare-offer-terms dd { margin: 4px 0 0; color: #202020; font-size: 16px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.client-workflow .compare-offer-terms > div:first-child dd { margin: 0; font-weight: 600; }
+.client-workflow .compare-offer button, .client-workflow .compare-confirm [data-select-confirm] { width: 100%; min-height: 52px; padding: 12px 16px; border-radius: 12px; background: #123b52; color: white; font: 600 16px/1.4 Inter,Arial,sans-serif; cursor: pointer; }
+.client-workflow .compare-offer button:disabled { opacity: .45; cursor: not-allowed; }
+.client-workflow .compare-confirm { background: white; padding: 24px; border-radius: 16px; }
+.client-workflow .compare-error button { background: #123b52; border-radius: 12px; min-height: 44px; }
+.client-workflow .compare-summary dl > div { border: 0; padding: 10px 0; }
+
+/* Original form + order-context columns; scan and reconciliation details remain visible. */
+.client-workflow .desktop-dispute { display: grid; grid-template-columns: minmax(0,1fr) 384px; gap: 24px 64px; max-width: none; align-items: start; }
+.client-workflow .desktop-dispute > * { grid-column: 1; min-width: 0; }
+.client-workflow .desktop-dispute > .dispute-heading { grid-column: 1/-1; }
+.client-workflow .desktop-dispute > .dispute-context { grid-column: 2; grid-row: 2 / span 8; }
+.client-workflow .dispute-context dl { display: grid; grid-template-columns: minmax(0,1fr); gap: 16px; }
+.client-workflow .dispute-field { background: #f4f3ef; border-radius: 12px; padding: 12px 16px; gap: 8px; color: #666; font-size: 12px; font-weight: 400; margin-bottom: 16px; }
+.client-workflow .dispute-field select, .client-workflow .dispute-field textarea { background: transparent; color: #202020; border: 0; border-radius: 0; padding: 0; min-height: 24px; max-width: none; font-size: 16px; }
+.client-workflow .dispute-field textarea { min-height: 104px; }
+.client-workflow .dispute-field:focus-within { outline: 2px solid #123b52; }
+.client-workflow .dispute-field select:focus-visible, .client-workflow .dispute-field textarea:focus-visible { outline: 0; }
+.client-workflow .dispute-primary { background: #123b52; color: white; border-radius: 12px; }
+.client-workflow .dispute-secondary { border-radius: 12px; background: #f4f3ef; }
+.client-workflow .dispute-record-icon { background: #f4f3ef; color: #123b52; }
+.client-workflow .dispute-record-meta { gap: 16px; }
+.client-workflow .dispute-record-meta dd { font-size: 14px; }
+.client-workflow .dispute-evidence-grid { grid-template-columns: minmax(0,1fr); }
+
+/* Keep the owned-orders hook and URL tabs; supply the original right-side call to action. */
+.client-owned-orders { display: grid; grid-template-columns: minmax(0,1fr) 384px; gap: 24px 64px; align-items: start; position: relative; }
+.client-workflow .client-owned-orders > section { grid-column: 1; grid-row: 1; display: grid; gap: 24px; padding: 0; }
+.client-workflow .client-owned-orders h1 { margin-bottom: 52px; }
+.client-orders-intro { position: absolute; top: 58px; left: 0; margin: 0; font-size: 16px; line-height: 1.5; color: #666; }
+.client-workflow .client-orders-aside { grid-column: 2; grid-row: 1; margin-top: 136px; display: grid; gap: 16px; }
+.client-workflow .client-orders-aside h2, .client-workflow .client-orders-aside p { margin: 0; }
+.client-workflow .client-owned-orders section > div[aria-label] { padding: 0; background: transparent; gap: 12px; max-width: 100%; border-radius: 0; }
+.client-workflow .client-owned-orders [data-orders-filter] { border-radius: 12px; min-height: 52px; }
+.client-workflow .client-owned-orders [data-orders-filter][aria-pressed=true] { background: #123b52; color: white; }
+.client-workflow .client-owned-orders li { margin: 0; border-radius: 0; border: 0; padding: 16px; }
+.client-workflow .client-owned-orders li + li { border-top: 1px solid #f4f3ef; }
+.client-workflow .client-owned-orders ul { background: white; border-radius: 16px; overflow: hidden; }
+.client-workflow .client-owned-orders li h2 { font-size: 16px; line-height: 1.5; }
+.client-workflow .client-owned-orders li > div:first-child { font-size: 12px; }
+.client-workflow .client-owned-orders section > div:last-child > a { display: none; }
+.client-workflow .client-owned-orders [data-orders-empty] { background: white; }
+
+/* Original urgent map frames 90:1297–3291 and 378:1515: live map, no invented master ETA. */
+.client-workflow--map .planned-header { position: absolute; z-index: 500; top: 16px; left: 16px; right: 16px; min-height: 76px; padding: 16px 24px; border-radius: 16px; background: #123b52; color: white; }
+.client-workflow--map .planned-city { color: white; }
+.client-workflow--map .planned-workspace-main { position: relative; max-width: none; padding: 112px 16px 24px; min-height: 100dvh; }
+.client-workflow--map .urgent-map-background { position: absolute; inset: 0; z-index: 0; background: #f4f3ef; }
+.client-workflow--map .urgent-map-background .urgent-map { width: 100%; height: 100%; border-radius: 0; }
+.client-workflow--map .urgent-map-background > p { position: absolute; top: 112px; right: 16px; max-width: 330px; z-index: 450; padding: 20px; border-radius: 16px; background: white; color: #666; font-size: 14px; }
+.client-workflow--map .urgent-map-page > .planned-heading { position: relative; z-index: 450; width: 400px; max-width: 100%; background: white; padding: 24px 24px 0; border-radius: 16px 16px 0 0; margin: 0; }
+.client-workflow--map .urgent-map-page > .planned-heading h1 { font-size: 24px; margin-top: 12px; }
+.client-workflow--map .urgent-columns { position: relative; z-index: 450; width: 400px; max-width: 100%; display: flex; flex-direction: column; gap: 12px; }
+.client-workflow--map .urgent-columns > * { width: 100%; }
+.client-workflow--map .urgent-workflow { border-radius: 0 0 16px 16px; padding-top: 8px; }
+.client-workflow--map .urgent-workflow > h2 { display: none; }
+.client-workflow--map .urgent-workflow > p, .client-workflow--map .planned-context dd, .client-workflow--map .planned-pilot p { font-size: 14px; }
+.client-workflow--map .urgent-master { margin: 16px 0; padding: 16px 0; gap: 12px; flex-wrap: wrap; }
+.client-workflow--map .urgent-call { margin-left: 60px; }
+.client-workflow--map .urgent-price { padding: 12px; margin: 16px 0; }
+.client-workflow--map .urgent-price strong { font-size: 20px; }
+.client-workflow--map .planned-context dl { gap: 12px; }
+.client-workflow--map .planned-pilot { margin: 16px 0; }
+@media (max-width: 1100px) {
+  .client-workflow .planned-header { padding: 18px 24px; gap: 20px; }
+  .client-workflow .planned-header .desktop-brand { flex-basis: 180px; }
+  .client-workflow .planned-header nav { min-width: 0; gap: 16px; font-size: 14px; }
+  .client-workflow .planned-city { display: none; }
+  .client-workflow .planned-columns, .client-workflow .compare-columns, .client-workflow .desktop-dispute, .client-owned-orders { grid-template-columns: minmax(0,1fr) 320px; gap: 24px; }
+}
+@media (max-width: 1000px) {
+  .client-workflow .planned-columns, .client-workflow .compare-columns, .client-workflow .desktop-dispute, .client-owned-orders { grid-template-columns: minmax(0,1fr); }
+  .client-workflow .desktop-dispute > .dispute-context { grid-column: 1; grid-row: auto; }
+  .client-workflow .client-orders-aside { grid-column: 1; grid-row: auto; margin: 0; }
+  .client-workflow .compare-summary dl { display: block; }
+}
+@media (max-width: 767px) {
+  .client-workflow .planned-header { padding: 16px; gap: 12px; flex-wrap: wrap; }
+  .client-workflow .planned-header .desktop-brand { flex: 1; font-size: 22px; }
+  .client-workflow .planned-header nav { flex: 1 0 100%; order: 3; display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 0 16px; font-size: 14px; }
+  .client-workflow .planned-workspace-main { padding: 24px 16px 40px; }
+  .client-workflow .planned-heading h1, .client-workflow .compare-heading h1, .client-workflow .dispute-heading h1 { font-size: 28px; }
+  .client-workflow .planned-card, .client-workflow .compare-card, .client-workflow .dispute-card, .client-workflow .compare-offer { padding: 20px; }
+  .client-workflow .compare-offers { padding: 0; }
+  .client-workflow .compare-offer-terms { grid-template-columns: minmax(0,1fr); }
+  .client-workflow .planned-create-form .desktop-address-details { grid-template-columns: minmax(0,1fr); }
+  .client-workflow .client-owned-orders h1 { margin-bottom: 76px; }
+  .client-orders-intro { top: 48px; }
+  .client-workflow--map .planned-header { position: relative; inset: auto; border-radius: 0; }
+  .client-workflow--map .planned-workspace-main { padding: 0 16px 32px; }
+  .client-workflow--map .urgent-map-background { position: relative; height: 300px; margin: 0 -16px 16px; }
+  .client-workflow--map .urgent-map-background > p { top: auto; bottom: 8px; right: 8px; left: 8px; max-width: none; margin: 0; padding: 12px; }
+  .client-workflow--map .urgent-map-page > .planned-heading, .client-workflow--map .urgent-columns { width: 100%; }
+}

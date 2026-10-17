@@ -1,13 +1,16 @@
 'use client';
 import {useState, type ReactNode} from 'react';
 import {useLocale} from './Locale';
+import {formatServiceDate} from './service-date';
 import type {CopyKey} from './locale-data';
 import {isOwnedOrderActive, presentOwnedOrderAmount, type OwnedOrderItem} from './owned-orders';
 export interface OwnedOrderLinkProps {href: string; children: ReactNode; className?: string; ariaLabel?: string}
 export const ownedOrderStatusKeys: Record<string, CopyKey> = {CREATED:'ownedCreated',SEARCHING:'searching',ACCEPTED:'assigned',MASTER_ON_WAY:'enroute',INSPECTION:'inspection',AWAITING_PRICE_CONFIRM:'quote',PRICE_APPROVED:'approved',IN_PROGRESS:'working',DONE:'done',CLOSED:'closed',NO_MASTERS:'nomatch',CANCELLED_BY_CLIENT:'ownedCancelledClient',CANCELLED_BY_MASTER:'ownedCancelledMaster',DISPUTE:'ownedDispute',PUBLISHED:'ownedPublished',MASTER_SELECTED:'ownedSelected',CONFIRMED:'ownedConfirmed',EXPIRED:'ownedExpired'};
-export function OwnedOrdersView({items,loading,error,incomplete,onRetry,renderLink}: {items: OwnedOrderItem[]; loading: boolean; error: string; incomplete: boolean; onRetry: () => void; renderLink: (props: OwnedOrderLinkProps) => ReactNode}) {
+export function OwnedOrdersView({items,loading,error,incomplete,onRetry,renderLink,selectedTab,onTabChange}: {selectedTab?:'active'|'history'; onTabChange?:(tab:'active'|'history')=>void; items: OwnedOrderItem[]; loading: boolean; error: string; incomplete: boolean; onRetry: () => void; renderLink: (props: OwnedOrderLinkProps) => ReactNode}) {
   const {language,t,formatMoney} = useLocale();
-  const [tab,setTab] = useState<'active'|'history'>('active');
+  const [internalTab,setInternalTab] = useState<'active'|'history'>('active');
+  const tab=selectedTab??internalTab;
+  const setTab=(value:'active'|'history')=>{setInternalTab(value);onTabChange?.(value);};
   const shown = items.filter(item => isOwnedOrderActive(item) === (tab === 'active'));
   return <section className="mx-auto flex w-full max-w-[1328px] min-w-0 flex-col gap-6 px-6 py-6" aria-labelledby="owned-orders-heading">
     <h1 id="owned-orders-heading" className="text-[28px] leading-[34px] font-medium md:text-[32px] md:font-semibold">{t('orders')}</h1>
@@ -23,7 +26,7 @@ export function OwnedOrdersView({items,loading,error,incomplete,onRetry,renderLi
         {shown.map(item => {
           const amount = presentOwnedOrderAmount(item);
           const timestamp = item.createdAt ? Date.parse(item.createdAt) : NaN;
-          const date = Number.isFinite(timestamp) ? new Intl.DateTimeFormat(language === 'ru' ? 'ru-KZ' : language === 'kk' ? 'kk-KZ' : 'en-GB', {day:'numeric',month:'long',year:'numeric'}).format(timestamp) : null;
+          const date = Number.isFinite(timestamp) ? formatServiceDate(timestamp,language,{day:'numeric',month:'long',year:'numeric'}) : null;
           const href = `${item.kind === 'urgent' ? '/order/' : '/planned/'}${encodeURIComponent(item.id)}`;
           const versionedDirect = item.kind === 'urgent' && (item.lifecycleVersion ?? 0) >= 2 && item.commercialMode === 'DIRECT_PAYMENT';
           const statusKey = !versionedDirect && item.status === 'DONE' ? 'ownedDone' : !versionedDirect && item.status === 'CLOSED' ? 'ownedClosed' : ownedOrderStatusKeys[item.status] ?? 'ownedUnknownStatus';

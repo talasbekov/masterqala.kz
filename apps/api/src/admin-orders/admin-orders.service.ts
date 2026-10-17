@@ -114,7 +114,8 @@ export class AdminOrdersService {
         AND mp.location IS NOT NULL AND o.location IS NOT NULL
         AND u.id <> ${order.clientId}
         AND NOT EXISTS (
-          SELECT 1 FROM "Order" ao WHERE ao."masterId" = u.id AND ao.status IN (${ACTIVE_MASTER_STATUSES_SQL})
+          SELECT 1 FROM "Order" ao WHERE ao."masterId" = u.id
+            AND (ao.status IN (${ACTIVE_MASTER_STATUSES_SQL}) OR (ao."lifecycleVersion" >= 2 AND ao.status = 'DONE'))
         )
       ORDER BY meters ASC
       LIMIT 10`;

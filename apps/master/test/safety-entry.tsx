@@ -10,3 +10,5 @@ export {default as BecomeMasterPage} from '../app/(app)/become-master/page';
 export {Sidebar} from '../components/Sidebar';
 export {apiUpload} from '../lib/api';
 export {useMasterApplicationController} from '../lib/useMasterApplicationController';
+export {safeMasterReturn,masterLoginUrl} from '../lib/auth-return';
+export {MasterWorkspace} from '../components/MasterWorkspace';

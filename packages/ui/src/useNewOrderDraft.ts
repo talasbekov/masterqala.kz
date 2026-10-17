@@ -27,6 +27,7 @@ export function useNewOrderDraft(ownerId:string) {
    return()=>{window.removeEventListener(DRAFT_CREATED_EVENT,created);window.removeEventListener(DRAFT_CLEARED_EVENT,invalidate);unsubscribe();current.dispose();if(session.current===current)session.current=null;};
  },[ownerId]);
  const set=useCallback(<K extends keyof NewOrderDraft>(key:K,value:NewOrderDraft[K]|((previous:NewOrderDraft[K])=>NewOrderDraft[K]))=>session.current?.set(key,value),[]);
+ const patch=useCallback((fields:Partial<NewOrderDraft>)=>session.current?.patch(fields),[]);
  const applyInitialLocation=useCallback((geo:NewOrderDraft['geo'])=>session.current?.applyInitialLocation(geo),[]);
  const requestLocation=useCallback(()=>session.current?.requestLocation()??(()=>{}),[]);
  const complete=useCallback(()=>session.current?.complete()??false,[]);
@@ -45,7 +46,7 @@ export function useNewOrderDraft(ownerId:string) {
    if(!resolved&&!pending.persistent&&wasActive)return session.current?.complete()??false;
    return resolved&&wasActive;
  },[ownerId]);
- return {draft:state?.ownerId===ownerId?state.draft:emptyNewOrderDraft(),ready:state?.ownerId===ownerId,set,applyInitialLocation,requestLocation,complete,beginCreate,finishCreate,pending:outcome?.ownerId===ownerId?outcome.pending:null,completedOrderId:outcome?.ownerId===ownerId?outcome.completedOrderId:null};
+ return {draft:state?.ownerId===ownerId?state.draft:emptyNewOrderDraft(),ready:state?.ownerId===ownerId,set,patch,applyInitialLocation,requestLocation,complete,beginCreate,finishCreate,pending:outcome?.ownerId===ownerId?outcome.pending:null,completedOrderId:outcome?.ownerId===ownerId?outcome.completedOrderId:null};
 }
 
 /** No mount effect submits: recovery is an explicit same-key action. */

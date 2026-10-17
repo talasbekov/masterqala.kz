@@ -44,6 +44,7 @@ describe('MastersService upload security', () => {
           : jest.fn().mockResolvedValue({ id: 'document-1' }),
       },
       $executeRaw: jest.fn().mockResolvedValue(1),
+      $transaction: jest.fn(),
       $queryRaw: jest.fn().mockResolvedValue([
         {
           id: 'document-1',
@@ -58,6 +59,7 @@ describe('MastersService upload security', () => {
         },
       ]),
     };
+    prisma.$transaction.mockImplementation((work: (tx: unknown) => unknown) => work(prisma));
     const config = { get: jest.fn().mockReturnValue(options.cdrMode ?? 'BYPASS') };
     const fileScans = { enqueueMasterDocument: jest.fn().mockResolvedValue(undefined) };
     const reviews = {};
@@ -99,6 +101,19 @@ describe('MastersService upload security', () => {
 
     await expect(service.uploadDocument('user-1', 'ID_CARD', jpegFile())).rejects.toThrow('database unavailable');
     expect(storage.remove).toHaveBeenCalledWith('uuid.jpg');
+  });
+
+  it('rejects and removes an upload when review completes while the file is being saved', async () => {
+    const { service, prisma, storage, fileScans } = setup();
+    storage.save.mockImplementation(async () => {
+      prisma.masterProfile.findUnique.mockResolvedValue({ id: 'profile-1', status: 'ACTIVE' });
+      return 'uuid.jpg';
+    });
+
+    await expect(service.uploadDocument('user-1', 'ID_CARD', jpegFile())).rejects.toMatchObject({ status: 409 });
+    expect(prisma.masterDocument.create).not.toHaveBeenCalled();
+    expect(storage.remove).toHaveBeenCalledWith('uuid.jpg');
+    expect(fileScans.enqueueMasterDocument).not.toHaveBeenCalled();
   });
 
   it('не пишет PDF на диск, когда обязательный CDR ещё не подключён', async () => {

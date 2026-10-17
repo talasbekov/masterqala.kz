@@ -1,4 +1,5 @@
-import { Body, Controller, Get, NotFoundException, Param, Post, StreamableFile, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, NotFoundException, Param, Post, Res, StreamableFile, UseGuards } from '@nestjs/common';
+import type { Response } from 'express';
 import { createReadStream } from 'fs';
 import { User } from '@prisma/client';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -7,7 +8,7 @@ import { PhotoReferenceGuard } from '../storage/photo-reference.guard';
 import { mimeTypeForStoredPath } from '../storage/upload-security';
 import { PlannedOrdersService } from './planned-orders.service';
 import { PlannedOrdersCommercialService } from './planned-orders-commercial.service';
-import { CreatePlannedOrderDto, PlaceBidDto, SelectBidDto } from './dto';
+import { CreateIdempotentPlannedOrderDto, CreatePlannedOrderDto, PlaceBidDto, SelectBidDto } from './dto';
 
 @Controller('planned-orders')
 @UseGuards(JwtAuthGuard)
@@ -22,6 +23,19 @@ export class PlannedOrdersController {
   async create(@CurrentUser() user: User, @Body() dto: CreatePlannedOrderDto) {
     await this.photoReferences.assertAvailable(user.id, dto.photoPaths);
     return this.plannedOrders.create(user.id, dto);
+  }
+
+  @Post('idempotent')
+  async createIdempotent(
+    @CurrentUser() user: User,
+    @Body() dto: CreateIdempotentPlannedOrderDto,
+    @Res({ passthrough: true }) response?: Response,
+  ) {
+    const result = await this.plannedOrders.createIdempotent(user.id, dto, (tx) =>
+      this.photoReferences.assertAvailable(user.id, dto.photoPaths, tx),
+    );
+    if (result.replayed) response?.setHeader('Idempotency-Replayed', 'true');
+    return result.order;
   }
 
   @Get('mine')

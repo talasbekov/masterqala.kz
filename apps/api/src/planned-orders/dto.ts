@@ -71,6 +71,12 @@ export class CreatePlannedOrderDto {
   photoPaths?: string[];
 }
 
+export class CreateIdempotentPlannedOrderDto extends CreatePlannedOrderDto {
+  @IsUUID()
+  @IsNotEmpty()
+  clientRequestId!: string;
+}
+
 export class PlaceBidDto {
   @IsInt()
   @Min(1)

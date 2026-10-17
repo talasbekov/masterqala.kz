@@ -144,23 +144,32 @@ export class MastersService {
     let document: { id: string };
 
     try {
-      document = await this.prisma.masterDocument.create({
-        data: {
-          masterProfileId: profile.id,
-          type,
-          filePath: relPath,
-          originalName: validated.originalName,
-          mimeType: validated.mimeType,
-          sizeBytes: validated.sizeBytes,
-        },
-        select: { id: true },
+      document = await this.prisma.$transaction(async (tx) => {
+        // Serialize insertion with the operator's safety check and decision.
+        await tx.$queryRaw`SELECT id FROM "MasterProfile" WHERE id = ${profile.id} FOR UPDATE`;
+        const current = await tx.masterProfile.findUnique({ where: { id: profile.id } });
+        if (!current || (current.status !== 'PENDING_REVIEW' && current.status !== 'NEEDS_INFO')) {
+          throw new ConflictException('Документы можно загружать только пока заявка на проверке');
+        }
+        const created = await tx.masterDocument.create({
+          data: {
+            masterProfileId: profile.id,
+            type,
+            filePath: relPath,
+            originalName: validated.originalName,
+            mimeType: validated.mimeType,
+            sizeBytes: validated.sizeBytes,
+          },
+          select: { id: true },
+        });
+        const cdrStatus = validated.kind === 'pdf' ? 'BYPASSED' : 'NOT_REQUIRED';
+        await tx.$executeRaw`
+          UPDATE "MasterDocument"
+          SET "cdrStatus" = ${cdrStatus}
+          WHERE "id" = ${created.id}
+        `;
+        return created;
       });
-      const cdrStatus = validated.kind === 'pdf' ? 'BYPASSED' : 'NOT_REQUIRED';
-      await this.prisma.$executeRaw`
-        UPDATE "MasterDocument"
-        SET "cdrStatus" = ${cdrStatus}
-        WHERE "id" = ${document.id}
-      `;
     } catch (error) {
       await this.removeOrphan(relPath);
       throw error;

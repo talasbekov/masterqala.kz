@@ -1,2 +1,3 @@
 import {FaqView} from '../../components/PublicInfo';
-export default function FaqPage(){return <FaqView/>}
+import {getAppUrl} from '../../lib/env';
+export default function FaqPage(){return <FaqView appUrl={getAppUrl()}/>}

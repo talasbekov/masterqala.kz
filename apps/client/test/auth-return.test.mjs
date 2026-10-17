@@ -3,7 +3,7 @@ import test from 'node:test';
 import { safeReturnPath, protectedLoginUrl } from '../.test-build/lib/auth-return.js';
 
 test('protected order/account route and query survive login round trip', () => {
-  for (const target of ['/order/1842?tab=quote&version=3', '/planned/1842/compare', '/addresses', '/profile', '/']) {
+  for (const target of ['/order/1842?tab=quote&version=3', '/planned/1842/compare', '/addresses', '/profile', '/dashboard', '/']) {
     const path = target.split('?')[0];
     const search = target.includes('?') ? target.split('?')[1] : '';
     const login = protectedLoginUrl(path, search);

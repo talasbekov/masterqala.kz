@@ -105,23 +105,25 @@ export class AdminService {
     if (dto.decision !== 'APPROVE' && !dto.comment) {
       throw new BadRequestException('Укажите причину решения');
     }
-    const profile = await this.prisma.masterProfile.findUnique({ where: { id: profileId } });
-    if (!profile) throw new NotFoundException('Заявка не найдена');
-
-    const blocked = await this.prisma.$queryRaw<Array<{ count: number }>>`
-      SELECT COUNT(*)::int AS "count"
-      FROM "MasterDocument"
-      WHERE "masterProfileId" = ${profileId}
-        AND (
-          "scanStatus" <> 'CLEAN'
-          OR "cdrStatus" NOT IN ('NOT_REQUIRED', 'SANITIZED', 'BYPASSED')
-        )
-    `;
-    if ((blocked[0]?.count ?? 0) > 0) {
-      throw new ConflictException('Проверка безопасности документов ещё не завершена');
-    }
-
     return this.prisma.$transaction(async (tx) => {
+      // Document uploads acquire this same lock before rechecking status and inserting.
+      await tx.$queryRaw`SELECT id FROM "MasterProfile" WHERE id = ${profileId} FOR UPDATE`;
+      const profile = await tx.masterProfile.findUnique({ where: { id: profileId } });
+      if (!profile) throw new NotFoundException('Заявка не найдена');
+
+      const blocked = await tx.$queryRaw<Array<{ count: number }>>`
+        SELECT COUNT(*)::int AS "count"
+        FROM "MasterDocument"
+        WHERE "masterProfileId" = ${profileId}
+          AND (
+            "scanStatus" <> 'CLEAN'
+            OR "cdrStatus" NOT IN ('NOT_REQUIRED', 'SANITIZED', 'BYPASSED')
+          )
+      `;
+      if ((blocked[0]?.count ?? 0) > 0) {
+        throw new ConflictException('Проверка безопасности документов ещё не завершена');
+      }
+
       const { count } = await tx.masterProfile.updateMany({
         where: { id: profileId, status: 'PENDING_REVIEW' },
         data: {
