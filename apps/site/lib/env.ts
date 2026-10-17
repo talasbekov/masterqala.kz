@@ -10,7 +10,7 @@ function destination(value: string | undefined): string | null {
   } catch { return null; }
 }
 export function getAppUrl(): string | null {
-  return destination(process.env.APP_URL ?? (process.env.NODE_ENV === 'development' ? 'http://localhost:5173' : undefined));
+  return destination(process.env.APP_URL ?? (process.env.NODE_ENV === 'development' ? 'http://localhost:4200' : undefined));
 }
 export function getMasterAppUrl(): string | null {
   return destination(process.env.MASTER_APP_URL);

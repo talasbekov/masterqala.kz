@@ -78,6 +78,24 @@ describe('Admin orders (e2e)', () => {
     expect(res.body[0]).toMatchObject({ isOnline: true });
   });
 
+  it('excludes direct DONE masters but preserves legacy DONE candidates', async () => {
+    const busyClient = await loginAs(app, '+77010000006');
+    const busyOrder = await createOrderViaApi(app, busyClient.token, categories.plumbing.id);
+    await prisma.order.update({
+      where: { id: busyOrder.id },
+      data: { masterId: seededMaster.userId, status: 'DONE', lifecycleVersion: 2, commercialMode: 'DIRECT_PAYMENT', serviceFee: 0 },
+    });
+    const target = await createOrderViaApi(app, client.token, categories.plumbing.id);
+    const candidates = () => request(app.getHttpServer())
+      .get(`/api/v1/admin/orders/${target.id}/candidates`)
+      .set('Authorization', `Bearer ${operator.token}`)
+      .expect(200);
+
+    expect((await candidates()).body.map((row: { masterUserId: string }) => row.masterUserId)).not.toContain(seededMaster.userId);
+    await prisma.order.update({ where: { id: busyOrder.id }, data: { lifecycleVersion: 1, commercialMode: 'FREE_PILOT' } });
+    expect((await candidates()).body.map((row: { masterUserId: string }) => row.masterUserId)).toContain(seededMaster.userId);
+  });
+
   it('force-assigns a stuck search to a chosen master and logs it in the audit trail', async () => {
     const created = await createOrderViaApi(app, client.token, categories.plumbing.id);
     await prisma.order.update({

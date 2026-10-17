@@ -1,12 +1,14 @@
 'use client';
 import { useEffect, useState, type ReactNode } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useTranslation } from 'react-i18next';
+import { useLocale } from '@masterqala/ui';
 import { protectedLoginUrl } from '@/lib/auth-return';
 import { useAuth } from '@/lib/auth';
 
 export function AuthGuard({ children }: { children: ReactNode }) {
-  const { t } = useTranslation();
+  // Cookie-backed locale is identical during SSR and first hydration, before
+  // the legacy i18next bridge has synchronized browser storage.
+  const { t } = useLocale();
   const { user } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
@@ -21,6 +23,6 @@ export function AuthGuard({ children }: { children: ReactNode }) {
     }
   }, [user, router, pathname, search]);
 
-  if (!user || !checked) return <div className="p-6 text-ink-soft">{t('common.loading')}</div>;
+  if (!user || !checked) return <div className="p-6 text-ink-soft" role="status">{t('loading')}</div>;
   return <>{children}</>;
 }

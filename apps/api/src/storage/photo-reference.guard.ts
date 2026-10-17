@@ -1,4 +1,5 @@
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { FILE_STORAGE, FileStorage } from './storage.interface';
 import { isCanonicalStoredPhotoPath } from './upload-security';
@@ -10,7 +11,11 @@ export class PhotoReferenceGuard {
     @Inject(FILE_STORAGE) private readonly storage: FileStorage,
   ) {}
 
-  async assertAvailable(userId: string, paths?: readonly string[]): Promise<void> {
+  async assertAvailable(
+    userId: string,
+    paths?: readonly string[],
+    db: Pick<Prisma.TransactionClient, '$queryRaw'> = this.prisma,
+  ): Promise<void> {
     if (!paths?.length) return;
 
     for (const path of paths) {
@@ -19,7 +24,7 @@ export class PhotoReferenceGuard {
       }
     }
 
-    const rows = await this.prisma.$queryRaw<Array<{ count: bigint }>>`
+    const rows = await db.$queryRaw<Array<{ count: bigint }>>`
       SELECT COUNT(*)::bigint AS "count"
       FROM "PendingUpload"
       WHERE "userId" = ${userId}

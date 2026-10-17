@@ -1,5 +1,10 @@
 'use client';
-import {DirectClientOrderView,useOrderState} from '@masterqala/ui';
+import {DirectClientOrderView,useOrderState,useLocale} from '@masterqala/ui';
+import {useAuth} from '@/lib/auth';
+import {DesktopWorkspace} from '@/components/desktop-planned/DesktopWorkspace';
+import {PilotOrderView} from '@/components/desktop-urgent/PilotOrderView';
+import {UrgentMap} from '@/components/desktop-urgent/UrgentMap';
+import {urgentCopy} from '@/components/desktop-urgent/copy';
 import MapView from '@/components/MapView';
 import { useCallback } from 'react';
 import { useParams,useRouter } from 'next/navigation';
@@ -19,9 +24,10 @@ const readOrder=(id:string)=>api(`/orders/${id}`);
 
 const TRACK_STATUSES = ['ACCEPTED', 'MASTER_ON_WAY', 'INSPECTION'];
 
-export default function OrderPage() {
+export default function OrderPage(){const {id}=useParams<{id:string}>(),{user}=useAuth();return user&&id?<OwnedOrderPage key={user.id+':'+id} id={id}/>:null;}
+function OwnedOrderPage({id}:{id:string}) {
   const { t } = useTranslation();
-  const { id } = useParams<{ id: string }>();
+  const {language}=useLocale();
   const router=useRouter();
   const subscribe=useCallback((refresh:()=>void)=>{
     const socket=getSocket();const changed=(payload:{orderId:string})=>{if(payload.orderId===id)refresh();};
@@ -29,12 +35,12 @@ export default function OrderPage() {
     return()=>{socket.off('order:status',changed);socket.off('connect',refresh);};
   },[id]);
   const {order,loading,error,online,fresh,busy,load,mutate}=useOrderState<OrderDetail>({id,read:readOrder,subscribe});
-  if (loading) return <div className="p-6 text-ink-soft">{t('common.loading')}</div>;
+  if (loading) return <DesktopWorkspace><div className="planned-card" role="status">{t('common.loading')}</div></DesktopWorkspace>;
 
   if (!order || !id) {
     return (
-      <div className="flex flex-col gap-3 p-6">
-        <p className="text-sm font-semibold text-danger">{error || t('orderDetail.notFound')}</p>
+      <DesktopWorkspace><div className="planned-card">
+        <p role="alert">{urgentCopy[language].error}</p>
         <button
           type="button"
           onClick={load}
@@ -42,7 +48,7 @@ export default function OrderPage() {
         >
           {t('common.retry')}
         </button>
-      </div>
+      </div></DesktopWorkspace>
     );
   }
 
@@ -53,6 +59,8 @@ export default function OrderPage() {
     onAction={(action,body)=>mutate(()=>api(`/orders/${id}/${action}`,{method:'POST',body:JSON.stringify(body??{})}))}/>;
 
   const freePilot = order.commercialMode === 'FREE_PILOT' || order.freePilot === true;
+
+  if(freePilot)return <DesktopWorkspace map={['CREATED','SEARCHING','ACCEPTED','MASTER_ON_WAY','INSPECTION','AWAITING_PRICE_CONFIRM','IN_PROGRESS'].includes(order.status)}><PilotOrderView order={order} language={language} categoryLabel={t(`newOrder.category_${order.category?.slug}`,{defaultValue:order.category?.name??''})} busy={busy} fresh={fresh} online={online} error={error} onRefresh={()=>void load()} onAction={(action,body)=>mutate(()=>api(`/orders/${id}/${action}`,{method:'POST',body:JSON.stringify(body??{})}))} map={<UrgentMap key={order.id+':'+(order.master?.id??'none')+':'+order.status} id={order.id} lat={order.lat} lng={order.lng} language={language} searching={['CREATED','SEARCHING'].includes(order.status)}/>} /></DesktopWorkspace>;
 
   if (order.status === 'SEARCHING') return <SearchView order={order} onChanged={load} />;
   if (order.status === 'NO_MASTERS') return <NoMastersView orderId={id} freePilot={freePilot} onChanged={load} />;

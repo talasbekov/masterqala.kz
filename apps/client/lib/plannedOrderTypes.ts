@@ -26,6 +26,8 @@ export interface PlannedOrderMaster {
 }
 
 export interface PlannedOrderDetail {
+  commercialMode?: string;
+  lifecycleModel?: string;
   id: string;
   status: string;
   category: { name: string; slug: string } | null;

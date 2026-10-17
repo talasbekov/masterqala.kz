@@ -6,5 +6,5 @@ import {useMasterDisputes} from '../../../lib/useMasterDisputes';
 export default function DisputesListPage() {
   const {user}=useAuth();
   const state=useMasterDisputes(user?.id??null);
-  return <OwnedDisputesView {...state} onRetry={()=>{void state.retry();}} renderLink={({href,children,className,ariaLabel})=><Link href={href} className={className} aria-label={ariaLabel}>{children}</Link>}/>;
+  return <div className="mq-master-disputes-list"><OwnedDisputesView {...state} onRetry={()=>{void state.retry();}} renderLink={({href,children,className,ariaLabel})=><Link href={href} className={className} aria-label={ariaLabel}>{children}</Link>}/></div>;
 }

@@ -143,8 +143,14 @@ function MasterPresenceSession({children}:{children:ReactNode}){
  const acceptOffer=useCallback(async()=>{
   if(!live.current||!offer||currentOffer.current!==offer||offerLock.current||!(Date.parse(offer.deadline)>Date.now())||!navigator.onLine)return;
   offerRevision.current++;offerLock.current=true;setAcceptingOffer(true);
-  try{const accepted=await api(`/orders/${offer.orderId}/accept`,{method:'POST'});if(!live.current)return;clearAccepted(offer);router.push(accepted.lifecycleVersion>=2?`/order/${offer.orderId}`:'/');}
-  catch(error){if(live.current){clearAccepted(offer);setOfferNote((error as Error).message);}}
+  try{await api(`/orders/${encodeURIComponent(offer.orderId)}/accept`,{method:'POST'});if(!live.current)return;clearAccepted(offer);router.push(`/order/${encodeURIComponent(offer.orderId)}`);}
+  catch(error){
+   if(!live.current)return;
+   // POST may have committed. Reconcile with an authenticated read, never replay it.
+   clearAccepted(offer);setOfferNote('ACCEPT_RECONCILE');
+   try{const result=await api('/master/active-order');if(!live.current)return;if(result?.order?.id===offer.orderId){setOfferNote('');router.push(`/order/${encodeURIComponent(offer.orderId)}`);}else setOfferNote('ACCEPT_NOT_CONFIRMED');}
+   catch{if(live.current)setOfferNote('ACCEPT_RECONCILE');}
+  }
   finally{if(live.current){offerRevision.current++;offerLock.current=false;setAcceptingOffer(false);}}
  },[offer,router]);
  const declineOffer=useCallback(async()=>{

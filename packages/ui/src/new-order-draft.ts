@@ -6,6 +6,8 @@ export interface NewOrderDraft {
   geo: {lat:number;lng:number}; addressText: string; district: string;
   entrance: string; floor: string; apartment: string; addressComment: string;
   locationChosen: boolean;
+  /** Saved addresses without coordinates require an explicit pin decision. */
+  locationNeedsConfirmation?: boolean;
 }
 export function emptyNewOrderDraft(): NewOrderDraft {
   return {step:1,categoryId:'',description:'',photoPaths:[],geo:{lat:51.1605,lng:71.4704},addressText:'',district:'',entrance:'',floor:'',apartment:'',addressComment:'',locationChosen:false};
@@ -21,7 +23,8 @@ function submittedFields(value:unknown):NewOrderDraft|null {
   if(![1,2,3,4].includes(draft.step)||typeof draft.locationChosen!=='boolean'||textFields.some(key=>typeof draft[key]!=='string'))return null;
   if(!draft.geo||!Number.isFinite(draft.geo.lat)||!Number.isFinite(draft.geo.lng)||Math.abs(draft.geo.lat)>90||Math.abs(draft.geo.lng)>180)return null;
   if(!Array.isArray(draft.photoPaths)||draft.photoPaths.length>5||draft.photoPaths.some(path=>typeof path!=='string'||!path||/^(blob:|data:)/i.test(path)))return null;
-  return {step:draft.step,categoryId:draft.categoryId,description:draft.description,photoPaths:[...draft.photoPaths],geo:{lat:draft.geo.lat,lng:draft.geo.lng},addressText:draft.addressText,district:draft.district,entrance:draft.entrance,floor:draft.floor,apartment:draft.apartment,addressComment:draft.addressComment,locationChosen:draft.locationChosen};
+  if(draft.locationNeedsConfirmation!==undefined&&typeof draft.locationNeedsConfirmation!=='boolean')return null;
+  return {step:draft.step,categoryId:draft.categoryId,description:draft.description,photoPaths:[...draft.photoPaths],geo:{lat:draft.geo.lat,lng:draft.geo.lng},addressText:draft.addressText,district:draft.district,entrance:draft.entrance,floor:draft.floor,apartment:draft.apartment,addressComment:draft.addressComment,locationChosen:draft.locationChosen,...(draft.locationNeedsConfirmation!==undefined?{locationNeedsConfirmation:draft.locationNeedsConfirmation}:{})};
 }
 function remove(storage?:Pick<Storage,'removeItem'>){try{storage?.removeItem(DRAFT_STORAGE_KEY);}catch{/* Storage is optional. */}}
 export function readNewOrderDraft(ownerId:string,storage:Pick<Storage,'getItem'|'removeItem'>|undefined=getDraftStorage()):NewOrderDraft|null {
@@ -66,14 +69,19 @@ export function createDraftSession(ownerId:string,storage=getDraftStorage()) {
       if(!active||!editable)return;
       if(key==='geo'||key==='addressText')locationRevision++;
       const next=typeof value==='function'?value(snapshot[key]):value;
-      publish({...snapshot,[key]:next,locationChosen:snapshot.locationChosen||key==='addressText'||key==='geo'});
+      publish({...snapshot,[key]:next,locationChosen:key==='geo'||(!snapshot.locationNeedsConfirmation&&(snapshot.locationChosen||key==='addressText')),...(key==='geo'&&snapshot.locationNeedsConfirmation?{locationNeedsConfirmation:false}:{})});
+    },
+    patch(fields:Partial<NewOrderDraft>) {
+      if(!active||!editable)return;
+      if('geo' in fields||'addressText' in fields)locationRevision++;
+      publish({...snapshot,...fields});
     },
     requestLocation(){
       const revision=++locationRevision;
-      return (geo:NewOrderDraft['geo'])=>{if(active&&editable&&revision===locationRevision)publish({...snapshot,geo,locationChosen:true});};
+      return (geo:NewOrderDraft['geo'])=>{if(active&&editable&&revision===locationRevision)publish({...snapshot,geo,locationChosen:true,...(snapshot.locationNeedsConfirmation?{locationNeedsConfirmation:false}:{})});};
     },
     applyInitialLocation(geo:NewOrderDraft['geo']) {
-      if(!active||restored||snapshot.locationChosen)return;
+      if(!active||restored||snapshot.locationChosen||snapshot.locationNeedsConfirmation)return;
       publish({...snapshot,geo});
     },
     complete(){if(!active)return false;active=false;clearNewOrderDraft(storage);listeners.clear();return true;},
@@ -101,6 +109,7 @@ function submission(value:unknown):CurrentOrderSubmission|null {
  return result;
 }
 export function currentOrderSubmission(draft:NewOrderDraft):CurrentOrderSubmission|null {
+ if(draft.locationNeedsConfirmation)return null;
  return submission({categoryId:draft.categoryId,description:draft.description,address:draft.addressText,district:draft.district,lat:draft.geo.lat,lng:draft.geo.lng,photoPaths:draft.photoPaths,entrance:draft.entrance||undefined,floor:draft.floor||undefined,apartment:draft.apartment||undefined,addressComment:draft.addressComment||undefined});
 }
 // One browser-window record survives same-document route remounts, never SSR requests.

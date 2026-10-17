@@ -136,19 +136,11 @@ describe('Лента и просмотр плановой заявки (e2e)', (
       phone: '+77070000001',
     });
 
-    const stillRedacted = await request(app.getHttpServer())
+    // Assigned orders are private, even when contact fields could be redacted.
+    await request(app.getHttpServer())
       .get(`/api/v1/planned-orders/${order.id}`)
       .set('Authorization', `Bearer ${anotherPlumber.token}`)
-      .expect(200);
-    expect(stillRedacted.body.address).toBeNull();
-    expect(stillRedacted.body.entrance).toBeNull();
-    expect(stillRedacted.body.floor).toBeNull();
-    expect(stillRedacted.body.apartment).toBeNull();
-    expect(stillRedacted.body.addressComment).toBeNull();
-    expect(stillRedacted.body.photos).toEqual([]);
-    expect(stillRedacted.body.client).toBeNull();
-    expect(stillRedacted.body.master).toMatchObject({ id: plumber.userId, phone: '' });
-    expect(stillRedacted.body.bids).toEqual([]);
+      .expect(403);
   });
 
   it('клиент видит свою заявку полностью', async () => {

@@ -13,7 +13,7 @@ export interface OrderDetail extends DirectOrder {
   commercialMode: 'FREE_PILOT' | 'PAID_MOCK' | 'PAID_LIVE' | 'DIRECT_PAYMENT';
   freePilot?: boolean;
   wave: number;
-  category: { name: string } | null;
+  category: { name: string; slug?:string } | null;
   master: OrderMaster | null;
   address: string;
   lat: number | null;

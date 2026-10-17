@@ -1,0 +1,15 @@
+/* Stage 9: remaining detail routes follow the original workspace gutters. */
+.mq-master-workspace .master-desktop-dispute{padding:32px 40px;}
+.mq-master-disputes-list>section{max-width:1440px;padding:32px 40px;}
+.mq-master-workspace .mq-auth-main{padding:72px 80px;}
+.mq-master-workspace .mq-login-content{max-width:1280px;padding:0;margin:0 auto;background:transparent;}
+.mq-master-workspace .mq-login-content h1{line-height:1.4;}
+.mq-master-workspace .mq-login-content>p{margin:0 0 24px;}
+.mq-master-login-grid{display:grid;grid-template-columns:minmax(0,1fr) 384px;align-items:start;gap:64px;}
+.mq-master-login-grid .mq-login-form{width:100%;}
+.mq-master-login-note{padding:24px;background:var(--color-surface);border-radius:16px;display:grid;gap:16px;}
+.mq-master-login-note h2{font-size:20px;font-weight:600;line-height:1.4;}
+.mq-master-login-note p{font-size:16px;line-height:1.5;color:var(--master-muted);}
+@media(max-width:1100px){.mq-master-workspace .mq-auth-main{padding:48px 40px;}.mq-master-login-grid{grid-template-columns:minmax(0,1fr) 300px;gap:24px;}}
+@media(max-width:1000px){.mq-master-workspace .master-desktop-dispute,.mq-master-disputes-list>section{padding:32px 24px;}}
+@media(max-width:767px){.mq-master-login-grid{grid-template-columns:minmax(0,1fr);}.mq-master-login-note{display:none;}.mq-master-workspace .mq-auth-main{padding:24px 16px;}.mq-master-workspace .mq-login-content{padding:0;}.mq-master-login-grid .mq-login-form{padding:24px 16px;}.mq-master-workspace .master-desktop-dispute,.mq-master-disputes-list>section{padding:24px 16px;}}

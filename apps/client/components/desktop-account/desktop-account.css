@@ -1,0 +1,58 @@
+.desktop-account{--account-surface:var(--mq-web-surface,#fff);--account-soft:var(--mq-web-soft,#f4f3ef);--account-ink:var(--mq-web-brand,#123b52);--account-muted:var(--mq-web-muted,#666);width:100%;min-width:0;color:var(--account-ink)}
+.desktop-account .mq-profile-page,.desktop-account .mq-account-address-page{width:100%;max-width:1328px;margin:0 auto;padding:32px 0 48px;gap:24px}
+.desktop-account .mq-profile-page h1,.desktop-account .mq-account-address-page h1{font-size:32px;font-weight:600;line-height:1.4}
+.desktop-account .mq-profile-subtitle,.desktop-account .mq-account-address-subtitle{margin:0;font-size:16px;line-height:1.5;color:var(--account-muted)}
+.desktop-account .mq-profile-columns{grid-template-columns:minmax(0,1fr) 384px;gap:40px}
+.desktop-account .mq-profile-form,.desktop-account .mq-profile-aside,.desktop-account .mq-address-editor{border-radius:16px;padding:24px;background:var(--account-surface)}
+.desktop-account .mq-profile-aside{display:flex;flex-direction:column;gap:16px}
+.desktop-account .mq-profile-aside h2{margin:0;font-size:20px;font-weight:600;line-height:1.4}
+.desktop-account .mq-profile-aside>button{min-height:52px;background:transparent}
+.desktop-account-links{display:flex;flex-direction:column;gap:12px}
+.desktop-account-links a,.desktop-account-master a{display:flex;align-items:center;justify-content:center;min-height:52px;padding:12px 16px;background:var(--account-soft);border-radius:12px;text-decoration:none;color:var(--account-ink);font-size:16px;font-weight:600;line-height:1.4;text-align:center}
+.desktop-account-links a:hover,.desktop-account-master a:hover{background:var(--color-fill,#e9efee)}
+.desktop-account a:focus-visible,.desktop-account button:focus-visible{outline:3px solid var(--account-ink);outline-offset:3px}
+.desktop-account-master{border-top:1px solid var(--color-border,#d8e4e9);padding-top:20px;display:flex;flex-direction:column;gap:12px}
+.desktop-account-master h3{font-size:16px;font-weight:600;margin:0}
+.desktop-account-master p{margin:0;color:var(--account-muted);font-size:14px;line-height:1.5}
+.desktop-account .mq-account-address-heading{justify-content:space-between;flex-direction:row-reverse}
+.desktop-account .mq-account-address-heading button{min-height:44px}
+.desktop-account .mq-account-address-layout{grid-template-columns:384px minmax(0,1fr);gap:40px;align-items:start}
+.desktop-account .mq-account-address-list>button{border:1px solid transparent;background:var(--account-surface);border-radius:16px;padding:20px;font-size:16px;line-height:1.5}
+.desktop-account .mq-account-address-list>button[aria-pressed=true]{border-color:var(--account-ink);background:var(--account-soft)}
+.desktop-account .mq-account-address-list strong{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:20px;font-weight:600}
+.desktop-account .mq-account-address-list p{margin:12px 0;color:var(--account-muted)}
+.desktop-account .mq-account-address-list>button>span{display:block;text-decoration:underline;text-underline-offset:4px;font-size:14px;font-weight:600}
+.desktop-account .mq-address-default-badge{padding:4px 8px;border-radius:8px;background:var(--account-surface);font-size:12px;line-height:16px;font-weight:600}
+.desktop-account .mq-address-editor{width:100%;gap:20px}
+.desktop-account .mq-account-address-list>[data-address-empty]{padding:24px;margin:0;border-radius:16px;background:var(--account-surface)}
+.desktop-account .mq-account-draft-notice,.desktop-account .mq-account-draft-actions,.desktop-account-notice{padding:16px 20px;border-radius:12px;background:var(--account-surface);font-size:14px;line-height:1.5}
+.desktop-account .mq-account-draft-actions{display:flex;align-items:center;justify-content:space-between;gap:20px}
+.desktop-account .mq-account-draft-actions p,.desktop-account .mq-account-draft-notice p{margin:0 0 8px}
+.desktop-account .mq-account-draft-actions button{flex:none;min-height:44px}
+@media(max-width:1100px){.desktop-account .mq-profile-columns,.desktop-account .mq-account-address-layout{gap:24px;grid-template-columns:minmax(0,1fr) 340px}.desktop-account .mq-account-address-layout{grid-template-columns:320px minmax(0,1fr)}}
+@media(max-width:900px){.desktop-account .mq-profile-columns,.desktop-account .mq-account-address-layout{grid-template-columns:minmax(0,1fr)}.desktop-account .mq-profile-form{background:var(--account-surface);padding:24px}.desktop-account .mq-account-draft-actions{align-items:stretch;flex-direction:column;gap:8px}}
+@media(max-width:767px){.desktop-account .mq-profile-page,.desktop-account .mq-account-address-page{padding:16px 0 32px}.desktop-account .mq-profile-page h1,.desktop-account .mq-account-address-page h1{font-size:28px}.desktop-account .mq-address-editor{padding:24px}.desktop-account .mq-profile-language{align-items:flex-start;justify-content:center}.desktop-account .mq-profile-language .mq-field-label{display:block}}
+/* Original addresses 93:1598: saved cards left, editor right. */
+.desktop-account-addresses{max-width:1328px;margin:40px auto 0;padding:0 24px}
+.desktop-account-addresses .mq-account-address-layout{grid-template-columns:minmax(0,1fr) 384px;gap:64px}
+.desktop-account-addresses .mq-account-address-list>button{padding:24px;border:0;text-align:left;display:flex;flex-direction:column;gap:16px}
+.desktop-account-addresses .mq-account-address-list>button[aria-pressed=true]{background:var(--account-surface);box-shadow:inset 0 0 0 2px var(--account-ink)}
+.desktop-account-addresses .mq-account-address-list>button p{width:100%;margin:0;padding:12px 16px;border-radius:12px;background:var(--account-soft);color:var(--mq-web-ink,#202020)}
+.desktop-account-addresses .mq-account-address-list>button>span{display:flex;align-items:center;justify-content:center;width:100%;min-height:52px;padding:12px 16px;border-radius:12px;background:var(--account-ink);color:white;font-size:16px;text-decoration:none}
+.desktop-account-addresses .mq-address-details{gap:8px}
+/* 621:203: live editable profile in place of Figma demonstration data. */
+.desktop-account-profile .mq-profile-page{max-width:none;margin:0;padding:0 0 24px;gap:32px}
+.desktop-account-profile .mq-profile-page h1{font-size:42px;font-weight:700;line-height:1}
+.desktop-account-profile .mq-profile-columns{grid-template-columns:minmax(0,1fr) 432px;gap:32px}
+.desktop-account-profile .mq-profile-aside{padding:0;border-radius:0;background:transparent;gap:24px}
+.desktop-account-profile .mq-profile-personal{gap:24px}
+.desktop-account-context-card{display:flex;flex-direction:column;gap:16px;padding:24px;border-radius:16px;background:var(--account-surface)}
+.desktop-account-profile .desktop-account-context-card h2{font-size:24px;font-weight:600;line-height:1.4}
+.desktop-account-context-card p{margin:0;color:var(--mq-web-ink,#202020);font-size:16px;line-height:1.5}
+.desktop-account-primary-links{display:flex;flex-direction:column;gap:24px;align-items:flex-start}
+.desktop-account-primary-links a{display:flex;align-items:center;justify-content:center;width:min(380px,100%);min-height:52px;padding:12px 16px;border-radius:12px;background:var(--account-ink);color:white;font-size:16px;font-weight:600;text-decoration:none}
+.desktop-account-settings{padding:24px;border-radius:16px;background:var(--account-surface)}
+.desktop-account-settings summary{min-height:44px;font-size:20px;font-weight:600;cursor:pointer}
+.desktop-account-settings .desktop-account-links{margin-top:16px}
+@media(max-width:1100px){.desktop-account-profile .mq-profile-columns{grid-template-columns:minmax(0,1fr) 340px}.desktop-account-addresses .mq-account-address-layout{grid-template-columns:minmax(0,1fr) 340px;gap:24px}}
+@media(max-width:767px){.desktop-account-addresses{margin:0;padding:8px 16px}.desktop-account-addresses .mq-account-address-layout,.desktop-account-profile .mq-profile-columns{grid-template-columns:minmax(0,1fr);gap:24px}.desktop-account-profile .mq-profile-page{padding:0;gap:24px}.desktop-account-profile .mq-profile-page h1{font-size:32px;line-height:1.2}.desktop-account-primary-links a{width:100%}.desktop-account-addresses .mq-address-details{grid-template-columns:minmax(0,1fr)}}

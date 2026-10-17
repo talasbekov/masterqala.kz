@@ -1,0 +1,15 @@
+/* Figma 95:2099 and shared 93:1518, retaining the verified dispute record. */
+.master-desktop-dispute .dispute-columns{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:24px;align-items:start;min-width:0;}
+.master-desktop-dispute .dispute-main{display:flex;flex-direction:column;gap:16px;min-width:0;}
+.master-desktop-dispute .dispute-heading h1{line-height:1.4;letter-spacing:0;}
+.master-desktop-dispute .dispute-card{border:0;}
+.master-desktop-dispute .dispute-card h2{font-size:20px;line-height:1.4;margin-bottom:16px;}
+.master-desktop-dispute .dispute-context dl{grid-template-columns:minmax(0,1fr);gap:16px;}
+.master-desktop-dispute .dispute-context dd{color:var(--color-ink);}
+.master-desktop-dispute .dispute-primary,.master-desktop-dispute .dispute-secondary{border-radius:12px;}
+.master-desktop-dispute .dispute-primary{background:var(--color-primary);color:var(--color-surface);}
+.master-desktop-dispute .dispute-field select,.master-desktop-dispute .dispute-field textarea{background:var(--color-fill-soft);}
+.master-desktop-dispute .dispute-field select{max-width:none;}
+.master-desktop-dispute .dispute-record-meta>div{min-width:0;flex:1 1 180px;}
+.master-desktop-dispute .dispute-evidence-grid{grid-template-columns:minmax(0,1fr);}
+@media(max-width:1000px){.master-desktop-dispute .dispute-columns{grid-template-columns:minmax(0,1fr);}}

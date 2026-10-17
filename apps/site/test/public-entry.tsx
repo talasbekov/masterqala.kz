@@ -3,6 +3,7 @@ export * from '../lib/categories';
 export {Header} from '../components/Header';
 export {Footer} from '../components/Footer';
 export {SiteShell} from '../components/SiteShell';
+export {PublicNavigation} from '../components/PublicInfo';
 export {default as AboutPage} from '../app/about/page';
 export {default as FaqPage} from '../app/faq/page';
 export {default as MasterPage} from '../app/become-a-master/page';

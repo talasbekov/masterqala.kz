@@ -5,11 +5,14 @@ import {
   ForbiddenException,
   Inject,
   Injectable,
+  Logger,
   NotFoundException,
   OnModuleInit,
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { PlannedOrder, Prisma, User } from '@prisma/client';
+import { isUUID } from 'class-validator';
+import { plannedCreationPayloadHash } from './planned-creation-payload';
 import { PrismaService } from '../prisma/prisma.service';
 import { MasterPenaltyService } from '../common/master-penalty.service';
 import { DisputesService } from '../disputes/disputes.service';
@@ -26,12 +29,14 @@ import {
   PLANNED_MAX_BIDS,
   PLANNED_ORDER_INCLUDE,
 } from './planned-order.constants';
-import { CreatePlannedOrderDto, PlaceBidDto, SelectBidDto } from './dto';
+import { CreateIdempotentPlannedOrderDto, CreatePlannedOrderDto, PlaceBidDto, SelectBidDto } from './dto';
 
 type Tx = Prisma.TransactionClient;
 
 @Injectable()
 export class PlannedOrdersService implements OnModuleInit {
+  private readonly logger = new Logger(PlannedOrdersService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly queue: QueueService,
@@ -48,10 +53,85 @@ export class PlannedOrdersService implements OnModuleInit {
     );
     this.queue.register(JOBS.PLANNED_AUTO_CLOSE, (d: { plannedOrderId: string }) => this.handleAutoClose(d));
     this.queue.register(JOBS.PLANNED_EXPIRY, (d: { plannedOrderId: string }) => this.handlePlannedExpiry(d));
+    this.queue.registerCron(JOBS.PLANNED_CREATION_EXPIRY_RECOVERY, '* * * * *', () => this.recoverCreationExpiry());
   }
 
   async create(clientId: string, dto: CreatePlannedOrderDto) {
-    const category = await this.prisma.category.findUnique({ where: { id: dto.categoryId } });
+    const dates = await this.validateCreation(dto, this.prisma);
+    const order = await this.prisma.$transaction((tx) => this.persistCreation(tx, clientId, dto, dates));
+    const delaySeconds = Math.max(0, Math.floor((dates.slotStart.getTime() - Date.now()) / 1000));
+    await this.queue.send(JOBS.PLANNED_EXPIRY, { plannedOrderId: order.id }, delaySeconds);
+    return this.findOrThrow(order.id);
+  }
+
+  async createIdempotent(
+    clientId: string,
+    dto: CreateIdempotentPlannedOrderDto,
+    assertPhotosAvailable: (tx: Tx) => Promise<void>,
+  ) {
+    if (!isUUID(dto.clientRequestId)) throw new BadRequestException('clientRequestId must be a UUID');
+    if (!Number.isFinite(Date.parse(dto.slotStart)) || !Number.isFinite(Date.parse(dto.slotEnd))) {
+      throw new BadRequestException('Invalid planned slot');
+    }
+    const requestKey = dto.clientRequestId.toLowerCase();
+    const payloadHash = plannedCreationPayloadHash(dto);
+    const creation = await this.prisma.$transaction(async (tx) => {
+      // All retries for an authenticated owner serialize before transient checks.
+      // The unique key remains the database backstop; no field-based matching.
+      await tx.$queryRaw`SELECT id FROM "User" WHERE id=${clientId} FOR UPDATE`;
+      const previous = await tx.plannedOrderCreationRequest.findUnique({
+        where: { ownerId_requestKey: { ownerId: clientId, requestKey } },
+      });
+      if (previous) {
+        if (previous.payloadHash !== payloadHash) throw new ConflictException('IDEMPOTENCY_PAYLOAD_MISMATCH');
+        return { record: previous, replayed: true };
+      }
+      const dates = await this.validateCreation(dto, tx);
+      await assertPhotosAvailable(tx);
+      const order = await this.persistCreation(tx, clientId, dto, dates);
+      const record = await tx.plannedOrderCreationRequest.create({
+        data: { ownerId: clientId, requestKey, payloadHash, orderId: order.id },
+      });
+      return { record, replayed: false };
+    });
+    const order = await this.guardClient(clientId, creation.record.orderId);
+    await this.scheduleCreationExpiry(creation.record, order.slotStart);
+    return { order: this.redactMasterContact(order), replayed: creation.replayed };
+  }
+
+  /** The committed identity also acts as an outbox, including across process restarts. */
+  async recoverCreationExpiry(): Promise<void> {
+    if (this.queue.healthCheck().status !== 'UP') return;
+    const pending = await this.prisma.plannedOrderCreationRequest.findMany({
+      where: { expiryScheduledAt: null, order: { lifecycleModel: 'LEGACY' } },
+      include: { order: { select: { slotStart: true } } },
+      orderBy: { createdAt: 'asc' },
+      take: 100,
+    });
+    for (const record of pending) await this.scheduleCreationExpiry(record, record.order.slotStart);
+  }
+
+  private async scheduleCreationExpiry(
+    record: { orderId: string; expiryScheduledAt: Date | null },
+    slotStart: Date,
+  ): Promise<void> {
+    if (record.expiryScheduledAt || this.queue.healthCheck().status !== 'UP') return;
+    try {
+      const delaySeconds = Math.max(0, Math.ceil((slotStart.getTime() - Date.now()) / 1000));
+      await this.queue.send(JOBS.PLANNED_EXPIRY, { plannedOrderId: record.orderId }, delaySeconds);
+      await this.prisma.plannedOrderCreationRequest.update({
+        where: { orderId: record.orderId },
+        data: { expiryScheduledAt: new Date() },
+      });
+    } catch {
+      // A send/marker crash can repeat expiry delivery, but cannot recreate the order.
+      // The expiry handler gates the state transition; the pending row is retried.
+      this.logger.warn(`Planned expiry dispatch pending for ${record.orderId}`);
+    }
+  }
+
+  private async validateCreation(dto: CreatePlannedOrderDto, db: Tx) {
+    const category = await db.category.findUnique({ where: { id: dto.categoryId } });
     if (!category) throw new BadRequestException('Неизвестная категория');
 
     const slotStart = new Date(dto.slotStart);
@@ -64,36 +144,40 @@ export class PlannedOrdersService implements OnModuleInit {
     }
     if (slotEnd <= slotStart) throw new BadRequestException('Конец слота должен быть позже начала');
 
-    const order = await this.prisma.$transaction(async (tx) => {
-      const created = await tx.plannedOrder.create({
-        data: {
-          clientId,
-          lifecycleModel: 'LEGACY',
-          categoryId: dto.categoryId,
-          description: dto.description,
-          address: dto.address,
-          district: dto.district,
-          entrance: dto.entrance ?? null,
-          floor: dto.floor ?? null,
-          apartment: dto.apartment ?? null,
-          addressComment: dto.addressComment ?? null,
-          budget: dto.budget ?? null,
-          slotStart,
-          slotEnd,
-          status: 'PUBLISHED',
-          publishedAt: now,
-        },
-      });
-      if (dto.photoPaths?.length) {
-        await tx.plannedOrderPhoto.createMany({
-          data: dto.photoPaths.map((path) => ({ plannedOrderId: created.id, path })),
-        });
-      }
-      return created;
+    return { slotStart, slotEnd, now };
+  }
+
+  private async persistCreation(
+    tx: Tx,
+    clientId: string,
+    dto: CreatePlannedOrderDto,
+    { slotStart, slotEnd, now }: { slotStart: Date; slotEnd: Date; now: Date },
+  ) {
+    const created = await tx.plannedOrder.create({
+      data: {
+        clientId,
+        lifecycleModel: 'LEGACY',
+        categoryId: dto.categoryId,
+        description: dto.description,
+        address: dto.address,
+        district: dto.district,
+        entrance: dto.entrance ?? null,
+        floor: dto.floor ?? null,
+        apartment: dto.apartment ?? null,
+        addressComment: dto.addressComment ?? null,
+        budget: dto.budget ?? null,
+        slotStart,
+        slotEnd,
+        status: 'PUBLISHED',
+        publishedAt: now,
+      },
     });
-    const delaySeconds = Math.max(0, Math.floor((slotStart.getTime() - Date.now()) / 1000));
-    await this.queue.send(JOBS.PLANNED_EXPIRY, { plannedOrderId: order.id }, delaySeconds);
-    return this.findOrThrow(order.id);
+    if (dto.photoPaths?.length) {
+      await tx.plannedOrderPhoto.createMany({
+        data: dto.photoPaths.map((path) => ({ plannedOrderId: created.id, path })),
+      });
+    }
+    return created;
   }
 
   async listMine(clientId: string) {
@@ -458,7 +542,24 @@ export class PlannedOrdersService implements OnModuleInit {
     if (order.clientId === user.id) return this.redactMasterContact(order);
     const revealed = order.masterId === user.id;
     if (revealed) return order;
-    return { ...order, ...PlannedOrdersService.NON_PRIVILEGED_REDACTION(order) };
+    // Only the public feed case may be read by a nonparticipant. An assigned or
+    // historical order is private even when its contact fields are redacted.
+    // Preserve the operator's existing redacted read; do not broaden privileges.
+    if (user.role === 'OPERATOR') return { ...order, ...PlannedOrdersService.NON_PRIVILEGED_REDACTION(order) };
+    if (order.masterId || order.status !== 'PUBLISHED') throw new ForbiddenException('No access to this order');
+    const membership = await this.prisma.masterCategory.findFirst({
+      where: { categoryId: order.categoryId, masterProfile: { userId: user.id, status: 'ACTIVE' } },
+      select: { categoryId: true },
+    });
+    if (!membership) throw new ForbiddenException('No access to this order');
+    const ownBid = order.bids.find(bid => bid.masterUserId === user.id);
+    return {
+      ...order,
+      ...PlannedOrdersService.NON_PRIVILEGED_REDACTION(order),
+      dispute: null,
+      ownBid: ownBid ? { id: ownBid.id, masterUserId: ownBid.masterUserId, price: ownBid.price, term: ownBid.term, comment: ownBid.comment, createdAt: ownBid.createdAt } : null,
+      _count: { bids: order.bids.length },
+    };
   }
 
   /**

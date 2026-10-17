@@ -1,4 +1,4 @@
-const ROUTES = new Set(['', 'catalog', 'orders', 'order', 'planned', 'profile', 'addresses', 'payments', 'notifications', 'support']);
+const ROUTES = new Set(['', 'dashboard', 'catalog', 'orders', 'order', 'planned', 'profile', 'addresses', 'payments', 'notifications', 'support']);
 /** Only existing same-origin client routes may resume after authentication. */
 export function safeReturnPath(candidate: string | null): string {
   if (!candidate || !candidate.startsWith('/') || candidate.startsWith('//') || /[\\\u0000-\u0020\u007f]/.test(candidate)) return '/';

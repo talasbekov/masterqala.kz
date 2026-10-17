@@ -1,63 +1,21 @@
 'use client';
-import {Button,useLocale} from '@masterqala/ui';
-import { useMasterPresence } from '@/lib/masterPresence';
-import { useCountdown } from '@/lib/useCountdown';
-import { OfferOverlayMobile } from './OfferOverlayMobile';
+import {useEffect,useState} from 'react';
+import {Button,Dialog,useLocale} from '@masterqala/ui';
+import {useMasterPresence} from '@/lib/masterPresence';
+import {useCountdown} from '@/lib/useCountdown';
+import {OfferOverlayMobile} from './OfferOverlayMobile';
+import {offerNoticeText,urgentCopy} from './desktop-urgent/copy';
+import './desktop-urgent/urgent.css';
 
 export function OfferOverlay() {
-  const { offer, offerNote, acceptingOffer, acceptOffer, declineOffer, dismissOfferNote } = useMasterPresence();
-  const {t}=useLocale();
-  const secondsLeft = useCountdown(offer?.deadline ?? null);
-
-  if (!offer) {
-    if (!offerNote) return <OfferOverlayMobile />;
-    return (
-      <>
-        <div className="hidden md:flex fixed bottom-6 right-6 z-50 w-full max-w-[360px] items-start gap-3 rounded-md border border-border bg-fill-soft p-3 text-sm text-ink-soft shadow-lg">
-          <p className="flex-1">{offerNote}</p>
-          <button
-            type="button"
-            onClick={dismissOfferNote}
-            aria-label="Скрыть уведомление"
-            className="text-ink-soft hover:text-ink"
-          >
-            ✕
-          </button>
-        </div>
-        <OfferOverlayMobile />
-      </>
-    );
-  }
-
-  return (
-    <>
-      <div className="hidden md:flex fixed inset-0 z-50 items-center justify-center bg-ink/40 p-6">
-        <div className="w-full max-w-[420px] space-y-3 rounded-lg bg-surface p-6 text-center shadow-xl">
-          <div className="text-xs font-extrabold uppercase text-ink-soft">
-            Новая заявка · {offer.distanceKm} км
-          </div>
-          <h2 className="text-xl font-extrabold text-ink">{offer.category}</h2>
-          <p className="text-sm text-ink-soft">{offer.description}</p>
-          {offer.district && <p className="text-sm text-ink-soft">{offer.district}</p>}
-          {offer.directPayment?<div className="rounded-lg bg-fill-soft p-4 text-sm leading-relaxed text-primary">{t('directCreateNote')}</div>:offer.freePilot ? (
-            <div className="rounded-md bg-fill-soft p-3 text-sm font-semibold text-ink">
-              Бесплатный пилот: стоимость работ согласовывается с клиентом напрямую.
-            </div>
-          ) : (
-            <div className="text-lg font-extrabold text-primary">Компенсация выезда: {offer.compensation} ₸</div>
-          )}
-          <button
-            type="button"
-            disabled={acceptingOffer||secondsLeft===0}
-            onClick={acceptOffer}
-            className="w-full rounded-pill bg-primary p-4 text-base font-extrabold text-white disabled:opacity-40"
-          >
-            {offer.directPayment?t('acceptOffer'):acceptingOffer ? 'Принимаем…' : `Принять (${secondsLeft} с)`}
-          </button>
-          {offer.directPayment&&<Button variant="secondary" className="w-full" disabled={acceptingOffer} onClick={()=>void declineOffer()}>{t('skip')}</Button>}
-        </div>
-      </div>
-      <OfferOverlayMobile />
-    </>
-  );
+ const {offer,offerNote,acceptingOffer,acceptOffer,declineOffer,dismissOfferNote}=useMasterPresence();
+ const {language,t,formatMoney}=useLocale(),c=urgentCopy[language];
+ const [desktop,setDesktop]=useState(false),[online,setOnline]=useState(true);
+ const secondsLeft=useCountdown(offer?.deadline??null);
+ useEffect(()=>{const query=window.matchMedia('(min-width:768px)');const resize=()=>setDesktop(query.matches);const network=()=>setOnline(navigator.onLine);resize();network();query.addEventListener('change',resize);window.addEventListener('online',network);window.addEventListener('offline',network);return()=>{query.removeEventListener('change',resize);window.removeEventListener('online',network);window.removeEventListener('offline',network);};},[]);
+ if(!desktop)return <OfferOverlayMobile/>;
+ const note=offerNoticeText(offerNote,language);
+ if(!offer)return note?<aside role="status" className="fixed bottom-6 right-6 z-50 w-[360px] max-w-[calc(100%_-_48px)] rounded-lg border border-border bg-surface p-6 shadow-lg"><h2 className="font-semibold text-primary">{c.offerNote}</h2><p className="my-4 break-words text-sm text-ink-soft">{note}</p><Button variant="secondary" onClick={dismissOfferNote}>{c.dismiss}</Button></aside>:null;
+ const expired=!Number.isFinite(secondsLeft)||secondsLeft<=0;
+ return <Dialog open title={c.offer} busy={acceptingOffer} onClose={()=>void declineOffer()}><div className="mq-urgent-confirm"><p className="text-xs text-ink-soft">{c.offer} · {offer.distanceKm} {c.distance}</p><h2>{offer.category}</h2><p className="whitespace-pre-wrap break-words">{offer.description}</p>{offer.district&&<p>{offer.district}</p>}<p className="mq-urgent-notice">{offer.directPayment?t('directCreateNote'):offer.freePilot?c.pilotNote:`${c.compensation}: ${formatMoney(offer.compensation)}`}</p>{offer.freePilot&&!offer.directPayment&&<p className="text-xs text-ink-soft">{c.pilot}</p>}{!online&&<p role="status">{c.offline}</p>}{expired&&<p role="status">{c.expired}</p>}<Button variant="accent" disabled={acceptingOffer||expired||!online} loading={acceptingOffer} loadingLabel={c.busy} onClick={()=>void acceptOffer()}>{c.accept} · {secondsLeft} {c.seconds}</Button><Button variant="secondary" disabled={acceptingOffer||!online} onClick={()=>void declineOffer()}>{c.skip}</Button></div></Dialog>;
 }

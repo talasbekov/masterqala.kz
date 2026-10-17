@@ -8,6 +8,7 @@ export const JOBS = {
   AUTO_CLOSE: 'order-auto-close',
   PRESENCE_SWEEP: 'presence-sweep',
   PLANNED_EXPIRY: 'planned-order-expiry',
+  PLANNED_CREATION_EXPIRY_RECOVERY: 'planned-creation-expiry-recovery',
   PLANNED_CONFIRM_TIMEOUT: 'planned-order-confirm-timeout',
   PLANNED_AUTO_CLOSE: 'planned-order-auto-close',
   UPLOAD_CLEANUP: 'pending-upload-cleanup',

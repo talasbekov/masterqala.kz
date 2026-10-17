@@ -2,6 +2,10 @@ import { INestApplication } from '@nestjs/common';
 import * as request from 'supertest';
 import { createTestApp, resetDb, loginAs, seedCategories } from './helpers';
 import { PrismaService } from '../src/prisma/prisma.service';
+import { AdminService } from '../src/admin/admin.service';
+import { MastersService } from '../src/masters/masters.service';
+import { AuditLogService } from '../src/audit-log/audit-log.service';
+import { Prisma } from '@prisma/client';
 
 describe('Admin: decision', () => {
   let app: INestApplication;
@@ -41,6 +45,57 @@ describe('Admin: decision', () => {
       .expect(201);
     expect(res.body.status).toBe('ACTIVE');
     expect(await prisma.verificationDecision.count({ where: { masterProfileId: profileId } })).toBe(1);
+  });
+
+  it('waits for an in-flight document upload and rejects approval of its quarantined document', async () => {
+    const { profileId } = await setup();
+    const profile = await prisma.masterProfile.findUniqueOrThrow({ where: { id: profileId } });
+    const operator = await prisma.user.findFirstOrThrow({ where: { role: 'OPERATOR' } });
+    let uploadInserted!: () => void;
+    let releaseUpload!: () => void;
+    let decisionStarted!: () => void;
+    const inserted = new Promise<void>((resolve) => { uploadInserted = resolve; });
+    const release = new Promise<void>((resolve) => { releaseUpload = resolve; });
+    const deciding = new Promise<void>((resolve) => { decisionStarted = resolve; });
+    const storage = { save: jest.fn().mockResolvedValue('verification-race-fixture.jpg'), remove: jest.fn() };
+    const uploadPrisma = {
+      masterProfile: prisma.masterProfile,
+      masterDocument: prisma.masterDocument,
+      $executeRaw: prisma.$executeRaw.bind(prisma),
+      $queryRaw: prisma.$queryRaw.bind(prisma),
+      $transaction: (work: (tx: Prisma.TransactionClient) => Promise<unknown>) => prisma.$transaction(async (tx) => {
+        const result = await work(tx);
+        uploadInserted();
+        await release;
+        return result;
+      }),
+    };
+    const decisionPrisma = {
+      masterProfile: prisma.masterProfile,
+      $queryRaw: prisma.$queryRaw.bind(prisma),
+      $transaction: (work: (tx: Prisma.TransactionClient) => Promise<unknown>) => {
+        decisionStarted();
+        return prisma.$transaction(work);
+      },
+    };
+    const masters = new MastersService(uploadPrisma as never, { get: () => 'BYPASS' } as never,
+      { enqueueMasterDocument: async () => undefined } as never, {} as never, storage as never);
+    const admin = new AdminService(decisionPrisma as never, storage as never, app.get(AuditLogService));
+    const buffer = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00]);
+    const upload = masters.uploadDocument(profile.userId, 'ID_CARD', {
+      fieldname: 'file', originalname: 'fixture.jpg', mimetype: 'image/jpeg', buffer, size: buffer.length,
+    } as Express.Multer.File);
+    // The upload holds the actual profile row lock until the decision is attempting its transaction.
+    await inserted;
+    const decision = admin.decide(operator.id, profileId, { decision: 'APPROVE' });
+    const rejected = expect(decision).rejects.toMatchObject({ status: 409 });
+    await deciding;
+    releaseUpload();
+    await upload;
+    await rejected;
+    expect((await prisma.masterProfile.findUniqueOrThrow({ where: { id: profileId } })).status).toBe('PENDING_REVIEW');
+    expect(await prisma.verificationDecision.count({ where: { masterProfileId: profileId } })).toBe(0);
+    expect(await prisma.auditLog.count({ where: { targetId: profileId, action: 'MASTER_APPROVED' } })).toBe(0);
   });
 
   it('REJECT без комментария → 400; с комментарием → REJECTED с причиной', async () => {
@@ -89,5 +144,6 @@ describe('Admin: decision', () => {
     expect(ok).toBe(1);
     expect(conflict).toBe(3);
     expect(await prisma.verificationDecision.count({ where: { masterProfileId: profileId } })).toBe(1);
+    expect(await prisma.auditLog.count({ where: { targetId: profileId, action: 'MASTER_APPROVED' } })).toBe(1);
   });
 });

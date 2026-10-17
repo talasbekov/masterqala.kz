@@ -1,0 +1,4 @@
+.desktop-saved-addresses select{width:100%;min-height:52px;border:1px solid #d6e2e5;border-radius:12px;background:#fff;color:inherit;padding:12px;font:inherit;}
+.desktop-saved-addresses select:focus-visible,.desktop-location-confirm:focus-visible{outline:3px solid #166088;outline-offset:2px;}
+.desktop-saved-addresses p,.desktop-address-notice{font-size:14px;line-height:1.5;margin:8px 0 16px;}
+.desktop-saved-addresses button,.desktop-location-confirm{min-height:44px;border:1px solid #166088;border-radius:10px;padding:8px 14px;background:white;color:#166088;font:inherit;}
