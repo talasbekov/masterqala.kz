@@ -18,7 +18,9 @@
 - Prisma управляет основной схемой;
 - файлы сохраняются через storage abstraction, текущая реализация — local disk;
 - `docker-compose.yml` поднимает development/test базы;
-- production Dockerfile/compose/systemd unit и reverse proxy config пока не добавлены.
+- production Dockerfile есть у всех шести приложений (`apps/api`, `apps/web`,
+  `apps/site`, `apps/client`, `apps/master`, `apps/operator`) — единого
+  production-compose/systemd unit и reverse proxy config пока не добавлены.
 
 Порты разработки:
 
@@ -45,7 +47,7 @@
 | HTTP/Socket.IO маскирование цены | реализовано |
 | CI workflow | добавлен в PR #4 |
 | подтверждённый успешный CI run | подтверждён — `.github/workflows/ci.yml` проходит на каждый push |
-| production container/systemd | реализован — `apps/api/Dockerfile` и `apps/web/Dockerfile` (multi-stage, собраны и проверены live-контейнером). systemd unit / compose-оркестрация всё ещё не собраны |
+| production container/systemd | реализован — Dockerfile есть у всех шести приложений (`apps/api`, `apps/web`, `apps/site`, `apps/client`, `apps/master`, `apps/operator`; последние четыре — 20.08.2026, multi-stage на `output: 'standalone'`), все собраны и проверены live-контейнером. systemd unit / compose-оркестрация всех сервисов вместе всё ещё не собраны |
 | реальный SMS-провайдер | адаптер реализован — `SMS_PROVIDER_MODE=HTTP` (`apps/api/src/sms/http-sms.sender.ts`), URL/тело/метод конфигурируются через env без правки кода. `CONSOLE`-режим запрещён централизованной валидацией в production. Конкретный провайдер (аккаунт, API-ключ) — не выбран |
 | CORS allowlist | реализован — `environment.ts` валидирует `CORS_ORIGINS`, запрещает wildcard и non-HTTPS в production, `main.ts` вызывает `enableCors({ origin: corsOrigins })` |
 | обязательный production JWT secret | реализован — `environment.ts` требует `JWT_SECRET` ≥32 символов и запрещает известные заглушки (`getOrThrow` без фолбэка) |
@@ -637,7 +639,7 @@ Frontend должен иметь управляемое сообщение о ma
 - [x] global rate limit включён (`rate-limit.middleware.ts`);
 - [x] file signature/карантин/ClamAV-скан реализованы (`FILE_SCAN_MODE=CLAMAV` обязателен в production);
 - [x] readiness зависимостей (БД, очередь, антивирус) реализован в `GET /health`;
-- [x] production process/container manifest создан (`apps/api/Dockerfile`, `apps/web/Dockerfile` — собраны и проверены live-контейнером);
+- [x] production process/container manifest создан у всех шести приложений (`apps/api`, `apps/web`, `apps/site`, `apps/client`, `apps/master`, `apps/operator/Dockerfile` — все собраны и проверены live-контейнером);
 - [x] SMS HTTP-адаптер реализован и конфигурируется без правки кода (`SMS_PROVIDER_MODE=HTTP`).
 
 ### Требует подтверждения/реализации
