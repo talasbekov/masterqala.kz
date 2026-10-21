@@ -1,4 +1,4 @@
-import { JwtService } from '@nestjs/jwt';
+import { AccessTokenService } from '../auth/access-token.service';
 import { Server } from 'socket.io';
 import { PrismaService } from '../prisma/prisma.service';
 import { PresenceService } from './presence.service';
@@ -19,7 +19,7 @@ function setup(commercialMode: 'FREE_PILOT' | 'PAID_MOCK') {
     },
   } as unknown as PrismaService;
   const gateway = new RealtimeGateway(
-    {} as JwtService,
+    {} as AccessTokenService,
     {} as PresenceService,
     prisma,
   );

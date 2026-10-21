@@ -1,8 +1,8 @@
 'use client';
 import {formatServiceDate} from '@masterqala/ui';
 import Link from 'next/link';
+import {useRouter,useSearchParams} from 'next/navigation';
 import {masterDesignCopy} from '@/lib/masterDesignCopy';
-import {useState} from 'react';
 import {Button, useLocale} from '@masterqala/ui';
 import {useMasterHistory, type HistoryFilter} from '@/lib/master-history';
 import {masterHistoryCopy} from '@/lib/master-history-copy';
@@ -11,7 +11,14 @@ import {masterCategoryName} from '@/lib/category-name';
 export function MasterHistoryView() {
   const {language,t} = useLocale();
   const copy = masterHistoryCopy(language), design=masterDesignCopy(language);
-  const [filter,setFilter] = useState<HistoryFilter>('all');
+  const router=useRouter(),search=useSearchParams(),requestedFilter=search?.get('filter');
+  const filter:HistoryFilter=requestedFilter==='active'||requestedFilter==='history'?requestedFilter:'all';
+  const selectFilter=(value:HistoryFilter)=>{
+    if(value===filter)return;
+    const params=new URLSearchParams(search?.toString());
+    params.set('filter',value);
+    router.push(`/history?${params}`,{scroll:false});
+  };
   const history = useMasterHistory(filter);
   const statuses = {CREATED:t('ownedCreated'), SEARCHING:t('searching'), ACCEPTED:t('assigned'), MASTER_ON_WAY:t('enroute'), INSPECTION:t('inspection'), AWAITING_PRICE_CONFIRM:t('quote'), PRICE_APPROVED:t('approved'), IN_PROGRESS:t('working'), DONE:copy.done, CLOSED:copy.closed, NO_MASTERS:t('nomatch'), CANCELLED_BY_CLIENT:t('ownedCancelledClient'), CANCELLED_BY_MASTER:t('ownedCancelledMaster'), DISPUTE:t('ownedDispute'), PUBLISHED:t('ownedPublished'), MASTER_SELECTED:t('ownedSelected'), CONFIRMED:t('ownedConfirmed'), EXPIRED:t('ownedExpired')};
   if (!history.authenticated) return null;
@@ -22,7 +29,7 @@ export function MasterHistoryView() {
   const href=(item:typeof history.items[number])=>`/${item.kind==='urgent'?'order':'planned'}/${encodeURIComponent(item.id)}`;
   return <section className="mq-master-dashboard mq-master-history" aria-labelledby="master-history-title">
     <h1 id="master-history-title">{copy.title}</h1><p className="mq-master-overview__intro">{copy.note}</p>
-    <div className="mq-master-history__filters" aria-label={copy.title}>{(['all','active','history'] as const).map(value=><Button key={value} variant={value===filter?'accent':'white'} aria-pressed={value===filter} onClick={()=>setFilter(value)} data-history-filter={value}>{copy[value]}</Button>)}</div>
+    <div className="mq-master-history__filters" aria-label={copy.title}>{(['all','active','history'] as const).map(value=><Button key={value} variant={value===filter?'accent':'white'} aria-pressed={value===filter} onClick={()=>selectFilter(value)} data-history-filter={value}>{copy[value]}</Button>)}</div>
     <div className="mq-master-dashboard__grid"><div className="mq-master-dashboard__main">
     {history.loading&&<p role="status">{t('loading')}</p>}
     {history.error&&<div role="alert" className="mq-master-card"><p>{copy.error}</p><Button variant="secondary" onClick={history.retry} disabled={history.loading}>{t('retry')}</Button></div>}

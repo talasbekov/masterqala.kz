@@ -33,7 +33,7 @@ SMS-коды в dev пишутся в лог API строкой `SMS → +7…`.
 
 ```bash
 pnpm --filter api test                # unit
-pnpm --filter api test:e2e            # e2e, нужна db_test на :5433
+ALLOW_ISOLATED_API_TESTS=1 pnpm --filter api test:e2e # destructive e2e, только db_test на :5433
 ```
 
 Подробнее — [docs/technical/DEVELOPMENT.md](docs/technical/DEVELOPMENT.md).

@@ -1,6 +1,6 @@
 'use client';
 import Link from 'next/link';
-import {usePathname,useRouter} from 'next/navigation';
+import {usePathname,useRouter,useSearchParams} from 'next/navigation';
 import {useLocale} from '@masterqala/ui';
 import {useAuth} from '../lib/auth';
 import {useMasterPresence} from '../lib/masterPresence';
@@ -9,12 +9,14 @@ import {masterDesignCopy} from '../lib/masterDesignCopy';
 import './remaining-routes.css';
 export function MasterWorkspace({children,anonymous=false}:{children:React.ReactNode;anonymous?:boolean}){
  const {language,setLanguage}=useLocale(),c=masterDesignCopy(language),{user,logout}=useAuth(),path=usePathname()??'',router=useRouter();
+ const search=useSearchParams(),dashboardHref=search?.get('tab')==='planned'?'/?tab=planned':'/';
  const presence=useMasterPresence();
  const sidebar=!anonymous&&!!user&&!['/wallet','/lead-credits','/become-master'].includes(path);
  const links=[['/',c.overview],['/history',c.orders],['/?tab=planned',c.planned],['/become-master',c.profile],['/become-master#master-documents',c.documents],['/disputes',c.disputes]];
+ const isCurrent=(href:string)=>path==='/'?href===dashboardHref:path===href||href==='/disputes'&&path.startsWith('/disputes/');
  const signout=<button type="button" className="mq-master-signout" onClick={()=>{logout();router.replace('/login');}}>{c.logout}</button>;
  return <div className={`mq-master-workspace ${sidebar?'mq-master-workspace--sidebar':'mq-master-workspace--current'}`}>
-  {sidebar&&<aside className="mq-master-sidebar"><Link href="/" className="mq-master-brand">MasterQala</Link><p>{c.workspace}</p><nav aria-label={c.workspace}>{links.map(([href,label])=><Link key={href} href={href} aria-current={path===href||href==='/disputes'&&path.startsWith('/disputes/')?'page':undefined}>{label}</Link>)}</nav>{signout}</aside>}
+  {sidebar&&<aside className="mq-master-sidebar"><Link href="/" className="mq-master-brand">MasterQala</Link><p>{c.workspace}</p><nav aria-label={c.workspace}>{links.map(([href,label])=><Link key={href} href={href} aria-current={isCurrent(href)?'page':undefined}>{label}</Link>)}</nav>{signout}</aside>}
   <div className="mq-master-workspace__body"><header className="mq-master-header">
    {!sidebar&&<Link href="/" className="mq-master-brand" aria-label="MasterQala">MasterQala</Link>}
    <span className="mq-master-header__label">{c.workspace}</span>

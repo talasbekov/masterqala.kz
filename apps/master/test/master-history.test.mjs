@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
+import {RouterFixture,traverseHistory} from './router-fixture.mjs';
 const require=createRequire(new URL('../../../packages/ui/package.json',import.meta.url));
 const {JSDOM}=require('jsdom');
 const dom=new JSDOM('<div id="root"></div>',{url:'https://test.local/'});
@@ -11,14 +12,16 @@ const ui=await import('@masterqala/ui');
 const {AuthProvider,useAuth,History,parseMasterHistory}=await import(process.env.MASTER_HISTORY_TEST_BUILD ?? '../.test-build/test/history-entry.js');
 const user=id=>({id,phone:'fixture',name:id,role:'CLIENT'});
 const item=(id,kind='urgent')=>({id,kind,status:'CLOSED',district:'Fixture district',createdAt:'2026-10-01T00:00:00.000Z',category:{slug:'fixture-category',name:`Fixture ${id}`}});
-async function mount(language='en') {
+async function mount(language='en',href='/history') {
+  window.history.replaceState({},'',href);
+  const navigations=[];
   localStorage.clear();localStorage.setItem('user',JSON.stringify(user('A')));localStorage.setItem('token','fixture-a');
   const requests=[];
   globalThis.fetch=(url,options)=>new Promise((resolve,reject)=>requests.push({url,options,reject,resolve:body=>resolve({ok:true,status:200,json:async()=>body})}));
   let auth,locale; function Probe(){auth=useAuth();locale=ui.useLocale();return null;}
   const root=createRoot(document.getElementById('root'));
-  await act(async()=>root.render(React.createElement(ui.LocaleProvider,{initialLanguage:language},React.createElement(AuthProvider,null,React.createElement(Probe),React.createElement(History)))));
-  return {requests,auth:()=>auth,locale:()=>locale,resolve:(i,body)=>act(async()=>requests[i].resolve(body)),cleanup:()=>act(async()=>root.unmount())};
+  await act(async()=>root.render(React.createElement(RouterFixture,{navigations},React.createElement(ui.LocaleProvider,{initialLanguage:language},React.createElement(AuthProvider,null,React.createElement(Probe),React.createElement(History))))));
+  return {requests,navigations,auth:()=>auth,locale:()=>locale,resolve:(i,body)=>act(async()=>requests[i].resolve(body)),cleanup:()=>act(async()=>root.unmount())};
 }
 const click=selector=>act(async()=>document.querySelector(selector).click());
 test('history aside retains DONE awaiting acceptance and excludes server terminal statuses across filters',async()=>{
@@ -89,4 +92,71 @@ test('unmount and remount reads anew without mutation or retained rows',async()=
 });
 test('parser rejects malformed identities, dates, duplicate keys and cursors',()=>{
   for(const value of [null,{},[],{items:[item('../secret')],nextCursor:null},{items:[{...item('x'),createdAt:'bad'}],nextCursor:null},{items:[item('x'),item('x')],nextCursor:null},{items:[],nextCursor:'bad cursor'}])assert.throws(()=>parseMasterHistory(value));
+});
+
+
+const selectedFilter=()=>document.querySelector('[data-history-filter][aria-pressed="true"]').dataset.historyFilter;
+for(const filter of ['all','active','history'])test(`history opens directly at the URL-backed ${filter} filter`,async()=>{
+  const a=await mount('en',`/history?filter=${filter}`);
+  try {
+    assert.equal(selectedFilter(),filter);
+    assert.equal(a.requests.length,1);
+    assert.equal(new URL(a.requests[0].url).searchParams.get('filter'),filter);
+    assert.deepEqual(a.navigations,[]);
+  } finally {await a.cleanup();}
+});
+for(const query of ['','?filter=invalid','?filter=','?filter=%2Factive'])test(`history safely falls back to all for ${query||'a missing filter'}`,async()=>{
+  const a=await mount('en',`/history${query}`);
+  try {
+    assert.equal(selectedFilter(),'all');
+    assert.equal(new URL(a.requests[0].url).searchParams.get('filter'),'all');
+    assert.equal(a.requests.length,1);
+    assert.deepEqual(a.navigations,[]);
+  } finally {await a.cleanup();}
+});
+test('history filter selection updates its URL without dropping unrelated query state or duplicating the current selection',async()=>{
+  const a=await mount('en','/history?source=workspace&filter=all');
+  try {
+    await click('[data-history-filter="active"]');
+    assert.equal(window.location.pathname,'/history');
+    assert.equal(new URLSearchParams(window.location.search).get('filter'),'active');
+    assert.equal(new URLSearchParams(window.location.search).get('source'),'workspace');
+    assert.equal(selectedFilter(),'active');
+    assert.equal(a.navigations.length,1);
+    await click('[data-history-filter="active"]');
+    assert.equal(a.navigations.length,1);
+    assert.equal(a.requests.length,2);
+    assert.ok(a.requests.every(r=>(r.options.method??'GET')==='GET'));
+  } finally {await a.cleanup();}
+});
+test('history restores a selected filter when the route remounts at the same URL',async()=>{
+  const a=await mount();
+  await click('[data-history-filter="history"]');
+  const href=window.location.pathname+window.location.search;
+  await a.cleanup();
+  const b=await mount('en',href);
+  try {
+    assert.equal(selectedFilter(),'history');
+    assert.equal(new URL(b.requests[0].url).searchParams.get('filter'),'history');
+    assert.equal(b.requests.length,1);
+  } finally {await b.cleanup();}
+});
+test('history follows native Back and Forward, hides old rows, and rejects responses from an abandoned filter',async()=>{
+  const a=await mount('en','/history?filter=active');
+  try {
+    await a.resolve(0,{items:[{...item('active-first'),status:'DONE'}],nextCursor:null});
+    await click('[data-history-filter="history"]');
+    assert.equal(selectedFilter(),'history');assert.equal(new URLSearchParams(window.location.search).get('filter'),'history');assert.doesNotMatch(document.body.textContent,/Fixture active-first/);
+    await a.resolve(1,{items:[item('history-first')],nextCursor:null});
+    await traverseHistory('back');
+    assert.equal(selectedFilter(),'active');assert.doesNotMatch(document.body.textContent,/Fixture history-first/);
+    await traverseHistory('forward');
+    assert.equal(selectedFilter(),'history');assert.equal(a.requests[2].options.signal.aborted,true);
+    await a.resolve(2,{items:[item('abandoned-active')],nextCursor:null});
+    assert.doesNotMatch(document.body.textContent,/Fixture abandoned-active/);
+    await a.resolve(3,{items:[item('history-current')],nextCursor:null});
+    assert.match(document.body.textContent,/Fixture history-current/);
+    assert.deepEqual(a.requests.map(r=>new URL(r.url).searchParams.get('filter')),['active','history','active','history']);
+    assert.ok(a.requests.every(r=>(r.options.method??'GET')==='GET'));
+  } finally {await a.cleanup();}
 });

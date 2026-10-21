@@ -62,7 +62,7 @@ pnpm --filter web dev                 # Web на :5173
 
 ```bash
 pnpm --filter api test                # unit — 46 тестов, ~4 с
-pnpm --filter api test:e2e            # e2e — 184 теста, ~100 с; нужна db_test на :5433
+ALLOW_ISOLATED_API_TESTS=1 pnpm --filter api test:e2e # destructive e2e; нужна db_test на :5433
 ```
 
 Перед первым прогоном e2e накатите схему на тестовую базу:
@@ -76,6 +76,16 @@ E2E ходят в отдельную базу (`masterqala_test`) и запус�
 (`--runInBand`) — они делят состояние БД. Очередь в них выключена через
 `PGBOSS_DISABLED=1`, поэтому отложенные джобы не срабатывают сами: тест, который
 проверяет таймаут, вызывает обработчик напрямую.
+
+E2E очищают данные через `TRUNCATE`, поэтому требуют явного
+`ALLOW_ISOLATED_API_TESTS=1` и `NODE_ENV=test`. Разрешён только PostgreSQL URL
+с хостом `localhost` или `127.0.0.1`, портом `5433`, базой `masterqala_test`,
+без query/hash-параметров. Скрипт `test:e2e` задаёт этот локальный URL и
+`NODE_ENV=test`, но не включает разрешение на очистку автоматически. Перед
+каждой очисткой дополнительно проверяются фактическое имя подключённой базы
+и схема `public`. Выделенная queue-suite сохраняет собственный opt-in
+`ALLOW_ISOLATED_QUEUE_TESTS=1` и базу `masterqala_urgent_queue_ci` на порту `5434`;
+разрешения двух наборов тестов не взаимозаменяемы.
 
 ## Ручная проверка срочного режима
 

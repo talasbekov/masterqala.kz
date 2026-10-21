@@ -1,3 +1,4 @@
+import { AccessTokenService } from '../auth/access-token.service';
 import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { JwtModule, JwtService } from '@nestjs/jwt';
@@ -27,9 +28,9 @@ describe('master assigned-order history contract', () => {
   let jwt: JwtService;
   let urgent: any[], planned: any[];
   const find = (rows: () => any[]) => jest.fn(async (query: any) => rows().filter(row => matches(row, query.where)).sort((a,b) => b.createdAt-a.createdAt || (a.id>b.id?-1:1)).slice(0,query.take).map(row => Object.fromEntries(Object.keys(query.select).map(key => [key,row[key]]))));
-  const db = {user: {findUnique: jest.fn(async ({where}: any) => ['a','b','client'].includes(where.id) ? {id:where.id, role:'CLIENT',isBlocked:false}:null)}, masterProfile:{findUnique:jest.fn(async ({where}:any)=>['a','b'].includes(where.userId)?{id:where.userId}:null)}, order:{findMany:find(()=>urgent)}, plannedOrder:{findMany:find(()=>planned)}};
+  const db = {user: {findUnique: jest.fn(async ({where}: any) => ['a','b','client'].includes(where.id) ? {id:where.id, role:'CLIENT',authVersion:0,isBlocked:false}:null)}, masterProfile:{findUnique:jest.fn(async ({where}:any)=>['a','b'].includes(where.userId)?{id:where.userId}:null)}, order:{findMany:find(()=>urgent)}, plannedOrder:{findMany:find(()=>planned)}};
   beforeAll(async () => {
-    const module = await Test.createTestingModule({imports:[JwtModule.register({secret:'history-test-only-secret-at-least-32-characters'})],controllers:[MasterHistoryController],providers:[MasterHistoryService,{provide:PrismaService,useValue:db}]}).compile();
+    const module = await Test.createTestingModule({imports:[JwtModule.register({secret:'history-test-only-secret-at-least-32-characters'})],controllers:[MasterHistoryController],providers:[AccessTokenService,MasterHistoryService,{provide:PrismaService,useValue:db}]}).compile();
     app=module.createNestApplication(); await app.init(); jwt=module.get(JwtService);
   });
   afterAll(async()=>{await app.close();});
@@ -38,7 +39,7 @@ describe('master assigned-order history contract', () => {
     planned=[fixture('p3','a'),fixture('p2','a','MASTER_SELECTED'),fixture('p1','b'),fixture('bid-only',null,'PUBLISHED'),{...fixture('reserved','a'),lifecycleModel:'PLATFORM_V1_RESERVED'}];
     jest.clearAllMocks();
   });
-  const get=(owner:string,path='/master/orders')=>request(app.getHttpServer()).get(path).set('Authorization',`Bearer ${jwt.sign({sub:owner})}`);
+  const get=(owner:string,path='/master/orders')=>request(app.getHttpServer()).get(path).set('Authorization',`Bearer ${jwt.sign({sub:owner,role:'CLIENT',authVersion:0}, { expiresIn: '30d' })}`);
   it('uses real JWT guard: no auth / bad auth are 401; clients without master profile are 403',async()=>{
     await request(app.getHttpServer()).get('/master/orders').expect(401);
     await request(app.getHttpServer()).get('/master/orders').set('Authorization','Bearer invalid').expect(401);

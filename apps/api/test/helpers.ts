@@ -4,24 +4,33 @@ import * as request from 'supertest';
 import { UserRole } from '@prisma/client';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
+import { assertIsolatedTestDatabase } from './database-safety';
 
 export const TEST_PNG_BYTES = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00]);
 
 export async function createTestApp(opts: { listen?: boolean } = {}): Promise<INestApplication> {
+  // Retain the existing fixture-call signature; all test servers now bind explicitly.
+  void opts;
+  assertIsolatedTestDatabase();
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
   const app = moduleRef.createNestApplication();
   app.setGlobalPrefix('api/v1');
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
-  if (opts.listen) {
-    await app.listen(0);
-  } else {
-    await app.init();
-  }
+  // Bind explicitly before Supertest can create an implicit wildcard listener.
+  // Await readiness: passing a host makes Node listen asynchronous.
+  await app.listen(0, '127.0.0.1');
   return app;
 }
 
 export async function resetDb(app: INestApplication): Promise<void> {
+  const expectedDatabase = assertIsolatedTestDatabase();
   const prisma = app.get(PrismaService);
+  const identity = await prisma.$queryRaw<{ name: string; schema: string }[]>`
+    SELECT current_database() AS name, current_schema() AS schema
+  `;
+  if (identity.length !== 1 || identity[0].name !== expectedDatabase || identity[0].schema !== 'public') {
+    throw new Error('Refusing destructive reset: connected database/schema is not the isolated test target');
+  }
   await prisma.$executeRawUnsafe(
     'TRUNCATE "SecurityAlertDelivery","SecurityAlert","SecurityAuditEvent","DisputeEvidence","PendingUpload","User","SmsCode","Category","MasterProfile","MasterCategory","MasterDocument","VerificationDecision","Order","OrderOffer","MasterPresence","PaymentTransaction","Accrual","PlannedOrder","PlannedOrderBid","LeadCreditAccount","LeadCreditTransaction","LeadCreditPurchase","MasterWalletAccount","WithdrawalRequest","Dispute","MasterCancellation","OrderPhoto","PlannedOrderPhoto","Address" CASCADE',
   );
@@ -40,15 +49,13 @@ export async function loginAs(
   role: UserRole = 'CLIENT',
 ): Promise<{ token: string; userId: string }> {
   const prisma = app.get(PrismaService);
+  await prisma.user.upsert({ where: { phone }, create: { phone, role }, update: { role } });
   await request(app.getHttpServer()).post('/api/v1/auth/request-code').send({ phone }).expect(204);
-  const code = await prisma.smsCode.findFirstOrThrow({ where: { phone }, orderBy: { createdAt: 'desc' } });
+  const code = await prisma.smsCode.findFirstOrThrow({ where: { phone }, orderBy: { generation: 'desc' } });
   const res = await request(app.getHttpServer())
     .post('/api/v1/auth/verify-code')
     .send({ phone, code: code.code })
     .expect(200);
-  if (role !== 'CLIENT') {
-    await prisma.user.update({ where: { id: res.body.user.id }, data: { role } });
-  }
   return { token: res.body.accessToken, userId: res.body.user.id };
 }
 

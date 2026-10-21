@@ -3,6 +3,7 @@ import {DirectClientOrderView,useOrderState,useLocale} from '@masterqala/ui';
 import {useAuth} from '@/lib/auth';
 import {DesktopWorkspace} from '@/components/desktop-planned/DesktopWorkspace';
 import {PilotOrderView} from '@/components/desktop-urgent/PilotOrderView';
+import {orderSupportHref} from '@/lib/order-support';
 import {UrgentMap} from '@/components/desktop-urgent/UrgentMap';
 import {urgentCopy} from '@/components/desktop-urgent/copy';
 import MapView from '@/components/MapView';
@@ -53,7 +54,7 @@ function OwnedOrderPage({id}:{id:string}) {
   }
 
   if(order.lifecycleVersion>=2) return <DirectClientOrderView order={order} busy={busy} error={error} online={online} fresh={fresh}
-    onHome={()=>router.push('/')} onBack={()=>router.push('/orders')} onHelp={()=>router.push('/support')}
+    onHome={()=>router.push('/')} onBack={()=>router.push('/orders')} onHelp={()=>router.push(orderSupportHref(id))}
     onCancelPreview={()=>api(`/orders/${id}/cancellation-preview`)}
     map={<MapView mode="tracking" center={order.lat!=null&&order.lng!=null?{lat:order.lat,lng:order.lng}:{lat:51.1605,lng:71.4704}} height="100%" className="h-full rounded-none"/>}
     onAction={(action,body)=>mutate(()=>api(`/orders/${id}/${action}`,{method:'POST',body:JSON.stringify(body??{})}))}/>;

@@ -52,7 +52,7 @@ $ pnpm run start:prod
 $ pnpm run test
 
 # e2e tests
-$ pnpm run test:e2e
+$ ALLOW_ISOLATED_API_TESTS=1 pnpm run test:e2e
 
 # test coverage
 $ pnpm run test:cov

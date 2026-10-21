@@ -1,5 +1,5 @@
 import { Logger } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
+import { AccessTokenService } from '../auth/access-token.service';
 import {
   ConnectedSocket,
   MessageBody,
@@ -37,7 +37,7 @@ export class RealtimeGateway implements OnGatewayInit {
   server!: Server;
 
   constructor(
-    private readonly jwt: JwtService,
+    private readonly tokens: AccessTokenService,
     private readonly presence: PresenceService,
     private readonly prisma: PrismaService,
   ) {}
@@ -46,21 +46,10 @@ export class RealtimeGateway implements OnGatewayInit {
     // Отклоняем невалидный JWT ещё в handshake — клиент получает connect_error.
     server.use(async (socket, next) => {
       try {
-        const payload = await this.jwt.verifyAsync<{ sub: string }>(socket.handshake.auth?.token ?? '');
-        // Одной подписи мало: токен живёт 30 дней и не отзывается, поэтому
-        // сверяем состояние пользователя в БД — так же, как JwtAuthGuard на HTTP.
-        // Иначе заблокированный оператором мастер сохранял бы ленту заказов
-        // до конца жизни уже выданного токена.
-        const user = await this.prisma.user.findUnique({
-          where: { id: payload.sub },
-          select: { isBlocked: true },
-        });
-        if (!user || user.isBlocked) {
-          next(new Error('Доступ заблокирован'));
-          return;
-        }
-        socket.data.userId = payload.sub;
-        await socket.join(`user:${payload.sub}`);
+        // Shared HTTP/handshake boundary only. Existing sockets are not version-revalidated.
+        const user = await this.tokens.authenticate(socket.handshake.auth?.token ?? '');
+        socket.data.userId = user.id;
+        await socket.join(`user:${user.id}`);
         next();
       } catch {
         next(new Error('Требуется вход'));

@@ -37,7 +37,7 @@ describe('Blocked user enforcement (e2e)', () => {
       .expect(204);
     const code = await prisma.smsCode.findFirstOrThrow({
       where: { phone: '+77011112233' },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { generation: 'desc' },
     });
 
     await request(app.getHttpServer())

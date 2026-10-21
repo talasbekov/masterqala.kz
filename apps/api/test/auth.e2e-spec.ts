@@ -78,7 +78,7 @@ describe('Auth: verify-code', () => {
     await request(app.getHttpServer()).post('/api/v1/auth/request-code').send({ phone }).expect(204);
     const record = await prisma.smsCode.findFirstOrThrow({
       where: { phone },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { generation: 'desc' },
     });
     return record.code;
   }

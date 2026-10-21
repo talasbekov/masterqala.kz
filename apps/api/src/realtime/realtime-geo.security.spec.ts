@@ -1,4 +1,4 @@
-import { JwtService } from '@nestjs/jwt';
+import { AccessTokenService } from '../auth/access-token.service';
 import { Socket } from 'socket.io';
 import { PrismaService } from '../prisma/prisma.service';
 import { PresenceService } from './presence.service';
@@ -13,7 +13,7 @@ function setup() {
   const prisma = {
     order: { findFirst: jest.fn().mockResolvedValue(null) },
   } as unknown as PrismaService;
-  const gateway = new RealtimeGateway({} as JwtService, presence, prisma);
+  const gateway = new RealtimeGateway({} as AccessTokenService, presence, prisma);
   const socket = { data: { userId: 'master-1' } } as unknown as Socket;
 
   return {

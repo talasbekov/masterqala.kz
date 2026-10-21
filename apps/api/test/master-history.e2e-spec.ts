@@ -1,3 +1,4 @@
+import { AccessTokenService } from '../src/auth/access-token.service';
 import { randomUUID } from 'crypto';
 import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
@@ -14,8 +15,8 @@ describe('master history PostgreSQL query boundary', () => {
   beforeAll(async()=>{
     const url=new URL(process.env.DATABASE_URL!);
     if (!['localhost','127.0.0.1'].includes(url.hostname) || url.port!=='5433' || !url.pathname.endsWith('_test')) throw Error('History integration requires local test database on 5433');
-    const module=await Test.createTestingModule({imports:[JwtModule.register({secret:'history-integration-test-secret-32-characters'})],controllers:[MasterHistoryController],providers:[PrismaService,MasterHistoryService]}).compile();
-    app=module.createNestApplication();await app.init();db=app.get(PrismaService);jwt=app.get(JwtService);
+    const module=await Test.createTestingModule({imports:[JwtModule.register({secret:'history-integration-test-secret-32-characters'})],controllers:[MasterHistoryController],providers:[AccessTokenService,PrismaService,MasterHistoryService]}).compile();
+    app=module.createNestApplication();await app.listen(0, '127.0.0.1');db=app.get(PrismaService);jwt=app.get(JwtService);
     await db.user.createMany({data:[owner,other,client].map(id=>({id,phone:`history-test-${id}`}))});
     await db.category.create({data:{id:category,slug:`history-test-${category}`,name:'History integration fixture'}});
     for (const userId of [owner,other]) await db.masterProfile.create({data:{userId,fullName:'History fixture',iin:'000000000000',district:'Fixture',experienceYears:1,status:'ACTIVE'}});
@@ -34,7 +35,7 @@ describe('master history PostgreSQL query boundary', () => {
     }
     await app?.close();
   });
-  const get=(id:string,query='')=>request(app.getHttpServer()).get(`/master/orders${query}`).set('Authorization',`Bearer ${jwt.sign({sub:id})}`);
+  const get=(id:string,query='')=>request(app.getHttpServer()).get(`/master/orders${query}`).set('Authorization',`Bearer ${jwt.sign({sub:id,role:'CLIENT',authVersion:0}, { expiresIn: '30d' })}`);
   it('enforces real stored owner and projection, then paginates database ties without loss',async()=>{
     await request(app.getHttpServer()).get('/master/orders').expect(401);await get(client).expect(403);
     const ids:string[]=[];let cursor:string|null=null;

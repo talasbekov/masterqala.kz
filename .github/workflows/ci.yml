@@ -102,6 +102,8 @@ jobs:
         run: pnpm --filter api run test --runInBand
 
       - name: Run API e2e tests
+        env:
+          ALLOW_ISOLATED_API_TESTS: "1"
         shell: bash
         run: |
           set -o pipefail
